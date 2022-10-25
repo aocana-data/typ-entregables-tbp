@@ -1,4 +1,4 @@
--- 2022.10.20_TyP_consume (Vcliente).sql 
+-- 2022.10.25_TyP_consume (Vcliente).sql 
 
 
 
@@ -141,7 +141,7 @@ GROUP BY vec.broker_id_din,
 
 
 
--- 2022.10.20_TyP_staging (Vcliente).sql 
+-- 2022.10.25_TyP_staging (Vcliente).sql 
 
 
 
@@ -378,13 +378,22 @@ SELECT 'MOODLE' base_origen,
 		'ARG' nacionalidad_broker,
 		(CASE WHEN ((UPPER(mu.firstname) IS NULL) OR (("length"(UPPER(mu.firstname)) < 3) AND (NOT ("upper"(UPPER(mu.firstname)) IN ('BO', 'GE', 'HE', 'LI', 'LU', 'QI', 'WU', 'XI', 'XU', 'YE', 'YI', 'YU')))) OR (UPPER(mu.firstname) LIKE '%PRUEBA%')) THEN 0 ELSE 1 END) nombre_valido,
 	    (CASE WHEN ((UPPER(mu.lastname) IS NULL) OR (("length"(UPPER(mu.lastname)) < 3) AND (NOT ("upper"(UPPER(mu.lastname)) IN ('AL', 'AM', 'AN', 'BO', U&'B\00D3', 'CO', 'DE', 'DO', 'DU', 'FU', 'GE', 'GO', 'GU', 'HA', 'HE', 'HO', 'HU', 'IM', 'IN', 'IS', 'JI', 'JO', 'JU', 'KE', 'KI', 'KO', 'KU', 'LI', 'LO', 'LU', 'MA', 'MO', 'MU', 'NA', 'NG', 'NI', 'NO', 'OH', 'OU', 'PI', 'PO', 'PY', 'QI', 'QU', 'RA', 'RE', U&'R\00C9', 'RO', 'RU', 'SA', U&'S\00C1', 'SO', 'SU', 'TU', 'UM', 'UZ', 'WU', 'XU', 'YA', 'YE', 'YI', 'YO', 'YU')))) OR (UPPER(mu.lastname) LIKE '%PRUEBA%')) THEN 0 ELSE 1 END) apellido_valido
-FROM "caba-piba-raw-zone-db"."moodle_aprende_mdl_user" mu
-LEFT JOIN "caba-piba-raw-zone-db"."moodle_aprende_mdl_user_info_data" ui ON (mu.id = ui.userid AND ui.fieldid = 7)
+FROM "caba-piba-raw-zone-db"."moodle_dgtedu01_mdl_user" mu
+LEFT JOIN "caba-piba-raw-zone-db"."moodle_dgtedu01_mdl_user_info_data" ui ON (mu.id = ui.userid AND ui.fieldid = 7)
+LEFT JOIN "caba-piba-raw-zone-db"."moodle_dgtedu01_mdl_user_enrolments" mue ON (mue.userid = mu.id)
+LEFT JOIN "caba-piba-raw-zone-db"."moodle_dgtedu01_mdl_enrol" me ON (me.id = mue.enrolid)
+LEFT JOIN "caba-piba-raw-zone-db"."moodle_dgtedu01_mdl_course" mc ON(mc.id = me.courseid)
 WHERE (CASE WHEN REGEXP_LIKE(mu.username, '@') THEN
         CASE WHEN REGEXP_LIKE(LOWER(mu.username), '\.ar') THEN
           split_part(split_part(mu.username, '@', 2),'.',4)
         ELSE split_part(split_part(mu.username, '@', 2),'.',3) END
        ELSE split_part(mu.username, '.', 1)  END) IS NOT NULL
+	  AND mc.category IN (966, 1375,901,902,903,904,905,906, 969,970,971,972,973,974,975,976, 987, 1343,1344,1345,1346,1347,1348,1349,1350,1351,1352, 1390,1391,1393,1394,1395,1397)
+GROUP BY mu.id,
+		 mu.username,
+		 ui.data,
+		 mu.firstname,
+		 mu.lastname
 
 
 
