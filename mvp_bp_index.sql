@@ -1,4 +1,4 @@
--- Copy of 2023.01.11 step 00 - creacion de vistas (Vcliente).sql 
+-- Copy of 2023.01.20 step 00 - creacion de vistas (Vcliente).sql 
 
 
 
@@ -336,7 +336,7 @@ WHERE dup = 1
 
 
 
--- Copy of 2023.01.11 step 01 - staging vecinos (Vcliente).sql 
+-- Copy of 2023.01.20 step 01 - staging vecinos (Vcliente).sql 
 
 
 
@@ -714,7 +714,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- Copy of 2023.01.11 step 02 - consume vecinos (Vcliente).sql 
+-- Copy of 2023.01.20 step 02 - consume vecinos (Vcliente).sql 
 
 
 
@@ -825,7 +825,7 @@ FROM tmp_vec_renaper tvc
 
 
 
--- Copy of 2023.01.11 step 03 - consume programa (Vcliente).sql 
+-- Copy of 2023.01.20 step 03 - consume programa (Vcliente).sql 
 
 
 
@@ -854,7 +854,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- Copy of 2023.01.11 step 04 - staging capacitacion asi (Vcliente).sql 
+-- Copy of 2023.01.20 step 04 - staging capacitacion asi (Vcliente).sql 
 
 
 
@@ -915,7 +915,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.01.11 step 05 - staging capacitacion (Vcliente).sql 
+-- Copy of 2023.01.20 step 05 - staging capacitacion (Vcliente).sql 
 
 
 
@@ -1501,7 +1501,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- Copy of 2023.01.11 step 06 - consume capacitacion (Vcliente).sql 
+-- Copy of 2023.01.20 step 06 - consume capacitacion (Vcliente).sql 
 
 
 
@@ -1607,7 +1607,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.01.11 step 07 - staging estado_beneficiario_crmsl (Vcliente).sql 
+-- Copy of 2023.01.20 step 07 - staging estado_beneficiario_crmsl (Vcliente).sql 
 
 
 
@@ -1711,11 +1711,10 @@ FROM resultado
 
 
 
--- Copy of 2023.01.11 step 08 - staging estado_beneficiario_sienfo (Vcliente) - cambios 17-1-23.sql 
+-- Copy of 2023.01.20 step 08 - staging estado_beneficiario_sienfo (Vcliente).sql 
 
 
 
--- CAMBIOS REALIZADOS: FILA 77 EGRESADOS tambien considera el f0.aprobado 5 |  FILA 227 pasa a estado reprobado despues de 1 mes de finalizado el curso (antes era 2M)
 -- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_sienfo`;
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_sienfo" AS
 WITH t AS (
@@ -1791,11 +1790,11 @@ WHERE DUP = 1
 SELECT
     f0.*,
 	CASE
-		WHEN f0.aprobado IN (1, 3,5) THEN 'EGRESADO' -- Cambio 17/1/23
+		WHEN f0.aprobado IN (1, 3, 5) THEN 'EGRESADO' -- GCBA agrega el id 5 el 17/1/23
 		WHEN f0.fechabaja IS NOT NULL THEN 'BAJA'
 		WHEN f0.baja NOT IN (14, 22, 24, 0)
 		AND f0.baja IS NOT NULL THEN 'BAJA'
-		WHEN f0.aprobado IN (2, 4, 6, 8) THEN 'REPROBADO' -- Cambio 17/1/23
+		WHEN f0.aprobado IN (2, 4, 6, 8) THEN 'REPROBADO'  -- GCBA quita el id 5 el 17/1/23
 	END AS "estado_beneficiario"
 FROM
     f0
@@ -1941,7 +1940,7 @@ tf2 AS (
     			AND tf1.fechabaja IS NULL
     			AND tf1.aprobado NOT IN (1,2,3,4,5,6,8) THEN (
     				CASE
-    					WHEN DATE_ADD('month', 1, tf1.fecha_fin) <= CURRENT_DATE THEN 'REPROBADO' --Cambio 17/1/23
+						WHEN DATE_ADD('month', 1, tf1.fecha_fin) <= CURRENT_DATE THEN 'REPROBADO' -- GCBA cambia de 2 meses a 1 el 17/1/23
     					WHEN tf1.fecha_fin <= CURRENT_DATE THEN 'FINALIZO_CURSADA'
     					WHEN tf1.fecha_inc <= CURRENT_DATE
     					    AND tf1.fecha_fin > CURRENT_DATE THEN 'REGULAR'
@@ -2037,332 +2036,7 @@ FROM
 
 
 
--- Copy of 2023.01.11 step 08 - staging estado_beneficiario_sienfo (Vcliente).sql 
-
-
-
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_sienfo`;
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_sienfo" AS
-WITH t AS (
-	/*Limpieza de talleres, me quedo con los cursos validos,
-	 * transformo a fechas las columnas, filtro fechas menores a 2003 o fechas de fin mayores a curdate + 1 aÃ±o
-	 * merge id_duracion entre duracion de taller y la generica de cursos porque esta incompleta
-	 */
-	SELECT codigo_ct,
-		CASE
-			WHEN fecha = '0000-00-00' THEN NULL
-			WHEN CAST(fecha AS DATE) < CAST('2003-01-01' AS DATE) THEN NULL ELSE CAST(fecha AS DATE)
-		END AS "fecha",
-		CASE
-			WHEN fecha_fin = '0000-00-00' THEN NULL
-			WHEN CAST(fecha_fin AS DATE) < CAST('2003-01-01' AS DATE) THEN NULL
-			WHEN CAST(fecha_fin AS DATE) > DATE_ADD('year', 1, CURRENT_DATE) THEN NULL ELSE CAST(fecha_fin AS DATE)
-		END AS "fecha_fin",
-		CASE
-			WHEN t.id_duracion IS NULL THEN c.id_duracion ELSE t.id_duracion
-		END AS "id_duracion",
-		t.id_curso,
-		t.id_carrera,
-		d.nombre AS "duracion",
-		c.nom_curso
-	FROM "caba-piba-raw-zone-db"."sienfo_talleres" t
-		LEFT JOIN "caba-piba-raw-zone-db"."sienfo_duracion" d ON d.id_duracion = t.id_duracion
-		LEFT JOIN (
-			SELECT id_curso,
-				max(id_duracion) AS "id_duracion",
-				nom_curso
-			FROM "caba-piba-raw-zone-db"."sienfo_cursos"
-			GROUP BY id_curso,
-				nom_curso
-			HAVING max(id_duracion) > 0
-		) c ON t.id_curso = c.id_curso
-	WHERE codigo_ct IS NOT NULL
-		AND t.id_curso IS NOT NULL
-		AND t.id_curso != 0
-		AND t.id_carrera IN (0,1,2,18)
-),
-/* Me quedo con el id_fichas con el numero mayor para casos donde se repite codigo_ct y nrodoc
- * baja como id normalizado
- * fecha de inicio de curso menor a 2003 como nulo y transformo a fecha
- * normalizo aprobado
-*/
-f0 AS (
-SELECT
-    *
-FROM
-(
-    SELECT
-        ROW_NUMBER() OVER(PARTITION BY f.nrodoc, f.codigo_ct ORDER BY f.id_fichas DESC) AS DUP,
-	    f.nrodoc,
-		f.codigo_ct,
-		CASE
-			WHEN baja IS NULL THEN 0 ELSE baja
-		END AS "baja",
-		f.fechabaja,
-		CASE
-			WHEN fecha_inc < CAST('2003-01-01' AS DATE) THEN NULL ELSE CAST(fecha_inc AS DATE)
-		END AS "fecha_inc",
-		CASE
-			WHEN f.aprobado IS NULL THEN 0
-			WHEN f.aprobado = '' THEN 0 ELSE CAST(f.aprobado AS INT)
-		END AS "aprobado"
-	FROM
-	    "caba-piba-raw-zone-db"."sienfo_fichas" f
-	WHERE nrodoc IS NOT NULL AND nrodoc != ''
-) t
-WHERE DUP = 1
---primer estado de beneficiario basado en los datos de la tabla original
-), f01 AS (
-SELECT
-    f0.*,
-	CASE
-		WHEN f0.aprobado IN (1, 3) THEN 'EGRESADO'
-		WHEN f0.fechabaja IS NOT NULL THEN 'BAJA'
-		WHEN f0.baja NOT IN (14, 22, 24, 0)
-		AND f0.baja IS NOT NULL THEN 'BAJA'
-		WHEN f0.aprobado IN (2, 4, 5, 6, 8) THEN 'REPROBADO'
-	END AS "estado_beneficiario"
-FROM
-    f0
-/*
- *para completar fechas de inicio que no exISten agrupo por fichas, la minima fecha de inicio de un alumno
- */
-),
-f02 AS (
-SELECT
-    a.nrodoc,
-    f01.codigo_ct,
-	f01.baja,
-	f01.fechabaja,
-	f01.fecha_inc,
-	f01.aprobado,
-	f01.estado_beneficiario
-FROM
-    "caba-piba-raw-zone-db"."sienfo_alumnos" a
-LEFT JOIN
-    f01 ON a.nrodoc = f01.nrodoc
-), preins_sin_ficha AS (
-SELECT
-    p.*,
-    'PREINSCRIPTO' AS estado_beneficiario
-FROM
-    "caba-piba-staging-zone-db"."goayvd_typ_vw_sienfo_fichas_preinscripcion" p
-LEFT JOIN f02 ON f02.nrodoc = p.nrodoc AND f02.codigo_ct = p.codigo_ct
-WHERE f02.nrodoc IS NULL
-), f1 AS (
-SELECT
-    f02.nrodoc,
-    f02.codigo_ct,
-	f02.baja,
-	f02.fechabaja,
-	f02.fecha_inc,
-	f02.aprobado,
-	f02.estado_beneficiario
-FROM
-    f02
-UNION
-SELECT
-    pf.nrodoc,
-    pf.codigo_ct,
-	pf.baja,
-	pf.fechabaja,
-	pf.fecha_inc,
-	0 AS aprobado,
-	'PREINSCRIPTO' AS estado_beneficiario
-FROM
-    preins_sin_ficha pf
-),fechas_ct AS (
-	SELECT codigo_ct,
-	    min(fecha_inc) AS fecha_inc_min
-	FROM f1
-	GROUP BY codigo_ct
-),
-/*
- * join de fichas y talleres
- * si la fecha de inicio del taller es nula uso la fecha de inicio del alumno
- * se invalidan fechas de fin inconsIStentes para luego ser recalculadas por duracion
- */
-tf AS (
-	SELECT t.codigo_ct,
-		CASE
-			WHEN t.fecha IS NOT NULL THEN fecha
-			ELSE fct.fecha_inc_min
-		END AS "fecha",
-		CASE
-			WHEN t.fecha IS NOT NULL
-			    AND t.fecha_fin < t.fecha THEN NULL
-			WHEN t.fecha_fin < fct.fecha_inc_min THEN NULL ELSE t.fecha_fin
-		END AS "fecha_fin",
-		t.id_duracion,
-		t.id_curso,
-		t.id_carrera,
-		t.nom_curso,
-		f1.nrodoc,
-		f1.baja,
-		f1.fechabaja,
-		f1.fecha_inc,
-		f1.aprobado,
-		f1.estado_beneficiario
-	FROM t
-		INNER JOIN f1 ON f1.codigo_ct = t.codigo_ct
-		LEFT JOIN fechas_ct fct ON fct.codigo_ct = t.codigo_ct
-		/*
-		 * Calcula la fecha de fin segun en campo id_duracion para fechas nulas
-		 * y las previamente invalidadas por inconsIStencia, al ser fechas de fin menores que fecha de inicio
-		 */
-),
-tf1 AS (
-	SELECT tf.codigo_ct,
-		tf.fecha,
-		CASE
-			WHEN fecha_fin IS NOT NULL THEN fecha_fin
-			WHEN fecha_fin IS NULL THEN (
-				CASE
-					WHEN id_duracion = 1 THEN DATE_ADD('month', 9, fecha) -- anual
-					WHEN id_duracion IN (2, 4) THEN DATE_ADD('month', 4, fecha) -- cuatrimestral
-					WHEN id_duracion = 3 THEN DATE_ADD('month', 2, fecha) -- bimestral
-				END
-			)
-		END AS "fecha_fin",
-		tf.id_duracion,
-		tf.id_curso,
-		tf.id_carrera,
-		tf.nom_curso,
-		tf.nrodoc,
-		tf.baja,
-		tf.fechabaja,
-		tf.fecha_inc,
-		tf.aprobado,
-		tf.estado_beneficiario
-	FROM tf
-),
-tf2 AS (
-	SELECT tf1.codigo_ct,
-		tf1.nrodoc,
-		CASE
-			WHEN tf1.fecha_inc IS NULL
-			AND tf1.id_duracion IS NOT NULL
-			AND tf1.fecha IS NOT NULL THEN (
-				CASE
-					WHEN id_duracion = 1 THEN DATE_ADD('month', -9, fecha)
-					WHEN id_duracion IN (2, 4) THEN DATE_ADD('month', -4, fecha)
-					WHEN id_duracion = 3 THEN DATE_ADD('month', -2, fecha)
-				END
-			) ELSE tf1.fecha_inc
-		END AS "fecha_inc",
-		tf1.fecha,
-		tf1.fecha_fin,
-		tf1.id_duracion,
-		tf1.id_curso,
-		tf1.id_carrera,
-		tf1.nom_curso,
-		tf1.baja,
-		tf1.fechabaja,
-		tf1.aprobado,
-		tf1.estado_beneficiario,
-		CASE
-			WHEN tf1.estado_beneficiario IS NOT NULL THEN tf1.estado_beneficiario
-			WHEN tf1.baja = 0
-    			AND tf1.fechabaja IS NULL
-    			AND tf1.aprobado NOT IN (1,2,3,4,5,6,8) THEN (
-    				CASE
-    					WHEN DATE_ADD('month', 2, tf1.fecha_fin) <= CURRENT_DATE THEN 'REPROBADO'
-    					WHEN tf1.fecha_fin <= CURRENT_DATE THEN 'FINALIZO_CURSADA'
-    					WHEN tf1.fecha_inc <= CURRENT_DATE
-    					    AND tf1.fecha_fin > CURRENT_DATE THEN 'REGULAR'
-    					WHEN tf1.fecha_inc > CURRENT_DATE THEN 'INSCRIPTO'
-    				END
-    			)
-		END AS "estado_beneficiario2"
-	FROM tf1
-	WHERE nrodoc != ''
-), carreras_al AS (
-SELECT
-    '' codigo_ct,
-    tf2.nrodoc,
-    min(tf2.fecha_inc) fecha_inc,
-    min(tf2.fecha) fecha,
-	max(tf2.fecha_fin) fecha_fin,
-	0 id_duracion,
-	0 id_curso,
-	tf2.id_carrera,
-	'' nom_curso,
-	sc.nom_carrera,
-	0 baja,
-	CAST(NULL AS DATE) fechabaja,
-	0 aprobado,
-	'INSCRIPTO' estado_beneficiario
-FROM
-    tf2
-LEFT JOIN "caba-piba-raw-zone-db"."sienfo_carreras" sc ON sc.id_carrera = tf2.id_carrera
-WHERE tf2.id_carrera != 0
-GROUP BY (tf2.id_carrera, tf2.nrodoc,sc.nom_carrera)
-HAVING min(tf2.fecha) IS NOT NULL AND max(tf2.fecha_fin) IS NOT NULL
-), car_cur AS (
-/*
- * SELECT final, estado_beneficiario2 es el calculado con el algoritmo de fechas,
- *  estado de beneficiario se basa en las columnas de la tabla
- */
-SELECT
-    tf2.codigo_ct,
-	tf2.nrodoc,
-	tf2.fecha_inc, -- fecha inicio de la persona
-	tf2.fecha, -- fecha inicio del curso
-	tf2.fecha_fin, -- fecha fin del curso
-	'CURSO' tipo_formacion,
-	UPPER(tf2.nom_curso) nombre_cur_car, --nombre del curso o materia
-	tf2.id_duracion,
-	tf2.baja,
-	tf2.fechabaja,
-	tf2.aprobado,
-	UPPER(tf2.estado_beneficiario2) estado_beneficiario,
-	-- tf2.estado_beneficiario estado_beneficiario_orig,
-	tf2.id_curso,
-	tf2.id_carrera,
-    tf2.nrodoc ||'-'||tf2.codigo_ct AS llave_doc_idcap
-FROM tf2
-WHERE tf2.id_carrera = 0 --TOMO SOLO LOS QUE SON CURSOS
-UNION (
-SELECT
-    cal.codigo_ct,
-    cal.nrodoc,
-    cal.fecha_inc,
-    cal.fecha,
-	cal.fecha_fin,
-	'CARRERA' tipo_formacion,
-	UPPER(cal.nom_carrera) nombre_cur_car,
-	cal.id_duracion,
-	cal.baja,
-	cal.fechabaja,
-	cal.aprobado,
-	cal.estado_beneficiario,
-	cal.id_curso,
-	cal.id_carrera,
-	cal.nrodoc ||'-'||CAST(cal.id_carrera AS VARCHAR) llave_doc_idcap --Esta llave es para agrupar las carreras por ediciÃ³n capacitacion anual
-FROM
-    carreras_al cal)
---ExISten fechas de inicio del alumno anteriores a fecha de inicio del curso
---nrodoc esta muy sucio
---Los estados de beneficiario2 nulos son cuando aprobado = 9 (nuevo id, no esta en en dump) corresponde a nombre = Actualiza, observa = CETBA [NO SE QUE SIGNIFICA]
-)
-SELECT
-    cuca.codigo_ct,
-    cuca.nrodoc,
-    cuca.id_curso,
-    cuca.id_carrera,
-    cuca.estado_beneficiario,
-    cuca.llave_doc_idcap, --CUANDO SE HAGA EL JOIN DIFERENCIAR POR CURSO O CARRERA
-    cuca.tipo_formacion,
-    cuca.nombre_cur_car,
-	cuca.fecha fecha_inicio_edicion_capacitacion,
-	cuca.fecha_fin fecha_fin_edicion_capacitacion,
-	cuca.fecha_inc fecha_inscipcion
-FROM
-    car_cur cuca
-
-
-
--- Copy of 2023.01.11 step 09 - staging estado_beneficiario_goet (Vcliente).sql 
+-- Copy of 2023.01.20 step 09 - staging estado_beneficiario_goet (Vcliente).sql 
 
 
 
@@ -2563,7 +2237,7 @@ GROUP BY
 
 
 
--- Copy of 2023.01.11 step 10 - staging estado_beneficiario_moodle (Vcliente).sql 
+-- Copy of 2023.01.20 step 10 - staging estado_beneficiario_moodle (Vcliente).sql 
 
 
 
@@ -2750,60 +2424,83 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_moodle
 				t.nombre_curso,
 				t.id_curso
 			)
+SELECT resultado.*
+FROM
+	(SELECT a.*,
+	ROW_NUMBER() OVER(
+					PARTITION BY
+					a.id_categoria,
+					a.alumno_id
+					ORDER BY a.prioridad_orden ASC
+				) AS "orden_duplicado"
+	FROM
+	(
+		SELECT UPPER(sc.tipo_capacitacion) tipo_capacitacion,
+			sc.alumno_id,
+			sc.alumno_nombre,
+			sc.alumno_apellido,
+			sc.alumno_dni,
+			sc.curso_terminacion_alumno,
+			sc.inscripcion_inicio_cursada,
+			sc.inscripcion_final_cursada,
+			sc.fecha_modificacion_inscripcion_cursada,
+			sc.nombre_curso,
+			sc.inicio_curso,
+			sc.fin_curso,
+			sc.id_categoria,
+			sc.programa_curso,
+			CASE
+				WHEN sc.estado = '1_regular'
+					THEN UPPER('regular')
+				WHEN sc.estado = '2_finalizado'
+					THEN UPPER('finalizado')
+				ELSE UPPER(sc.estado)
+				END AS estado,
+			CASE
+				WHEN sc.estado = '1_regular' THEN 5 -- 'REGULAR'
+				WHEN sc.estado = '2_finalizado' THEN 3 -- 'FINALIZADO'
+				WHEN sc.estado = 'egresado' THEN 1 -- 'EGRESADO'
+				ELSE 7
+			END AS prioridad_orden,
+			sc.id_curso
+		FROM solo_cursos sc
 
-SELECT sc.tipo_capacitacion,
-	sc.alumno_id,
-	sc.alumno_nombre,
-	sc.alumno_apellido,
-	sc.alumno_dni,
-	sc.curso_terminacion_alumno,
-	sc.inscripcion_inicio_cursada,
-	sc.inscripcion_final_cursada,
-	sc.fecha_modificacion_inscripcion_cursada,
-	sc.nombre_curso,
-	sc.inicio_curso,
-	sc.fin_curso,
-	sc.id_categoria,
-	sc.programa_curso,
-	CASE
-		WHEN sc.estado = '1_regular'
-			THEN UPPER('regular')
-		WHEN sc.estado = '2_finalizado'
-			THEN UPPER('finalizado')
-		ELSE UPPER(sc.estado)
-		END AS estado,
-	sc.id_curso
-FROM solo_cursos sc
+		UNION
 
-UNION
-
-SELECT ca.tipo_capacitacion,
-	ca.alumno_id,
-	ca.alumno_nombre,
-	ca.alumno_apellido,
-	ca.alumno_dni,
-	ca.curso_terminacion_alumno,
-	ca.inscripcion_inicio_cursada,
-	ca.inscripcion_final_cursada,
-	ca.fecha_modificacion_inscripcion_cursada,
-	ca.nombre_curso,
-	ca.inicio_curso,
-	ca.fin_curso,
-	ca.id_categoria,
-	ca.programa_curso,
-	CASE
-		WHEN ca.estado = '1_regular'
-			THEN UPPER('regular')
-		WHEN ca.estado = '2_finalizado'
-			THEN UPPER('finalizado')
-		ELSE UPPER(ca.estado)
-		END AS estado,
-	ca.id_curso
-FROM carreras ca
+		SELECT UPPER(ca.tipo_capacitacion) tipo_capacitacion,
+			ca.alumno_id,
+			ca.alumno_nombre,
+			ca.alumno_apellido,
+			ca.alumno_dni,
+			ca.curso_terminacion_alumno,
+			ca.inscripcion_inicio_cursada,
+			ca.inscripcion_final_cursada,
+			ca.fecha_modificacion_inscripcion_cursada,
+			ca.nombre_curso,
+			ca.inicio_curso,
+			ca.fin_curso,
+			ca.id_categoria,
+			ca.programa_curso,
+			CASE
+				WHEN ca.estado = '1_regular'
+					THEN UPPER('regular')
+				WHEN ca.estado = '2_finalizado'
+					THEN UPPER('finalizado')
+				ELSE UPPER(ca.estado)
+				END AS estado,
+			CASE
+				WHEN ca.estado = '1_regular' THEN 5 -- 'REGULAR'
+				WHEN ca.estado = '2_finalizado' THEN 3 -- 'FINALIZADO'
+				WHEN ca.estado = 'egresado' THEN 1 -- 'EGRESADO'
+				ELSE 7
+			END AS prioridad_orden,
+			ca.id_curso
+		FROM carreras ca) a ) resultado
+WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.01.11 step 11 - staging estado_beneficiario_siu (Vcliente).sql 
+-- Copy of 2023.01.20 step 11 - staging estado_beneficiario_siu (Vcliente).sql 
 
 
 
@@ -3006,9 +2703,9 @@ FROM
 			WHEN pii2.fecha_baja IS NOT NULL AND pii2.ultimo_mov IS NULL THEN 4 -- 'BAJA'
 			WHEN pii2.fecha_baja IS NOT NULL AND pii2.ultimo_mov IS NOT NULL AND pii2.fecha_baja > pii2.ultimo_mov THEN 4 -- 'BAJA' --EXISTEN FECHAS DE ACTIVIDAD POSTERIORES A LA FECHA DE BAJA CONSULTAR CON EL AREA
 			WHEN date_add('year', 2, pii2.ultimo_mov) < CURRENT_DATE THEN 4 -- 'BAJA'
-			WHEN date_add('year', 2, pii2.ultimo_mov) >= CURRENT_DATE THEN 2 -- 'REGULAR'
-			WHEN  pii2.ultimo_mov IS NULL AND pii2.fecha_preinscripcion IS NULL THEN 3 -- 'INSCRIPTO'
-			ELSE 5
+			WHEN date_add('year', 2, pii2.ultimo_mov) >= CURRENT_DATE THEN 5 -- 'REGULAR'
+			WHEN  pii2.ultimo_mov IS NULL AND pii2.fecha_preinscripcion IS NULL THEN 6 -- 'INSCRIPTO'
+			ELSE 7
 		END AS prioridad_orden
 	FROM
 		preins_ins2 pii2
@@ -3020,7 +2717,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.01.11 step 12 - staging edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.01.20 step 12 - staging edicion capacitacion (Vcliente).sql 
 
 
 
@@ -3885,7 +3582,7 @@ WHERE a.id IS NULL
 
 
 
--- Copy of 2023.01.11 step 13 - consume edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.01.20 step 13 - consume edicion capacitacion (Vcliente).sql 
 
 
 
@@ -3922,7 +3619,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- Copy of 2023.01.11 step 14 - staging cursada (Vcliente).sql 
+-- Copy of 2023.01.20 step 14 - staging cursada (Vcliente).sql 
 
 
 
@@ -4121,7 +3818,7 @@ LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
 					ELSE split_part(split_part(usuario.username, '@', 2),'.',3) END
 					ELSE split_part(usuario.username, '.', 1) END AS VARCHAR)),'[A-Za-z]+|\.','')
 		)
-LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_moodle" eb ON (eb.id_curso=co.id AND eb.alumno_id=usuario.id)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_moodle" eb ON (eb.id_categoria=cc.id AND eb.alumno_id=usuario.id)
 GROUP BY
 	usuario.username,
 	uenrolments.timestart,
@@ -4427,7 +4124,7 @@ GROUP BY
 
 
 
--- Copy of 2023.01.11 step 15 - consume cursada (Vcliente).sql 
+-- Copy of 2023.01.20 step 15 - consume cursada (Vcliente).sql 
 
 
 
@@ -4489,7 +4186,7 @@ GROUP BY
 
 
 
--- Copy of 2023.01.11 step 16 - consume trayectoria_educativa (Vcliente).sql 
+-- Copy of 2023.01.20 step 16 - consume trayectoria_educativa (Vcliente).sql 
 
 
 
