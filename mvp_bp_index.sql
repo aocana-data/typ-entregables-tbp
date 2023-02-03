@@ -1,4 +1,4 @@
--- Copy of 2023.01.25 step 00 - creacion de vistas (Vcliente).sql 
+-- 2023.02.03 step 00 - creacion de vistas.sql 
 
 
 
@@ -334,9 +334,21 @@ FROM
 ) t
 WHERE dup = 1
 
+--7. VISTA DE SIU QUE SE UTILIZA PARA CALCULO DE ESTADO DE BENEFICIARIO
+CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_tmp_siu_cantidad_materias_plan" AS
+SELECT
+  PLAN
+, propuesta
+, nombre
+, (CASE WHEN ((PLAN = 79) AND (propuesta = 77)) THEN 15 WHEN ((PLAN = 101) AND (propuesta = 97)) THEN 15 WHEN ((PLAN = 102) AND (propuesta = 98)) THEN 15 WHEN ((PLAN = 103) AND (propuesta = 99)) THEN 15 WHEN ((PLAN = 85) AND (propuesta = 82)) THEN 24 WHEN ((PLAN = 92) AND (propuesta = 88)) THEN 22 WHEN ((PLAN = 93) AND (propuesta = 89)) THEN 22 WHEN ((PLAN = 94) AND (propuesta = 90)) THEN 22 WHEN ((PLAN = 95) AND (propuesta = 91)) THEN 22 WHEN ((PLAN = 96) AND (propuesta = 92)) THEN 22 WHEN ((PLAN = 97) AND (propuesta = 93)) THEN 22 WHEN ((PLAN = 98) AND (propuesta = 94)) THEN 22 WHEN ((PLAN = 100) AND (propuesta = 96)) THEN 22 WHEN ((PLAN = 99) AND (propuesta = 95)) THEN 22 WHEN ((PLAN = 6) AND (propuesta = 6)) THEN 15 WHEN ((PLAN = 84) AND (propuesta = 81)) THEN 33 WHEN ((PLAN = 50) AND (propuesta = 48)) THEN 31 WHEN ((PLAN = 121) AND (propuesta = 115)) THEN 20 WHEN ((PLAN = 122) AND (propuesta = 116)) THEN 20 WHEN ((PLAN = 120) AND (propuesta = 114)) THEN 20 WHEN ((PLAN = 119) AND (propuesta = 113)) THEN 20 WHEN ((PLAN = 54) AND (propuesta = 52)) THEN 26 WHEN ((PLAN = 53) AND (propuesta = 51)) THEN 27 WHEN ((PLAN = 56) AND (propuesta = 54)) THEN 27 WHEN ((PLAN = 72) AND (propuesta = 69)) THEN 27 WHEN ((PLAN = 86) AND (propuesta = 68)) THEN 27 WHEN ((PLAN = 22) AND (propuesta = 20)) THEN 21 WHEN ((PLAN = 35) AND (propuesta = 33)) THEN 31 WHEN ((PLAN = 78) AND (propuesta = 76)) THEN 22 WHEN ((PLAN = 124) AND (propuesta = 118)) THEN 22 WHEN ((PLAN = 68) AND (propuesta = 66)) THEN 22 WHEN ((PLAN = 123) AND (propuesta = 117)) THEN 22 WHEN ((PLAN = 27) AND (propuesta = 25)) THEN 29 WHEN ((PLAN = 40) AND (propuesta = 38)) THEN 26 WHEN ((PLAN = 36) AND (propuesta = 34)) THEN 35 WHEN ((PLAN = 110) AND (propuesta = 58)) THEN 32 WHEN ((PLAN = 111) AND (propuesta = 70)) THEN 32 WHEN ((PLAN = 71) AND (propuesta = 58)) THEN 32 WHEN ((PLAN = 136) AND (propuesta = 130)) THEN 23 WHEN ((PLAN = 55) AND (propuesta = 53)) THEN 23 WHEN ((PLAN = 57) AND (propuesta = 55)) THEN 23 WHEN ((PLAN = 106) AND (propuesta = 102)) THEN 23 WHEN ((PLAN = 118) AND (propuesta = 112)) THEN 33 WHEN ((PLAN = 58) AND (propuesta = 56)) THEN 33 WHEN ((PLAN = 66) AND (propuesta = 63)) THEN 30 WHEN ((PLAN = 51) AND (propuesta = 49)) THEN 30 WHEN ((PLAN = 62) AND (propuesta = 57)) THEN 30 WHEN ((PLAN = 67) AND (propuesta = 64)) THEN 30 WHEN ((PLAN = 70) AND (propuesta = 65)) THEN 30 WHEN ((PLAN = 52) AND (propuesta = 50)) THEN 30 WHEN ((PLAN = 80) AND (propuesta = 59)) THEN 30 WHEN ((PLAN = 65) AND (propuesta = 62)) THEN 30 WHEN ((PLAN = 75) AND (propuesta = 72)) THEN 22 WHEN ((PLAN = 88) AND (propuesta = 84)) THEN 22 WHEN ((PLAN = 74) AND (propuesta = 71)) THEN 22 WHEN ((PLAN = 107) AND (propuesta = 103)) THEN 23 WHEN ((PLAN = 2) AND (propuesta = 2)) THEN 14 WHEN ((PLAN = 31) AND (propuesta = 29)) THEN 28 WHEN ((PLAN = 135) AND (propuesta = 129)) THEN 19 WHEN ((PLAN = 115) AND (propuesta = 109)) THEN 19 WHEN ((PLAN = 133) AND (propuesta = 127)) THEN 19 WHEN ((PLAN = 134) AND (propuesta = 128)) THEN 19 WHEN ((PLAN = 125) AND (propuesta = 119)) THEN 27 WHEN ((PLAN = 18) AND (propuesta = 17)) THEN 27 WHEN ((PLAN = 19) AND (propuesta = 18)) THEN 27 WHEN ((PLAN = 126) AND (propuesta = 120)) THEN 27 WHEN ((PLAN = 20) AND (propuesta = 19)) THEN 30 WHEN ((PLAN = 47) AND (propuesta = 45)) THEN 27 WHEN ((PLAN = 8) AND (propuesta = 9)) THEN 12 WHEN ((PLAN = 9) AND (propuesta = 8)) THEN 13 WHEN ((PLAN = 82) AND (propuesta = 79)) THEN 23 WHEN ((PLAN = 109) AND (propuesta = 105)) THEN 23 WHEN ((PLAN = 81) AND (propuesta = 78)) THEN 23 WHEN ((PLAN = 105) AND (propuesta = 101)) THEN 23 WHEN ((PLAN = 137) AND (propuesta = 132)) THEN 23 WHEN ((PLAN = 83) AND (propuesta = 80)) THEN 23 WHEN ((PLAN = 130) AND (propuesta = 124)) THEN 23 WHEN ((PLAN = 34) AND (propuesta = 32)) THEN 29 WHEN ((PLAN = 45) AND (propuesta = 43)) THEN 28 WHEN ((PLAN = 7) AND (propuesta = 7)) THEN 15 WHEN ((PLAN = 33) AND (propuesta = 31)) THEN 24 WHEN ((PLAN = 15) AND (propuesta = 14)) THEN 37 WHEN ((PLAN = 11) AND (propuesta = 4)) THEN 28 WHEN ((PLAN = 5) AND (propuesta = 5)) THEN 18 WHEN ((PLAN = 13) AND (propuesta = 12)) THEN 28 WHEN ((PLAN = 12) AND (propuesta = 10)) THEN 28 WHEN ((PLAN = 41) AND (propuesta = 39)) THEN 41 WHEN ((PLAN = 42) AND (propuesta = 40)) THEN 34 WHEN ((PLAN = 44) AND (propuesta = 42)) THEN 29 WHEN ((PLAN = 29) AND (propuesta = 27)) THEN 25 WHEN ((PLAN = 23) AND (propuesta = 21)) THEN 34 WHEN ((PLAN = 76) AND (propuesta = 73)) THEN 31 WHEN ((PLAN = 64) AND (propuesta = 61)) THEN 31 WHEN ((PLAN = 63) AND (propuesta = 60)) THEN 31 WHEN ((PLAN = 46) AND (propuesta = 44)) THEN 32 WHEN ((PLAN = 10) AND (propuesta = 3)) THEN 15 WHEN ((PLAN = 139) AND (propuesta = 133)) THEN 18 WHEN ((PLAN = 108) AND (propuesta = 104)) THEN 18 WHEN ((PLAN = 48) AND (propuesta = 46)) THEN 30 WHEN ((PLAN = 89) AND (propuesta = 85)) THEN 35 WHEN ((PLAN = 30) AND (propuesta = 28)) THEN 41 WHEN ((PLAN = 132) AND (propuesta = 126)) THEN NULL WHEN ((PLAN = 43) AND (propuesta = 41)) THEN 34 WHEN ((PLAN = 14) AND (propuesta = 13)) THEN 34 WHEN ((PLAN = 90) AND (propuesta = 86)) THEN 24 WHEN ((PLAN = 131) AND (propuesta = 125)) THEN NULL WHEN ((PLAN = 91) AND (propuesta = 87)) THEN 24 WHEN ((PLAN = 49) AND (propuesta = 47)) THEN 31 WHEN ((PLAN = 77) AND (propuesta = 74)) THEN 33 WHEN ((PLAN = 104) AND (propuesta = 100)) THEN 33 WHEN ((PLAN = 128) AND (propuesta = 122)) THEN 33 WHEN ((PLAN = 129) AND (propuesta = 123)) THEN 33 WHEN ((PLAN = 69) AND (propuesta = 67)) THEN 33 WHEN ((PLAN = 127) AND (propuesta = 121)) THEN 34 WHEN ((PLAN = 1) AND (propuesta = 1)) THEN 3 END) cant_materias
+, codigo
+, version_actual
+FROM
+  "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes"
 
 
--- Copy of 2023.01.25 step 01 - consume programa (Vcliente).sql 
+
+-- 2023.02.03 step 01 - consume programa.sql 
 
 
 
@@ -365,7 +377,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- Copy of 2023.01.25 step 02 - staging capacitacion asi (Vcliente).sql 
+-- 2023.02.03 step 02 - staging capacitacion asi.sql 
 
 
 
@@ -426,7 +438,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.01.25 step 03 - staging capacitacion (Vcliente).sql 
+-- 2023.02.03 step 03 - staging capacitacion.sql 
 
 
 
@@ -1012,7 +1024,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- Copy of 2023.01.25 step 04 - consume capacitacion (Vcliente).sql 
+-- 2023.02.03 step 04 - consume capacitacion.sql 
 
 
 
@@ -1118,7 +1130,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.01.25 step 05 - staging vecinos (Vcliente).sql 
+-- 2023.02.03 step 05 - staging vecinos.sql 
 
 
 
@@ -1647,7 +1659,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- Copy of 2023.01.25 step 06 - consume vecinos (Vcliente).sql 
+-- 2023.02.03 step 06 - consume vecinos.sql 
 
 
 
@@ -1758,7 +1770,7 @@ FROM tmp_vec_renaper tvc
 
 
 
--- Copy of 2023.01.25 step 07 - staging estado_beneficiario_crmsl (Vcliente).sql 
+-- 2023.02.03 step 07 - staging estado_beneficiario_crmsl.sql 
 
 
 
@@ -1862,7 +1874,7 @@ FROM resultado
 
 
 
--- Copy of 2023.01.25 step 08 - staging estado_beneficiario_sienfo (Vcliente).sql 
+-- 2023.02.03 step 08 - staging estado_beneficiario_sienfo.sql 
 
 
 
@@ -2187,7 +2199,7 @@ FROM
 
 
 
--- Copy of 2023.01.25 step 09 - staging estado_beneficiario_goet (Vcliente).sql 
+-- 2023.02.03 step 09 - staging estado_beneficiario_goet.sql 
 
 
 
@@ -2388,7 +2400,7 @@ GROUP BY
 
 
 
--- Copy of 2023.01.25 step 10 - staging estado_beneficiario_moodle (Vcliente).sql 
+-- 2023.02.03 step 10 - staging estado_beneficiario_moodle.sql 
 
 
 
@@ -2651,7 +2663,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.01.25 step 11 - staging estado_beneficiario_siu (Vcliente).sql 
+-- 2023.02.03 step 11 - staging estado_beneficiario_siu.sql 
 
 
 
@@ -2868,7 +2880,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.01.25 step 12 - staging edicion capacitacion (Vcliente).sql 
+-- 2023.02.03 step 12 - staging edicion capacitacion.sql 
 
 
 
@@ -3733,7 +3745,7 @@ WHERE a.id IS NULL
 
 
 
--- Copy of 2023.01.25 step 13 - consume edicion capacitacion (Vcliente).sql 
+-- 2023.02.03 step 13 - consume edicion capacitacion.sql 
 
 
 
@@ -3770,7 +3782,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- Copy of 2023.01.25 step 14 - staging cursada (Vcliente).sql 
+-- 2023.02.03 step 14 - staging cursada.sql 
 
 
 
@@ -4275,7 +4287,7 @@ GROUP BY
 
 
 
--- Copy of 2023.01.25 step 15 - consume cursada (Vclienet).sql 
+-- 2023.02.03 step 15 - consume cursada.sql 
 
 
 
@@ -4337,7 +4349,7 @@ GROUP BY
 
 
 
--- Copy of 2023.01.25 step 16 - consume trayectoria_educativa (Vcliente).sql 
+-- 2023.02.03 step 16 - consume trayectoria_educativa.sql 
 
 
 
