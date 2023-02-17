@@ -1,0 +1,17 @@
+1-establecimientos_educativos_WGS84.csv =>
+	# https://data.buenosaires.gob.ar/dataset/establecimientos-educativos
+	# clave => cue o cueanexo
+
+2-instituciones_educativas_gcba.json =>
+	# https://data.educacion.gob.ar/
+	# clave => se llama cue, pero contiene valores cueanexo
+	
+3-padron_oficial_establecimientos_educativos_26.12.22.xlsx => 
+	# https://www.argentina.gob.ar/educacion/evaluacion-e-informacion-educativa/padron-oficial-de-establecimientos-educativos
+	# clave => cue o cueanexo
+
+RESULTADO DEL CRUCE POR CUE/CUEANEXO =>
+	R1-tbp_typ_tmp_data_efectores.parquet
+	R2-tbp_typ_tmp_data_efectores.xlsx
+
+

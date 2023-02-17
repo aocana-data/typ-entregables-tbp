@@ -1,4 +1,4 @@
--- 2023.02.03 step 00 - creacion de vistas.sql 
+-- Copy of 2023.02.17 step 00 - creacion de vistas(Vcliente).sql 
 
 
 
@@ -348,7 +348,7 @@ FROM
 
 
 
--- 2023.02.03 step 01 - consume programa.sql 
+-- Copy of 2023.02.17 step 01 - consume programa (Vcliente).sql 
 
 
 
@@ -377,7 +377,583 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- 2023.02.03 step 02 - staging capacitacion asi.sql 
+-- Copy of 2023.02.17 step 02 - staging establecimiento (Vcliente).sql 
+
+
+
+-- 1.-- Se crea tabla tbp_typ_tmp_establecimientos_1 desde los origenes GOET, MOODLE, SIENFO, CRMSL Y SIU
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_establecimientos_1`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_1" AS
+SELECT
+	'SIU' base_origen,
+	CAST(est.ubicacion AS VARCHAR) codigo,
+	CAST('' AS VARCHAR) cue,
+	CAST(upper(est.nombre) AS VARCHAR) nombre_formateado,
+	CAST(est.nombre AS VARCHAR) nombre_old,
+	CAST('' AS VARCHAR) clave_tipo,
+	CAST('' AS VARCHAR) tipo,
+	CAST(est.calle AS VARCHAR) calle,
+	CAST(est.numero AS VARCHAR) numero,
+	CAST(est.localidad AS VARCHAR) clave_localidad,
+	CAST(loc.nombre AS VARCHAR) localidad,
+	CAST(est.codigo_postal AS VARCHAR) codigo_postal,
+	CAST('' AS VARCHAR) comuna
+FROM "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_ubicaciones" est
+LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_mug_localidades" loc ON (est.localidad=loc.localidad)
+UNION
+-- la tabla que existe de centros y sedes NO tienen datos, solo ids
+SELECT
+    'GOET' base_origen,
+    CAST(c.idcentro AS VARCHAR) codigo,
+	CAST(c.cueanexo AS VARCHAR) cue,
+	CAST(UPPER(c.nombre) AS VARCHAR) nombre_formateado,
+	CAST(c.nombre AS VARCHAR) nombre_old,
+	CAST(c.idcentrotipo AS VARCHAR) clave_tipo,
+	CAST(ct.detalle AS VARCHAR) tipo,
+	-- separar nombre de calle de numero, normalizar
+	CAST(c.direccion AS VARCHAR) calle,
+	-- separar nombre de calle de numero, normalizar
+	CAST(c.direccion AS VARCHAR) numero,
+	CAST(c.idlocalidad AS VARCHAR) clave_localidad,
+	CAST(l.detalle AS VARCHAR) localidad,
+	CAST(l.cdpostal AS VARCHAR) codigo_postal,
+	CAST(c.comuna AS VARCHAR)  comuna
+FROM "caba-piba-raw-zone-db"."goet_centro_formacion" c
+LEFT JOIN "caba-piba-raw-zone-db"."goet_localidades" l ON (c.idlocalidad=l.idlocalidad)
+LEFT JOIN "caba-piba-raw-zone-db"."goet_centro_tipo" ct ON (c.idcentrotipo=ct.idtipocentro)
+UNION
+SELECT
+	'SIENFO' base_origen,
+    CAST(c.id_centro AS VARCHAR) codigo,
+	CAST(c.cue_anexo AS VARCHAR) cue,
+	CAST(UPPER(c.nom_centro) AS VARCHAR) nombre_formateado,
+	CAST(c.nom_centro AS VARCHAR) nombre_old,
+	CAST(c.tipo_centro AS VARCHAR) clave_tipo,
+	-- verificar si hay tablas de tipos
+	CAST(tc.denominacion AS VARCHAR) tipo,
+	-- separar nombre de calle de numero, normalizar
+	CAST(c.direccion AS VARCHAR) calle,
+	-- separar nombre de calle de numero, normalizar
+	CAST(c.direccion AS VARCHAR) numero,
+	CAST('' AS VARCHAR) clave_localidad,
+	CAST('' AS VARCHAR) localidad,
+	CAST('' AS VARCHAR) codigo_postal,
+	CAST('' AS VARCHAR) comuna
+FROM "caba-piba-raw-zone-db"."sienfo_centros" c
+LEFT JOIN "caba-piba-raw-zone-db"."sienfo_tcentro" tc ON (c.tipo_centro=tc.tipo_centro)
+LEFT JOIN "caba-piba-raw-zone-db"."sienfo_cgps" cgp ON (c.id_cgp=cgp.id_cgp)
+LEFT JOIN "caba-piba-raw-zone-db"."sienfo_distritos" d ON (c.id_distrito=d.id_distrito)
+UNION
+SELECT
+	'CRMSL' base_origen,
+	CASE
+	WHEN sede LIKE '21-24- CEMAR' THEN cast(crc32(cast('CEMAR 21 24' AS varbinary)) AS varchar)
+	WHEN sede LIKE 'Bariro Padre Mugica (Ex 31)' THEN cast(crc32(cast(UPPER('Barrio Padre Mugica (Ex 31)') AS varbinary )) AS varchar)
+	WHEN sede LIKE 'Mugica' THEN cast(crc32(cast(UPPER('Barrio Padre Mugica (Ex 31)') AS varbinary )) AS varchar)
+	WHEN sede LIKE 'Barrio 15' THEN cast(crc32(cast(UPPER('Villa Lugano - Barrio 15') AS varbinary )) AS varchar)
+	WHEN sede LIKE 'Fraga' THEN cast(crc32(cast(UPPER('Barrio Fraga') AS varbinary )) AS varchar)
+	WHEN sede LIKE 'Villa Lugano- Barrio 15' THEN cast(crc32(cast(UPPER('Villa Lugano - Barrio 15') AS varbinary )) AS varchar)
+	WHEN sede LIKE 'Rodrigo Bueno' THEN cast(crc32(cast(UPPER('Barrio Rodrigo Bueno') AS varbinary )) AS varchar)
+	WHEN sede LIKE 'Club Copelo' THEN cast(crc32(cast(UPPER('Club Copello') AS varbinary )) AS varchar)
+	WHEN sede LIKE 'Ricchiardelli' THEN cast(crc32(cast(UPPER('Ricciardelli') AS varbinary )) AS varchar)
+	ELSE cast(crc32(cast(UPPER(sede) AS varbinary))  AS varchar)
+	END codigo,
+
+	CAST('' AS VARCHAR) cue,
+
+	CASE
+	WHEN sede LIKE '21-24- CEMAR' THEN 'CEMAR 21 24'
+	WHEN sede LIKE 'Bariro Padre Mugica (Ex 31)' THEN UPPER('Barrio Padre Mugica (Ex 31)')
+	WHEN sede LIKE 'Mugica' THEN UPPER('Barrio Padre Mugica (Ex 31)')
+	WHEN sede LIKE 'Barrio 15' THEN UPPER('Villa Lugano - Barrio 15')
+	WHEN sede LIKE 'Fraga' THEN UPPER('Barrio Fraga')
+	WHEN sede LIKE 'Villa Lugano- Barrio 15' THEN UPPER('Villa Lugano - Barrio 15')
+	WHEN sede LIKE 'Rodrigo Bueno' THEN UPPER('Barrio Rodrigo Bueno')
+	WHEN sede LIKE 'Club Copelo' THEN UPPER('Club Copello')
+	WHEN sede LIKE 'Ricchiardelli' THEN UPPER('Ricciardelli')
+	ELSE UPPER(sede)
+	END nombre_formateado,
+
+	CAST(sede AS VARCHAR) nombre_old,
+
+	CAST('' AS VARCHAR) clave_tipo,
+	CAST('' AS VARCHAR) tipo,
+	CAST('' AS VARCHAR) calle,
+	CAST('' AS VARCHAR) numero,
+	CAST('' AS VARCHAR) clave_localidad,
+	CAST('' AS VARCHAR) localidad,
+	CAST('' AS VARCHAR) codigo_postal,
+
+	CASE
+	WHEN sede IN ('Bariro Padre Mugica (Ex 31)', 'Mugica', 'Barrio Rodrigo Bueno',
+				'Rodrigo Bueno', 'Sum Rivadavia', 'Virtual')  THEN 'Comuna 1'
+	WHEN sede IN ('21-24- CEMAR', 'CEMAR 21 24', 'Comedor Los Pochitos',
+				'La boca', 'MDHH', 'Nido B 20', 'Zavaleta')  THEN 'Comuna 4'
+	WHEN sede IN ('Barrio Charrua', 'Barrio Rivadavia II', 'Ricchiardelli',
+				'Ricciardelli')  THEN 'Comuna 7'
+	WHEN sede IN ('Barrio 15', 'Villa Lugano- Barrio 15', 'Barrio 20', 'Club Copelo',
+				'Club Copello', 'Nido Soldati', 'NIDO Soldati', 'Piedrabuena',
+				'Sabina Olmos', 'Soldati')  THEN 'Comuna 8'
+	WHEN sede IN ('CildaÃ±ez', 'Lacarra', 'Mataderos')  THEN 'Comuna 9'
+	WHEN sede IN ('Barrio Saavedra')  THEN 'Comuna 12'
+	WHEN sede IN ('Barrio Fraga', 'Fraga')  THEN 'Comuna 15'
+	END comuna
+
+FROM "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_formacion"
+WHERE sede IS NOT NULL AND TRIM(sede) NOT LIKE ''
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
+-- Segun GCBA Moodle tiene como establecimiento el programa Codo a Codo dependiente del Ministerio de EducaciÃ³n
+-- https://buenosaires.gob.ar/educacion/codocodo/el-programa
+UNION
+SELECT
+'MOODLE' base_origen,
+'PROGRAMACODOACODO' codigo,
+'202010' cue,
+'PROGRAMA CODO A CODO' nombre_formateado,
+'PROGRAMA CODO A CODO' nombre_old,
+'3' clave_tipo,
+'Otros' tipo,
+'Carlos H. Perette y Calle 10' calle,
+CAST('' AS VARCHAR) numero,
+'2104001' clave_localidad,
+'Ciudad de Buenos Aires' localidad,
+'1107' codigo_postal,
+'Comuna 1' comuna
+
+-- 2.-- Se crea tabla con domicilios estandarizados
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.tbp_typ_tmp_establecimientos_domicilios_estandarizados;
+CREATE TABLE "caba-piba-staging-zone-db".tbp_typ_tmp_establecimientos_domicilios_estandarizados AS
+WITH ECN1 AS (
+SELECT
+base_origen,
+codigo,
+cue,
+nombre_formateado,
+nombre_old,
+tipo,
+clave_tipo,
+clave_localidad,
+calle AS nombre_calle_origen,
+CASE
+     --PatrÃ³n: Campos que contienen la leyenda 'calle'
+    WHEN regexp_like(calle,'y calle|y Calle') THEN UPPER(CONCAT(regexp_extract(calle,'(y\s)(CALLE|calle|Calle)(\s?\d?\d?\d?)',2),' ',regexp_extract(calle,'(y\s)(CALLE|calle|Calle)(\s?\d?\d?\d?)',3)))
+    WHEN regexp_like(calle,'CALLE|calle|Calle') THEN UPPER(CONCAT(regexp_extract(calle,'(CALLE|calle|Calle)(\s?\d?\d?\d?\s?[A-Za-z]+\s?\d?\d?\d?\d?)',1),' ',regexp_extract(calle,'(CALLE|calle|Calle)(\s?\d?\d?\d?\s?[A-Za-z]+\s?\d?\d?\d?\d?)',2)))
+    --PatrÃ³n: Campos con solo datos de manzanas
+    WHEN regexp_like(calle,'MANZANA|manzana|Manzana') THEN UPPER(CONCAT(regexp_extract(calle,'(MANZANA|manzana|Manzana)(\s[0-9]+)',1),' ',regexp_extract(calle,'(MANZANA|manzana|Manzana)(\s[0-9]+)',2)))
+    --PatrÃ³n:Campos con numero + nombre (ejemplo: 24 de noviembre)
+    WHEN regexp_like(calle,'[0-9]+\s\w\w\s[a-zA-Z]+') THEN UPPER(regexp_extract(calle,'[0-9]+\s\w\w\s[a-zA-Z]+'))
+    --PatrÃ³n:Campos que hagan referencia a avenidas
+    WHEN regexp_like(calle,'AV|AVDA|AVENIDA|Av|Avda|Avenida') THEN UPPER(regexp_extract(replace(replace(replace(calle,'Avda.','Av.'),'Avenida','Av.'),'Avda','Av.'),'(Av.?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?)',1))
+    ELSE UPPER(calle)
+END nombre_calle_estandarizada1,
+numero AS numero_calle_origen,
+localidad,
+codigo_postal,
+comuna
+FROM "caba-piba-staging-zone-db".tbp_typ_tmp_establecimientos_1
+),
+ECN2 AS (
+SELECT
+ECN1.base_origen,
+ECN1.codigo,
+ECN1.cue,
+ECN1.nombre_formateado,
+ECN1.nombre_old,
+ECN1.tipo,
+ECN1.clave_tipo,
+ECN1.clave_localidad,
+ECN1.nombre_calle_origen,
+CASE
+    --PatrÃ³n:Campos que hagan referencia a avenidas
+    WHEN regexp_like(UPPER(ECN1.nombre_calle_origen),'[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?\s?AV.\s?[0-9]+') THEN UPPER(CONCAT('AV. ',regexp_extract(replace(replace(replace(UPPER(ECN1.nombre_calle_origen),'AVDA.','AV.'),'AVENIDA','Av.'),'AVDA','Av.'),'([a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?)(\s?AV.)(\s?[0-9]+)',1)))
+    WHEN regexp_like(ECN1.nombre_calle_origen,'Av.?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[0-9]+') THEN UPPER(regexp_extract(replace(replace(replace(ECN1.nombre_calle_origen,'Avda.','Av.'),'Avenida','Av.'),'Avda','Av.'),'(Av.?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+)(\s?[0-9]+)',1))
+    WHEN regexp_like(ECN1.nombre_calle_origen,'AV|AVDA|AVENIDA|Av|Avda|Avenida') AND ECN1.nombre_calle_origen LIKE '% y %' THEN UPPER(regexp_extract(replace(replace(replace(ECN1.nombre_calle_origen,'Avda.','Av.'),'Avenida','Av.'),'Avda','Av.'),'Av.?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+'))
+    --PatrÃ³n: Campos con nombre (con puntos) + numero
+    WHEN UPPER(ECN1.nombre_calle_origen) LIKE '%HUMBERTO%' THEN 'HUMBERTO 1Â°'
+    WHEN regexp_like(ECN1.nombre_calle_estandarizada1,'[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?Â°?]+\s?\,?\.?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?\,?\.?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?[0-9]+') THEN UPPER(regexp_extract(replace(replace(replace(ECN1.nombre_calle_estandarizada1,'Avda.','Av.'),'Avenida','Av.'),'Avda','Av.'),'([a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?Â°?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?\,?\.?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?\,?\.?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+)(\s?[0-9]+)',1))
+    --PatrÃ³n: Campos que hagan referencia a una misma direcciones con diferente expresion
+    WHEN UPPER(ECN1.nombre_calle_origen) LIKE '%PERETTE%' THEN UPPER(CONCAT('CARLOS H. PERETTE',' ',regexp_extract(UPPER(ECN1.nombre_calle_origen),'(PERETTE)(\s?Y\sCALLE\s?\d?\d?)',2)))
+    ELSE ECN1.nombre_calle_estandarizada1
+END nombre_calle_estandarizada2,
+ECN1.numero_calle_origen,
+ECN1.localidad,
+ECN1.codigo_postal,
+ECN1.comuna
+FROM ECN1
+),
+ECN3 AS (
+SELECT
+ECN2.base_origen,
+ECN2.codigo,
+ECN2.cue,
+ECN2.nombre_formateado,
+ECN2.nombre_old,
+ECN2.tipo,
+ECN2.clave_tipo,
+ECN2.clave_localidad,
+ECN2.nombre_calle_origen,
+ECN2.nombre_calle_estandarizada2,
+CASE
+    --PatrÃ³n: Campos que hagan referencia a una misma direcciones con diferente expresion
+    WHEN ECN2.nombre_calle_estandarizada2 LIKE '%BEIRÃ%' THEN 'AV. FRANCISCO BEIRÃ'
+    WHEN ECN2.nombre_calle_estandarizada2 LIKE '%RIVADAVIA%' THEN 'AV. RIVADAVIA'
+    WHEN ECN2.nombre_calle_estandarizada2 LIKE '%SANTA FE%' THEN 'AV. SANTA FE'
+    --Ajustes
+    WHEN ECN2.nombre_calle_estandarizada2 LIKE '%NÂº%' OR ECN2.nombre_calle_estandarizada2 LIKE '%NÂ°%' THEN replace(replace(ECN2.nombre_calle_estandarizada2,'NÂº',''),'NÂ°','')
+    WHEN UPPER(ECN2.nombre_calle_origen) LIKE '% Y %' AND ECN2.nombre_calle_estandarizada2 LIKE '%MÃDULO%' THEN UPPER(regexp_extract(replace(replace(replace(ECN2.nombre_calle_origen,'Avda.','Av.'),'Avenida','Av.'),'Avda','Av.'),'([a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.Â°?\s?]+)(\-[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼0-9?\,?\s?]+)',1))
+    WHEN UPPER(ECN2.nombre_calle_origen) LIKE '% Y %' AND ECN2.nombre_calle_estandarizada2 LIKE '%. MZ%'  THEN UPPER(regexp_extract(replace(replace(replace(ECN2.nombre_calle_origen,'Avda.','Av.'),'Avenida','Av.'),'Avda','Av.'),'([a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.Â°?\s?]+)(\.[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼0-9?\,?\s?]+)',1))
+    WHEN ECN2.nombre_calle_estandarizada2 LIKE 'LATITUD' THEN 'S/D'
+    --PatrÃ³n: Campos con nombre (con doble espacio) + numero
+    WHEN ECN2.nombre_calle_origen LIKE '%  %' THEN UPPER(regexp_extract(ECN2.nombre_calle_origen,'([a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?Â°?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+)(\s?\s?[0-9]+)',1))
+    ELSE ECN2.nombre_calle_estandarizada2
+END nombre_calle_estandarizada3,
+ECN2.numero_calle_origen,
+ECN2.localidad,
+ECN2.codigo_postal,
+ECN2.comuna
+FROM ECN2
+),
+-- Se realizan ajustes finales a la estandarizaciÃ³n de nombres de calles y se estandarizan los numeros de calles
+ECN4 AS (
+SELECT
+ECN3.base_origen,
+ECN3.codigo,
+ECN3.cue,
+ECN3.nombre_formateado,
+ECN3.nombre_old,
+ECN3.tipo,
+ECN3.clave_tipo,
+ECN3.clave_localidad,
+ECN3.nombre_calle_origen,
+CASE
+    --PatrÃ³n: Solo numeros
+    WHEN regexp_like(ECN3.nombre_calle_estandarizada3,'[^A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?\s?\,?]+') AND ECN3.nombre_calle_estandarizada3 NOT LIKE '%MANZANA%' AND ECN3.nombre_calle_estandarizada3 NOT LIKE '%HUMBERTO%' AND ECN3.nombre_calle_estandarizada3 NOT LIKE '%DE%' AND ECN3.nombre_calle_estandarizada3 NOT LIKE '%CALLE%' AND ECN3.nombre_calle_estandarizada3 NOT LIKE '%S/D%' THEN 'S/D'
+    WHEN LENGTH(ECN3.nombre_calle_estandarizada3) = 0 OR ECN3.nombre_calle_estandarizada3 IS NULL THEN 'S/D'
+    --Ajuste final
+    WHEN ECN3.nombre_calle_estandarizada3 LIKE '%  %' THEN  replace(ECN3.nombre_calle_estandarizada3,'  ',' ')
+    ELSE ECN3.nombre_calle_estandarizada3
+END nombre_calle_estandarizada,
+ECN3.numero_calle_origen,
+CASE
+    --PatrÃ³n: Campos que contengan mas de 1 altura (ejemplo 1234/5678)
+    WHEN ECN3.numero_calle_origen LIKE '%/%' AND ECN3.numero_calle_origen NOT LIKE 'S/D' THEN regexp_extract(ECN3.numero_calle_origen,'([a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼\Â°?\Âº?\s?\,?.?]+)([0-9]+)(\/\s?[0-9]+)',2)
+    --PatrÃ³n: Campos que contengan la leyenda "CASA" o "NÂ°"
+    WHEN regexp_like(UPPER(ECN3.numero_calle_origen),'CASA\s?[0-9]+') THEN regexp_extract(UPPER(ECN3.numero_calle_origen),'(CASA)(\s?[0-9]+)',2)
+    WHEN regexp_like(UPPER(ECN3.numero_calle_origen),'C\s?[0-9]+') THEN regexp_extract(UPPER(ECN3.numero_calle_origen),'(C)(\s?[0-9]+)',2)
+    WHEN regexp_like(UPPER(ECN3.numero_calle_origen),'NÂ°\s?[0-9]+') THEN regexp_extract(UPPER(ECN3.numero_calle_origen),'(NÂ°)(\s?[0-9]+)',2)
+    --PatrÃ³n: Campos con solo datos de manzana
+    WHEN UPPER(ECN3.numero_calle_origen) LIKE '%MANZANA%' THEN replace(ECN3.nombre_calle_estandarizada3,'  ',' ')
+    --PatrÃ³n:Campos con numero + nombre (ejemplo: 24 de noviembre)
+    WHEN regexp_like(ECN3.numero_calle_origen,'[0-9]+\s\w\w\s[a-zA-Z]+\s?[0-9]+') THEN UPPER(regexp_extract(ECN3.numero_calle_origen,'([0-9]+\s\w\w\s[a-zA-Z]+)(\s?[0-9]+)',2))
+    ELSE UPPER(ECN3.numero_calle_origen)
+END numero_calle_estandarizada1,
+ECN3.localidad,
+ECN3.codigo_postal,
+ECN3.comuna
+FROM ECN3
+),
+ECN5 AS (
+SELECT
+ECN4.base_origen,
+ECN4.codigo,
+ECN4.cue,
+ECN4.nombre_formateado,
+ECN4.nombre_old,
+ECN4.tipo,
+ECN4.clave_tipo,
+ECN4.clave_localidad,
+ECN4.nombre_calle_origen,
+ECN4.nombre_calle_estandarizada,
+ECN4.numero_calle_origen,
+ECN4.numero_calle_estandarizada1,
+CASE
+    --PatrÃ³n:Campos que hagan referencia a avenidas
+    WHEN ECN4.numero_calle_estandarizada1 LIKE '%AV. %' OR ECN4.numero_calle_estandarizada1 LIKE '%AVDA. %' THEN UPPER(regexp_extract(ECN4.numero_calle_estandarizada1,'(AV.?\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+)(\s?\s?[0-9]+)',2))
+    WHEN ECN4.nombre_calle_estandarizada LIKE '%AV. %' THEN UPPER(regexp_extract(UPPER(ECN4.numero_calle_origen),'(AV.?\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+)(\s?[0-9]+)',2))
+    ELSE ECN4.numero_calle_estandarizada1
+END numero_calle_estandarizada2,
+ECN4.localidad,
+ECN4.codigo_postal,
+ECN4.comuna
+FROM ECN4
+),
+ECN6 AS (
+SELECT
+ECN5.base_origen,
+ECN5.codigo,
+ECN5.cue,
+ECN5.nombre_formateado,
+ECN5.nombre_old,
+ECN5.tipo,
+ECN5.clave_tipo,
+ECN5.clave_localidad,
+ECN5.nombre_calle_origen,
+ECN5.nombre_calle_estandarizada,
+ECN5.numero_calle_origen,
+ECN5.numero_calle_estandarizada1,
+ECN5.numero_calle_estandarizada2,
+CASE
+    --PatrÃ³n:Campos que hagan referencia a avenidas
+    WHEN UPPER(ECN5.nombre_calle_origen) LIKE '%LATITUD%' THEN 'S/D'
+    WHEN regexp_like(ECN5.numero_calle_estandarizada1,'[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?\s?AV.\s?[0-9]+') THEN regexp_extract(ECN5.numero_calle_estandarizada1,'([a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼,?.?]+\s?)(\s?AV.)(\s?[0-9]+)',3)
+    WHEN regexp_like(ECN5.numero_calle_estandarizada1,'AV.?\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[0-9]+') THEN regexp_extract(ECN5.numero_calle_estandarizada1,'(AV.?\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+\s?[A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+)(\s?[0-9]+)',2)
+    --PatrÃ³n: Campos con nombre (con puntos) + numero
+    WHEN ECN5.nombre_calle_estandarizada LIKE '%HUMBERTO%' THEN regexp_extract(ECN5.numero_calle_estandarizada2,'([A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?]+)(\s?[0-9]+\Â°?\Âº?\s?)([0-9]+)',3)
+    WHEN regexp_like(ECN5.numero_calle_estandarizada2,'[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?Â°?]+\s?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?\,?\.?\s?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?\s?[0-9]+') THEN regexp_extract(ECN5.numero_calle_estandarizada2,'([a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?Â°?]+\s?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?\,?\.?\s?\s?[a-zA-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?]+\s?\s?)([0-9]+)',2)
+    WHEN regexp_like(ECN5.numero_calle_estandarizada1,'[^A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\Â°?\Âº?\s?\,?]+') AND ECN5.numero_calle_estandarizada1 NOT LIKE '%S/D%' THEN ECN5.numero_calle_estandarizada1
+    WHEN LENGTH(ECN5.numero_calle_estandarizada1) > 0 AND ECN5.numero_calle_estandarizada2 IS NULL THEN ECN5.numero_calle_estandarizada1
+    ELSE ECN5.numero_calle_estandarizada2
+END numero_calle_estandarizada3,
+ECN5.localidad,
+ECN5.codigo_postal,
+ECN5.comuna
+FROM ECN5
+),
+ECN7 AS (
+SELECT
+ECN6.base_origen,
+ECN6.codigo,
+ECN6.cue,
+ECN6.nombre_formateado,
+ECN6.nombre_old,
+ECN6.tipo,
+ECN6.clave_tipo,
+ECN6.clave_localidad,
+ECN6.nombre_calle_origen,
+ECN6.nombre_calle_estandarizada,
+ECN6.numero_calle_origen,
+ECN6.numero_calle_estandarizada1,
+ECN6.numero_calle_estandarizada2,
+ECN6.numero_calle_estandarizada3,
+CASE
+    --Ajustes adicionales
+    WHEN ECN6.numero_calle_estandarizada3 LIKE '%Âº%' OR ECN6.numero_calle_estandarizada3 LIKE '%Â°%' THEN regexp_extract(ECN6.numero_calle_estandarizada3,'([0-9]+)(\s?\d?\Â°?\Âº?\s?)([A-ZÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃÃ±ÃÃ¤ÃÃ«ÃÃ¯ÃÃ¶ÃÃ¼.?\s?\,?]+)',1)
+    WHEN LENGTH(ECN6.numero_calle_estandarizada1) > 0 AND ECN6.numero_calle_estandarizada3 IS NULL AND ECN6.nombre_calle_estandarizada LIKE '%HUMBERTO%' THEN regexp_extract(ECN6.numero_calle_estandarizada1,'([0-9]+)(\s?\d?\Â°?\Âº?\s?)',1)
+    WHEN regexp_like(ECN6.numero_calle_estandarizada3,'[^0-9\s?]+') AND ECN6.numero_calle_estandarizada3 NOT LIKE '%S/D%' THEN replace(regexp_replace(ECN6.numero_calle_estandarizada3,'[^0-9\s?]+',''),' ','')
+    ELSE replace(ECN6.numero_calle_estandarizada3,' ','')
+END numero_calle_estandarizada4,
+ECN6.localidad,
+ECN6.codigo_postal,
+ECN6.comuna
+FROM ECN6
+),
+ECN8 AS (
+SELECT
+ECN7.base_origen,
+ECN7.codigo,
+ECN7.cue,
+ECN7.nombre_formateado,
+ECN7.nombre_old,
+ECN7.tipo,
+ECN7.clave_tipo,
+ECN7.clave_localidad,
+ECN7.nombre_calle_origen,
+ECN7.nombre_calle_estandarizada,
+ECN7.numero_calle_origen,
+ECN7.numero_calle_estandarizada1,
+ECN7.numero_calle_estandarizada3,
+ECN7.numero_calle_estandarizada4,
+CASE
+    --Ajutse final
+    WHEN LENGTH(ECN7.numero_calle_estandarizada4) = 0 OR ECN7.numero_calle_estandarizada4 IS NULL THEN 'S/D'
+    ELSE ECN7.numero_calle_estandarizada4
+END numero_calle_estandarizada,
+ECN7.localidad,
+ECN7.codigo_postal,
+ECN7.comuna
+FROM ECN7
+),
+ECNF AS (
+SELECT
+ECN8.base_origen,
+ECN8.codigo,
+ECN8.cue,
+ECN8.nombre_formateado,
+ECN8.nombre_old,
+ECN8.tipo,
+ECN8.clave_tipo,
+ECN8.clave_localidad,
+ECN8.nombre_calle_origen,
+ECN8.numero_calle_origen,
+ECN8.nombre_calle_estandarizada,
+ECN8.numero_calle_estandarizada,
+ECN8.localidad,
+ECN8.codigo_postal,
+ECN8.comuna
+FROM ECN8
+GROUP BY
+ECN8.base_origen,
+ECN8.codigo,
+ECN8.cue,
+ECN8.nombre_formateado,
+ECN8.nombre_old,
+ECN8.tipo,
+ECN8.clave_tipo,
+ECN8.clave_localidad,
+ECN8.nombre_calle_origen,
+ECN8.numero_calle_origen,
+ECN8.nombre_calle_estandarizada,
+ECN8.numero_calle_estandarizada,
+ECN8.localidad,
+ECN8.codigo_postal,
+ECN8.comuna
+)
+SELECT ECNF.*
+FROM ECNF;
+
+-- 3.-- Se crea tabla tbp_typ_tmp_establecimientos cruzando tabla de domicilios estandarizados con
+-- informacion proveniente de:
+-- # https://www.argentina.gob.ar/educacion/evaluacion-e-informacion-educativa/padron-oficial-de-establecimientos-educativos
+-- # https://data.educacion.gob.ar/
+-- # https://data.buenosaires.gob.ar/dataset/establecimientos-educativos
+-- esta tabla serÃ¡ la ultima tabla tmp antes de crear la tabla consume
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_establecimientos`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos" AS
+SELECT e.base_origen,
+	e.codigo,
+	CASE
+	WHEN te.cue IS NOT NULL AND length(te.cue)=6 THEN te.cue
+	WHEN e.cue IS NOT NULL AND length(e.cue)=6 THEN e.cue
+	WHEN e.cue IS NOT NULL AND length(e.cue)=8 THEN substr(e.cue,1,6)
+	END cue,
+	e.nombre_formateado,
+	e.nombre_old,
+	-- nombre del listado oficial de establecimientos
+	te.nombre AS nombre_data,
+	e.tipo,
+	e.clave_tipo,
+	e.nombre_calle_estandarizada calle,
+	e.numero_calle_estandarizada numero,
+	Upper(te."domicilio_establecimiento_fuente_data_bs") dom_completo,
+	-- todos los establecimientos son de CABA
+	'CABA' localidad,
+	e.clave_localidad,
+	coalesce(te.cp, e.codigo_postal) codigo_postal,
+	coalesce(te.departamento, e.comuna) comuna,
+	-- SE GENERA UNA COLUMNA DE ORDEN DE DUPLICADOS, SIENDO EL MAS COINCIDENTE EL QUE TIENE EL NOMBRE DE ESTABLECIMIENTO
+	-- MAS PARECIDO Y UN NUMERO DE ANEXO MENOR
+	ROW_NUMBER() OVER(
+		PARTITION BY(
+			Concat(
+				e."nombre_calle_estandarizada",
+				' ',
+				e."numero_calle_estandarizada"
+			)
+		)
+		ORDER BY (
+				(
+					Cast(
+						Greatest(
+							Length(e."nombre_old"),
+							Length(Upper(te."nombre"))
+						) AS DOUBLE
+					) - Cast(
+						Levenshtein_distance(
+							Upper(e."nombre_old"),
+							Upper(te."nombre")
+						) AS DOUBLE
+					)
+				) / Cast(
+					Greatest(
+						Length(e."nombre_old"),
+						Length(Upper(te."nombre"))
+					) AS DOUBLE
+				)
+			) DESC,
+			CAST(te.anexo AS INT) ASC
+	) AS "orden_duplicado"
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estandarizados" e
+	-- SE HACE JOIN POR SIMILITUD DE DIRECCIONES >= 80%
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_data_efectores" te ON (
+		(
+			(
+				Cast(
+					Greatest(
+						Length(
+							Concat(
+								e."nombre_calle_estandarizada",
+								' ',
+								e."numero_calle_estandarizada"
+							)
+						),
+						Length(
+							Upper(te."domicilio_establecimiento_fuente_data_bs")
+						)
+					) AS DOUBLE
+				) - Cast(
+					Levenshtein_distance(
+						Upper(
+							Concat(
+								e."nombre_calle_estandarizada",
+								' ',
+								e."numero_calle_estandarizada"
+							)
+						),
+						Upper(te."domicilio_establecimiento_fuente_data_bs")
+					) AS DOUBLE
+				)
+			) / Cast(
+				Greatest(
+					Length(
+						Concat(
+							e."nombre_calle_estandarizada",
+							' ',
+							e."numero_calle_estandarizada"
+						)
+					),
+					Length(
+						Upper(te."domicilio_establecimiento_fuente_data_bs")
+					)
+				) AS DOUBLE
+			)
+		) >= 0.8
+	)
+
+
+
+-- Copy of 2023.02.17 step 03 - consume establecimiento(Vcliente).sql 
+
+
+
+-- ESTABLECIMIENTO GOET, MOODLE, SIENFO, CRMSL Y SIU
+-- 1.- Crear tabla establecimientos definitiva
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_establecimientos`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" AS
+SELECT
+	row_number() OVER () AS id,
+	tmp.*
+FROM (
+	SELECT
+		base_origen,
+		codigo id_old,
+		cue,
+		nombre_formateado nombre,
+		nombre_data nombre_publicado,
+		array_join(array_agg(DISTINCT(nombre_old)), ',') nombres_old,
+		tipo,
+		calle,
+		numero,
+		'CABA' localidad,
+		codigo_postal,
+		-- se elimina la palabra "comuna"
+		-- luego se convierte a un numero entero y si es 0 se lo cambia por null
+		CASE
+		WHEN TRY_CAST(replace(comuna, 'Comuna ') AS int) = 0 THEN
+			NULL
+		ELSE
+			TRY_CAST(replace(comuna, 'Comuna ') AS int)
+		END comuna
+	FROM
+		(SELECT * FROM
+		"caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos"
+		WHERE orden_duplicado = 1) sin_duplicados
+	GROUP BY 1,2,3,4,5,7,8,9,10,11,12
+	) tmp
+ORDER BY tmp.base_origen, tmp.nombre
+
+
+
+-- Copy of 2023.02.17 step 04 - staging capacitacion asi (Vcliente).sql 
 
 
 
@@ -438,7 +1014,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- 2023.02.03 step 03 - staging capacitacion.sql 
+-- Copy of 2023.02.17 step 05 - staging capacitacion(Vcliente).sql 
 
 
 
@@ -1024,7 +1600,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- 2023.02.03 step 04 - consume capacitacion.sql 
+-- Copy of 2023.02.17 step 06 - consume capacitacion(Vcliente).sql 
 
 
 
@@ -1130,7 +1706,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- 2023.02.03 step 05 - staging vecinos.sql 
+-- Copy of 2023.02.17 step 07 - staging vecinos(Vcliente).sql 
 
 
 
@@ -1659,7 +2235,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- 2023.02.03 step 06 - consume vecinos.sql 
+-- Copy of 2023.02.17 step 08 - consume vecinos(Vcliente).sql 
 
 
 
@@ -1770,7 +2346,7 @@ FROM tmp_vec_renaper tvc
 
 
 
--- 2023.02.03 step 07 - staging estado_beneficiario_crmsl.sql 
+-- Copy of 2023.02.17 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
 
 
 
@@ -1874,7 +2450,7 @@ FROM resultado
 
 
 
--- 2023.02.03 step 08 - staging estado_beneficiario_sienfo.sql 
+-- Copy of 2023.02.17 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
 
 
 
@@ -2199,7 +2775,7 @@ FROM
 
 
 
--- 2023.02.03 step 09 - staging estado_beneficiario_goet.sql 
+-- Copy of 2023.02.17 step 11 - staging estado_beneficiario_goet(Vcliente).sql 
 
 
 
@@ -2400,7 +2976,7 @@ GROUP BY
 
 
 
--- 2023.02.03 step 10 - staging estado_beneficiario_moodle.sql 
+-- Copy of 2023.02.17 step 12 - staging estado_beneficiario_moodle(Vcliente).sql 
 
 
 
@@ -2663,7 +3239,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- 2023.02.03 step 11 - staging estado_beneficiario_siu.sql 
+-- Copy of 2023.02.17 step 13 - staging estado_beneficiario_siu(Vcliente).sql 
 
 
 
@@ -2880,7 +3456,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- 2023.02.03 step 12 - staging edicion capacitacion.sql 
+-- Copy of 2023.02.17 step 14 - staging edicion capacitacion(Vcliente).sql 
 
 
 
@@ -2983,11 +3559,12 @@ SELECT
 		-- Si la modalidad no esta en la edicion se toma desde la entidad capacitacion, NULL en otro caso
 		dc.modalidad_id,
 		dc.descrip_modalidad,
-		CAST(chm.IdCentro AS VARCHAR)  cod_origen_establecimiento
+		est.id cod_origen_establecimiento
 
 	FROM
 	"caba-piba-raw-zone-db"."goet_nomenclador" n
 	LEFT JOIN "caba-piba-raw-zone-db"."goet_centro_habilitacion_modulos" chm ON n.IdNomenclador = chm.IdNomenclador
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (cast(chm.IdCentro AS varchar)=est.id_old)
 	LEFT JOIN "caba-piba-raw-zone-db"."goet_centro_codigo_curso" cc ON cc.IdCtrHbModulo = chm.IdCtrHbModulo
 	LEFT JOIN "caba-piba-raw-zone-db"."goet_inscripcion_alumnos" ia ON ia."IdCtrCdCurso" = cc."IdCtrCdCurso"
 	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_view_goet_usuarios_no_duplicates" u ON u."IdUsuario" = ia."IdUsuario"
@@ -3043,7 +3620,7 @@ SELECT
 		cc.topematricula,
 		dc.modalidad_id,
 		dc.descrip_modalidad,
-		chm.IdCentro
+		est.id
 UNION
 -- MOODLE
 SELECT
@@ -3150,7 +3727,7 @@ SELECT
 	-- Si la modalidad no esta en la edicion se toma desde la entidad capacitacion, NULL en otro caso
 	dc.modalidad_id,
 	dc.descrip_modalidad,
-	' ' cod_origen_establecimiento
+	est.id cod_origen_establecimiento
 FROM "caba-piba-raw-zone-db"."moodle_dgtedu01_mdl_course" co
 JOIN "caba-piba-raw-zone-db"."moodle_dgtedu01_mdl_course_categories" cc ON (co.category = cc.id)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" dcmatch ON (
@@ -3161,6 +3738,7 @@ LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" dc ON (
 		dcmatch.id_new = dc.id_new
 		AND dcmatch.base_origen = dc.base_origen
 		)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos"  est ON (dcmatch.base_origen=est.base_origen)
 LEFT JOIN (SELECT
     id_categoria,
 	CAST(MIN(inicio_curso) AS VARCHAR) fecha_inicio,
@@ -3184,7 +3762,8 @@ GROUP BY
 	cc.coursecount,
 	fechas.cantidad_inscriptos,
 	dc.modalidad_id,
-	dc.descrip_modalidad
+	dc.descrip_modalidad,
+	est.id
 
 UNION
 -- SIENFO CARRERA
@@ -3272,9 +3851,10 @@ SELECT 'SIENFO' base_origen,
 		-- Si la modalidad no esta en la edicion se toma desde la entidad capacitacion, NULL en otro caso
 		dc.modalidad_id,
 		dc.descrip_modalidad,
-       CAST(t.id_centro AS VARCHAR) cod_origen_establecimiento
+		est.id cod_origen_establecimiento
 FROM "caba-piba-raw-zone-db"."sienfo_carreras" ca
 LEFT JOIN "caba-piba-raw-zone-db"."sienfo_talleres" t ON (t.id_carrera = ca.id_carrera)
+LEFT JOIN  "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(t.id_centro AS VARCHAR))
 LEFT JOIN "caba-piba-raw-zone-db"."sienfo_testado" te ON (t.estado = te.valor)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" cm ON (cm.base_origen = 'SIENFO' AND cm.tipo_capacitacion = 'CARRERA'
 AND cm.id_old =	CAST(ca.id_carrera AS VARCHAR) || '-' || CAST(ca.id_carrera AS VARCHAR))
@@ -3377,9 +3957,10 @@ SELECT 'SIENFO' base_origen,
 		-- Si la modalidad no esta en la edicion se toma desde la entidad capacitacion, NULL en otro caso
 		dc.modalidad_id,
 		dc.descrip_modalidad,
-       CAST(t.id_centro AS VARCHAR) cod_origen_establecimiento
+       est.id cod_origen_establecimiento
 FROM "caba-piba-raw-zone-db"."sienfo_cursos" cu
 LEFT JOIN "caba-piba-raw-zone-db"."sienfo_talleres" t ON (t.id_curso = cu.id_curso)
+LEFT JOIN  "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(t.id_centro AS VARCHAR))
 LEFT JOIN "caba-piba-raw-zone-db"."sienfo_testado" te ON (t.estado = te.valor)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" cm ON (cm.base_origen = 'SIENFO' AND cm.tipo_capacitacion = 'CURSO'
 AND cm.id_old = CAST(COALESCE(t.id_carrera, 0) AS VARCHAR) || '-' || CAST(cu.id_curso AS VARCHAR)
@@ -3495,8 +4076,10 @@ SELECT cm.base_origen,
 			ELSE dc.descrip_modalidad
 			END descrip_modalidad, -- presencial, semipresencial, virtual
 
-       CAST(of.sede AS VARCHAR) cod_origen_establecimiento
+       est.id cod_origen_establecimiento
+
 FROM "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_formacion" OF
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (of.sede IN (est.nombres_old))
 LEFT JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_formacion_contacts_c" ofc  ON (of.id = ofc.op_oportun1d35rmacion_ida)
 LEFT JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_contacts" co ON (co.id = ofc.op_oportunidades_formacion_contactscontacts_idb)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates"  cs ON (co.id = cs.id_c)
@@ -3537,7 +4120,7 @@ GROUP BY
 	of.modalidad,
 	dc.modalidad_id,
 	dc.descrip_modalidad,
-	of.sede
+	est.id
 
 UNION
 -- SIU
@@ -3600,13 +4183,13 @@ SELECT
 	-- La modalidad se toma desde la entidad capacitacion
 	dc.modalidad_id,
 	dc.descrip_modalidad,
-
-	CAST(comi.ubicacion AS VARCHAR)  cod_origen_establecimiento
+	est.id cod_origen_establecimiento
 
 FROM "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes" spl
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_propuestas" spr ON (spl.propuesta = spr.propuesta)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_propuestas" cp ON (cp.propuesta = spr.propuesta)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones" comi ON (comi.comision=cp.comision)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(comi.ubicacion AS VARCHAR))
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_periodos_lectivos" pl ON (comi.periodo_lectivo=pl.periodo_lectivo)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_turnos_cursadas" turno_c ON (turno_c.turno=comi.turno)
 LEFT JOIN
@@ -3642,7 +4225,7 @@ GROUP BY
 	comi.cupo,
 	dc.modalidad_id,
 	dc.descrip_modalidad,
-	comi.ubicacion
+	est.id
 
 -- 2.-- Crear EDICION CAPACITACION GOET, MOODLE, SIENFO Y CRMSL paso 2
 -- se agrega un indice incremental
@@ -3745,7 +4328,7 @@ WHERE a.id IS NULL
 
 
 
--- 2023.02.03 step 13 - consume edicion capacitacion.sql 
+-- Copy of 2023.02.17 step 15 - consume edicion capacitacion(Vcliente).sql 
 
 
 
@@ -3782,7 +4365,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- 2023.02.03 step 14 - staging cursada.sql 
+-- Copy of 2023.02.17 step 16 - staging cursada(Vcliente).sql 
 
 
 
@@ -4287,7 +4870,7 @@ GROUP BY
 
 
 
--- 2023.02.03 step 15 - consume cursada.sql 
+-- Copy of 2023.02.17 step 17 - consume cursada(Vcliente).sql 
 
 
 
@@ -4349,7 +4932,7 @@ GROUP BY
 
 
 
--- 2023.02.03 step 16 - consume trayectoria_educativa.sql 
+-- Copy of 2023.02.17 step 18 - consume trayectoria_educativa(Vcliente).sql 
 
 
 
