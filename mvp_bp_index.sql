@@ -1,4 +1,4 @@
--- Copy of 2023.03.17 step 00 - creacion de vistas (Vcliente).sql 
+-- 2023.03.31 step 00 - creacion de vistas.sql 
 
 
 
@@ -348,7 +348,7 @@ FROM
 
 
 
--- Copy of 2023.03.17 step 01 - consume programa (Vcliente).sql 
+-- 2023.03.31 step 01 - consume programa.sql 
 
 
 
@@ -377,7 +377,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- Copy of 2023.03.17 step 02 - staging establecimiento (Vcliente).sql 
+-- 2023.03.31 step 02 - staging establecimiento.sql 
 
 
 
@@ -911,7 +911,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estand
 
 
 
--- Copy of 2023.03.17 step 03 - consume establecimiento(Vcliente).sql 
+-- 2023.03.31 step 03 - consume establecimiento.sql 
 
 
 
@@ -953,7 +953,7 @@ ORDER BY tmp.base_origen, tmp.nombre
 
 
 
--- Copy of 2023.03.17 step 04 - staging capacitacion asi(Vcliente).sql 
+-- 2023.03.31 step 04 - staging capacitacion asi.sql 
 
 
 
@@ -1014,7 +1014,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.03.17 step 05 - staging capacitacion(Vcliente).sql 
+-- 2023.03.31 step 05 - staging capacitacion.sql 
 
 
 
@@ -1600,7 +1600,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- Copy of 2023.03.17 step 06 - consume capacitacion(Vcliente).sql 
+-- 2023.03.31 step 06 - consume capacitacion.sql 
 
 
 
@@ -1706,7 +1706,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.03.17 step 07 - staging vecinos(Vcliente).sql 
+-- 2023.03.31 step 07 - staging vecinos.sql 
 
 
 
@@ -1960,6 +1960,9 @@ WHERE
 	OR
 	-- esta condicion es para traer adicionalmente los vecinos que han formado parte de oportunidades laborales
 	(co.id IN (SELECT DISTINCT(op_oportunidades_laborales_contactscontacts_idb) FROM "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_laborales_contacts_c" WHERE deleted = FALSE))
+	OR
+	-- esta condicion es para traer adicionalmente los vecinos que han formado parte de entrevistas laborales
+	(co.id IN (SELECT DISTINCT(id_c) FROM "caba-piba-raw-zone-db".crm_sociolaboral_contacts_cstm))
 )
 AND cs.numero_documento_c IS NOT NULL
 GROUP BY cs.tipo_documento_c,
@@ -1967,7 +1970,9 @@ GROUP BY cs.tipo_documento_c,
          cs.genero_c,
          UPPER(co.last_name),
          UPPER(co.first_name),
-         co.birthdate
+         co.birthdate,
+		 cuil2_c
+
 
 UNION ALL
 
@@ -2098,10 +2103,6 @@ pec.doc_number!=0
 AND pec.doc_number IS NOT NULL
 AND pec.id IN
 				(
-				SELECT DISTINCT(pecv.candidate_id)
-				FROM "caba-piba-raw-zone-db"."portal_empleo_volunteerings" pev
-				JOIN "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" pecv ON (pev.curriculum_id=pecv.id)
-				UNION
 				SELECT DISTINCT(candidate_id)
 				FROM "caba-piba-raw-zone-db"."portal_empleo_job_applications"
 				UNION
@@ -2404,7 +2405,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- Copy of 2023.03.17 step 08 - consume vecinos(Vcliente).sql 
+-- 2023.03.31 step 08 - consume vecinos.sql 
 
 
 
@@ -2515,7 +2516,7 @@ FROM tmp_vec_renaper tvc
 
 
 
--- Copy of 2023.03.17 step 09 - staging estado_beneficiario(Vcliente)_crmsl.sql 
+-- 2023.03.31 step 09 - staging estado_beneficiario_crmsl.sql 
 
 
 
@@ -2619,7 +2620,7 @@ FROM resultado
 
 
 
--- Copy of 2023.03.17 step 10 - staging estado_beneficiario_sienfo(Vcliente).sql 
+-- 2023.03.31 step 10 - staging estado_beneficiario_sienfo.sql 
 
 
 
@@ -2944,7 +2945,7 @@ FROM
 
 
 
--- Copy of 2023.03.17 step 11 - staging estado_beneficiario_goet(Vcliente).sql 
+-- 2023.03.31 step 11 - staging estado_beneficiario_goet.sql 
 
 
 
@@ -3145,7 +3146,7 @@ GROUP BY
 
 
 
--- Copy of 2023.03.17 step 12 - staging estado_beneficiario_moodle(Vcliente).sql 
+-- 2023.03.31 step 12 - staging estado_beneficiario_moodle.sql 
 
 
 
@@ -3408,7 +3409,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.03.17 step 13 - staging estado_beneficiario_siu(Vcliente).sql 
+-- 2023.03.31 step 13 - staging estado_beneficiario_siu.sql 
 
 
 
@@ -3625,7 +3626,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.03.17 step 14 - staging edicion capacitacion(Vcliente).sql 
+-- 2023.03.31 step 14 - staging edicion capacitacion.sql 
 
 
 
@@ -4497,7 +4498,7 @@ WHERE a.id IS NULL
 
 
 
--- Copy of 2023.03.17 step 15 - consume edicion capacitacion(Vcliente).sql 
+-- 2023.03.31 step 15 - consume edicion capacitacion.sql 
 
 
 
@@ -4534,7 +4535,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- Copy of 2023.03.17 step 16 - staging cursada(Vcliente).sql 
+-- 2023.03.31 step 16 - staging cursada.sql 
 
 
 
@@ -5048,7 +5049,7 @@ GROUP BY
 
 
 
--- Copy of 2023.03.17 step 17 - consume cursada(Vcliente).sql 
+-- 2023.03.31 step 17 - consume cursada.sql 
 
 
 
@@ -5110,7 +5111,7 @@ GROUP BY
 
 
 
--- Copy of 2023.03.17 step 18 - consume trayectoria_educativa(Vcliente).sql 
+-- 2023.03.31 step 18 - consume trayectoria_educativa.sql 
 
 
 
@@ -5158,7 +5159,7 @@ GROUP BY bg.id,
 
 
 
--- Copy of 2023.03.17 step 19 - staging oportunidad_laboral(Vcliente).sql 
+-- 2023.03.31 step 19 - staging oportunidad_laboral.sql 
 
 
 
@@ -5983,7 +5984,7 @@ FROM ecr3
 
 
 
--- Copy of 2023.03.17 step 20 - consume oportunidad_laboral(Vcliente).sql 
+-- 2023.03.31 step 20 - consume oportunidad_laboral.sql 
 
 
 
@@ -6009,30 +6010,47 @@ FROM ecr3
 -- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral`;
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" AS
 SELECT
-row_number() OVER () AS id_oportunidad_laboral,
-base_origen,
-id oportunidad_laboral_id_old,
-descripcion,
-fecha_publicacion,
-programa,
-estado,
-apto_discapacitado,
-vacantes,
-modalidad_de_trabajo,
-edad_minima,
-edad_maxima,
-vacantes_cubiertas,
-tipo_de_puesto,
-turno_trabajo,
-grado_de_estudio,
-duracion_practica_formativa,
-sector_productivo
+	row_number() OVER () AS oportunidad_laboral_id,
+	base_origen,
+	id oportunidad_laboral_id_old,
+	descripcion,
+	fecha_publicacion,
+	programa,
+	estado,
+	apto_discapacitado,
+	vacantes,
+	modalidad_de_trabajo,
+	edad_minima,
+	edad_maxima,
+	vacantes_cubiertas,
+	tipo_de_puesto,
+	turno_trabajo,
+	grado_de_estudio,
+	duracion_practica_formativa,
+	sector_productivo
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral"
-GROUP BY 2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18
+GROUP BY
+	base_origen,
+	id,
+	descripcion,
+	fecha_publicacion,
+	programa,
+	estado,
+	apto_discapacitado,
+	vacantes,
+	modalidad_de_trabajo,
+	edad_minima,
+	edad_maxima,
+	vacantes_cubiertas,
+	tipo_de_puesto,
+	turno_trabajo,
+	grado_de_estudio,
+	duracion_practica_formativa,
+	sector_productivo
 
 
 
--- Copy of 2023.03.17 step 21 - staging sector_productivo(Vcliente).sql 
+-- 2023.03.31 step 21 - staging sector_productivo.sql 
 
 
 
@@ -6053,7 +6071,7 @@ ORDER BY REPLACE(REPLACE(sp.sector_productivo,'Ã','I'),'Ã','O')
 
 
 
--- Copy of 2023.03.17 step 22 - consume sector_productivo(Vcliente).sql 
+-- 2023.03.31 step 22 - consume sector_productivo.sql 
 
 
 
@@ -6079,7 +6097,7 @@ ORDER BY id_sector_productivo
 
 
 
--- Copy of 2023.03.17 step 23 - staging registro_laboral_formal(Vcliente).sql 
+-- 2023.03.31 step 23 - staging registro_laboral_formal.sql 
 
 
 
@@ -6087,8 +6105,9 @@ ORDER BY id_sector_productivo
 -- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_1`;
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_1" AS
 -- CRMSL
-SELECT vec.base_origen,
-	vec.vecino_id,
+SELECT
+	vec.broker_id,
+	vec.base_origen,
 	CAST(crmsl_candidatos.id_candidato AS VARCHAR)  id_candidato,
 	crmsl_candidatos.tipo_doc_broker,
 	crmsl_candidatos.documento_broker,
@@ -6130,13 +6149,21 @@ FROM (
 		AND vec.base_origen = 'CRMSL'
 	)
 WHERE crmsl_candidatos.id_candidato IS NOT NULL
-GROUP BY 1,2,3,4,5,6,7,8,9,10
+GROUP BY
+vec.broker_id,
+vec.base_origen,
+crmsl_candidatos.id_candidato,
+crmsl_candidatos.tipo_doc_broker,
+crmsl_candidatos.documento_broker,
+crmsl_candidatos.genero_broker,
+crmsl_candidatos.fecha_empleo,
+crmsl_candidatos.oportunidad_laboral_id_old
 
 UNION
 -- PORTALEMPLEO
 SELECT
+	vec.broker_id,
 	vec.base_origen,
-	vec.vecino_id,
 	CAST(portal_empleo_candidatos.cid AS VARCHAR) id_candidato,
 	portal_empleo_candidatos.tipo_doc_broker,
 	portal_empleo_candidatos.documento_broker,
@@ -6179,15 +6206,6 @@ FROM (
 			aux.organizacion_empleadora_cuit,
 			aux.oportunidad_laboral_id_old
 		FROM (
-				SELECT DISTINCT(candidate_id) cid, start_date AS fecha_empleo,
-					'AD HONOREM' tipo_contratacion, CAST(org.lei_code AS VARCHAR) organizacion_empleadora_cuit,
-					CAST(NULL AS VARCHAR) oportunidad_laboral_id_old
-				FROM "caba-piba-raw-zone-db"."portal_empleo_volunteerings" pev
-					JOIN "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" pecv ON (pev.curriculum_id = pecv.id)
-					LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_organizations" org ON (pev.organization = CAST(org.id AS VARCHAR))
-
-				UNION
-
 				SELECT DISTINCT(pev.candidate_id) cid, pev.application_date AS fecha_empleo,
 					CAST(NULL AS VARCHAR) tipo_contratacion,  CAST(org.lei_code AS VARCHAR) organizacion_empleadora_cuit,
 					CAST(jo.id AS VARCHAR) oportunidad_laboral_id_old
@@ -6216,11 +6234,21 @@ FROM (
 		AND vec.base_origen = portal_empleo_candidatos.base_origen
 	)
 WHERE portal_empleo_candidatos.cid IS NOT NULL
-GROUP BY 1,2,3,4,5,6,7,8,9,10
+GROUP BY
+vec.broker_id,
+vec.base_origen,
+portal_empleo_candidatos.cid,
+portal_empleo_candidatos.tipo_doc_broker,
+portal_empleo_candidatos.documento_broker,
+portal_empleo_candidatos.genero_broker,
+portal_empleo_candidatos.fecha_empleo,
+portal_empleo_candidatos.tipo_contratacion,
+portal_empleo_candidatos.organizacion_empleadora_cuit,
+portal_empleo_candidatos.oportunidad_laboral_id_old
 
 -- 2.-- Crear REGISTRO LABORAL AFIP AGIP ALTAS BAJAS
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_afip_agip_ab`;
 --Campo descripcion_modalidad_contratacion. Existen casos con mas de una descripciÃ³n para un mismo codigo de modalidad de contrataciÃ³n. Los mismos provienen de la tabla "afip_agip_tipo_contratacion". Se optÃ³ por elegÃ­r una Ãºnica descripciÃ³n basada estrictamente en la descripciÃ³n que figura en la tabla de modalidades de contrataciÃ³n proveniente de la web de AFIP
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_afip_agip_ab`;
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_afip_agip_ab" AS
 WITH aa_ab AS (
 	SELECT 'DNI' AS tipo_documento,
@@ -6250,7 +6278,22 @@ WITH aa_ab AS (
 		cm."descripciÃ³n" AS descripcion_movimiento,
 		ab.fecha_de_movimiento,
 		TRY_CAST(ab.codigo_de_actividad AS INT) AS codigo_de_actividad,
-		aa.desc_actividad_f883 AS descripcion_actividad,
+		CASE
+		    WHEN aa.desc_actividad_afip_o_naes IS NULL OR LENGTH(TRIM(aa.desc_actividad_afip_o_naes)) = 0 THEN ba.desc_actividad_naecba
+		    ELSE aa.desc_actividad_afip_o_naes
+		END descripcion_actividad,
+
+		CASE
+		    WHEN (aa.desc_actividad_afip_o_naes IS NULL OR LENGTH(TRIM(aa.desc_actividad_afip_o_naes)) = 0)
+			AND LENGTH(TRIM(ba.desc_actividad_naecba)) > 0
+				THEN 'AGIP-CLAE'
+
+			WHEN (ba.desc_actividad_naecba IS NULL OR LENGTH(TRIM(ba.desc_actividad_naecba)) = 0)
+			AND LENGTH(TRIM(aa.desc_actividad_afip_o_naes)) > 0
+				THEN 'AFIP-CLAE'
+
+			ELSE ''
+		END origen_descripcion_actividad,
 		TRY_CAST(ab.codigo_de_situacion_de_baja AS INT) AS codigo_de_situacion_de_baja,
 		sb.descripcion AS descripcion_situacion_baja,
 		sb.situacion_de_revista,
@@ -6263,15 +6306,24 @@ WITH aa_ab AS (
 		LEFT JOIN "caba-piba-raw-zone-db".afip_agip_situacion_bajas sb ON (
 			TRY_CAST(ab.codigo_de_situacion_de_baja AS INT) = TRY_CAST(sb.codigo AS INT)
 		)
-		LEFT JOIN (
-			SELECT TRY_CAST(cod_actividad_f883 AS INT) AS cod_actividad_f883,
-				desc_actividad_f883
-			FROM "caba-piba-staging-zone-db".tbp_typ_tmp_actividades_afip
-			ORDER BY TRY_CAST(cod_actividad_f883 AS INT)
-		) aa ON (
-			TRY_CAST(ab.codigo_de_actividad AS INT) = TRY_CAST(aa.cod_actividad_f883 AS INT)
-		)
 		LEFT JOIN "caba-piba-staging-zone-db".tbp_typ_tmp_puesto_desempeniado_afip pd ON (ab.codigo_de_puesto_desempeniado = pd.codigo)
+		--Agregamos los codigos y descripciones de  de naecba y naes (AGIP Y AFIP)
+		LEFT JOIN (
+			SELECT cod_actividad_afip_o_naes,
+				desc_actividad_afip_o_naes
+			FROM "caba-piba-staging-zone-db".tbp_typ_tmp_nomenclador_actividades_economicas
+			ORDER BY cod_actividad_afip_o_naes
+		) aa ON (
+			TRY_CAST(ab.codigo_de_actividad AS INT) = TRY_CAST(aa.cod_actividad_afip_o_naes AS INT)
+		)
+		LEFT JOIN (
+			SELECT cod_actividad_naecba,
+                desc_actividad_naecba
+			FROM "caba-piba-staging-zone-db".tbp_typ_tmp_nomenclador_actividades_economicas
+			ORDER BY cod_actividad_naecba
+		) ba ON (
+			TRY_CAST(ab.codigo_de_actividad AS INT) = TRY_CAST(ba.cod_actividad_naecba AS INT)
+		)
 	WHERE SUBSTRING(ab.cuil_del_empleado, 1, 2) NOT IN ('IS')
 ),
 abf1 AS (
@@ -6292,6 +6344,7 @@ abf1 AS (
 				5,
 				6,
 				8,
+				14,
 				15,
 				17,
 				18,
@@ -6348,7 +6401,6 @@ abf1 AS (
 				11,
 				12,
 				13,
-				14,
 				16,
 				21,
 				22,
@@ -6399,6 +6451,7 @@ abf1 AS (
 		aa_ab.codigo_de_actividad,
 		--Campo descripction_actividad: Existen casos que cuentan con este campo nulo. Se puede inferir que aquellas actividades que no tengan descripciÃ³n corresponde a la introducciÃ³n de un cÃ³digo de actividad errÃ³neo o con un cÃ³digo que no figura o no se actualizado en la tablas paramÃ©tricas de AFIP AGIP
 		aa_ab.descripcion_actividad,
+		aa_ab.origen_descripcion_actividad,
 		aa_ab.codigo_de_situacion_de_baja,
 		aa_ab.descripcion_situacion_baja,
 		aa_ab.situacion_de_revista,
@@ -6428,12 +6481,24 @@ abf2 AS (
 			ORDER BY abf1.fecha_de_movimiento_origen DESC
 		) AS "orden",
 		abf1.codigo_de_actividad,
-		abf1.descripcion_actividad,
+		CASE
+		    WHEN abf1.descripcion_actividad IS NULL OR LENGTH(TRIM(abf1.descripcion_actividad)) = 0 THEN cl.descripcion
+		    ELSE abf1.descripcion_actividad
+		END descripcion_actividad,
+
+		CASE
+			WHEN (abf1.descripcion_actividad IS NULL OR LENGTH(TRIM(abf1.descripcion_actividad)) = 0)
+			AND	LENGTH(TRIM(cl.descripcion)) > 0 THEN 'AFIP-CLANAE-5DIGITOS'
+			ELSE abf1.origen_descripcion_actividad
+		END origen_descripcion_actividad,
+
 		abf1.codigo_de_situacion_de_baja,
 		abf1.descripcion_situacion_baja,
 		abf1.situacion_de_revista,
 		abf1.remuneracion_bruta
 	FROM abf1
+	LEFT JOIN "caba-piba-raw-zone-db"."mec_codigos_clanae_ctividades_economicas" cl
+	ON (SUBSTRING(CAST(abf1.codigo_de_actividad AS VARCHAR),1,5) = REPLACE(cl.codigo_5_digitos,'.',''))
 )
 SELECT *
 FROM abf2
@@ -6453,21 +6518,107 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_afip_agip_
 	JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_1" r ON (
 		r.tipo_doc_broker LIKE 'DNI'
 		AND r.documento_broker = a.numero_documento
-		AND r.genero_broker = a.genero -- la fecha de inicio  de la relacion laboral tiene que ser dentro del periodo de la
-		-- fecha de empleo de las bases origenes y 6 meses posteriores
-		AND TRY_CAST(r.fecha_empleo AS DATE) <= TRY_CAST(a.fecha_inicio_de_relacion_laboral AS DATE)
-		AND TRY_CAST(
-			DATE_ADD(
-				'month',
-				6,
-				TRY_CAST(r.fecha_empleo AS TIMESTAMP)
-			) AS DATE
-		) >= TRY_CAST(a.fecha_inicio_de_relacion_laboral AS DATE)
+		AND r.genero_broker = a.genero
 	)
 
+-- 4.-- Crear REGISTRO LABORAL FORMAL CON CRUCE AGIP/AFIP Y VECINOS
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_sin_ol`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_sin_ol" AS
+-- se crea una tabla de registro laboral de aquellos vecinos que no han participado de una oportunidad laboral
+SELECT
+a.codigo_de_puesto_desempeniado,
+a.codigo_modalidad_contratacion,
+a.descripcion_modalidad_contratacion,
+a.codigo_de_actividad,
+a.descripcion_actividad,
+a.origen_descripcion_actividad,
+CAST(NULL AS VARCHAR) id_candidato,
+a.descripcion_de_puesto_desempeniado,
+CAST(NULL AS VARCHAR) oportunidad_laboral_id,
+vec.broker_id,
+vec.base_origen,
+a.cuit_del_empleador,
+a.fecha_inicio_de_relacion_laboral,
+a.fecha_fin_de_relacion_laboral,
+a.modalidad_contratacion,
+a.remuneracion_bruta
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_afip_agip_ab" a
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
+	vec.genero_broker = a.genero
+	AND vec.documento_broker = a.numero_documento
+	AND vec.tipo_doc_broker LIKE 'DNI'
+	)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal" r ON (
+		r.tipo_doc_broker LIKE 'DNI'
+		AND r.documento_broker = a.numero_documento
+		AND r.genero_broker = a.genero
+	)
+WHERE r.tipo_doc_broker IS NULL
+
+-- 5.-- Crear REGISTRO LABORAL FORMAL COMPLETO CON ATRIBUTO BASE_ORIGEN
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_completa`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_completa" AS
+SELECT
+row_number() OVER () AS registro_laboral_formal_id,
+registros.*
+FROM
+(
+	SELECT
+		lf.base_origen,
+		lf.id_candidato AS registro_laboral_formal_id_old,
+		lf.descripcion_de_puesto_desempeniado AS cargo,
+		ol.oportunidad_laboral_id,
+		lf.broker_id,
+		lf.cuit_del_empleador,
+		lf.fecha_inicio_de_relacion_laboral AS fecha_inicio,
+		lf.fecha_fin_de_relacion_laboral AS fecha_fin,
+		lf.modalidad_contratacion AS modalidad_de_trabajo,
+		lf.remuneracion_bruta AS remuneracion_moneda_corriente,
+		CAST(NULL AS DECIMAL) AS remuneracion_moneda_constante
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal"  lf
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral"  ol
+		ON (lf.base_origen=ol.base_origen AND lf.oportunidad_laboral_id_old=ol.oportunidad_laboral_id_old)
+	GROUP BY
+		lf.base_origen,
+		lf.id_candidato,
+		lf.descripcion_de_puesto_desempeniado,
+		ol.oportunidad_laboral_id,
+		lf.broker_id,
+		lf.cuit_del_empleador,
+		lf.fecha_inicio_de_relacion_laboral,
+		lf.fecha_fin_de_relacion_laboral,
+		lf.modalidad_contratacion,
+		lf.remuneracion_bruta
+
+	UNION
+
+	SELECT
+		'' AS base_origen,
+		rf_sin_oportunidad.id_candidato AS registro_laboral_formal_id_old,
+		rf_sin_oportunidad.descripcion_de_puesto_desempeniado AS cargo,
+		NULL oportunidad_laboral_id,
+		rf_sin_oportunidad.broker_id,
+		rf_sin_oportunidad.cuit_del_empleador,
+		rf_sin_oportunidad.fecha_inicio_de_relacion_laboral AS fecha_inicio,
+		rf_sin_oportunidad.fecha_fin_de_relacion_laboral AS fecha_fin,
+		rf_sin_oportunidad.modalidad_contratacion AS modalidad_de_trabajo,
+		rf_sin_oportunidad.remuneracion_bruta AS remuneracion_moneda_corriente,
+		CAST(NULL AS DECIMAL) AS remuneracion_moneda_constante
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_sin_ol"  rf_sin_oportunidad
+	GROUP BY
+		rf_sin_oportunidad.id_candidato,
+		rf_sin_oportunidad.descripcion_de_puesto_desempeniado,
+		rf_sin_oportunidad.broker_id,
+		rf_sin_oportunidad.cuit_del_empleador,
+		rf_sin_oportunidad.fecha_inicio_de_relacion_laboral,
+		rf_sin_oportunidad.fecha_fin_de_relacion_laboral,
+		rf_sin_oportunidad.modalidad_contratacion,
+		rf_sin_oportunidad.remuneracion_bruta
+) registros
 
 
--- Copy of 2023.03.17 step 24 - consume_registro_laboral_formal(Vcliente).sql 
+
+-- 2023.03.31 step 24 - consume_registro_laboral_formal.sql 
 
 
 
@@ -6475,22 +6626,42 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_afip_agip_
 -- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_registro_laboral_formal`;
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_registro_laboral_formal" AS
 SELECT
-	row_number() OVER () AS registro_laboral_formal_id,
-	lf.id_candidato AS registro_laboral_formal_id_old,
-	lf.descripcion_de_puesto_desempeniado AS cargo,
-	lf.base_origen,
-	ol.id_oportunidad_laboral,
-	lf.vecino_id,
-	lf.cuit_del_empleador,
-	lf.fecha_inicio_de_relacion_laboral AS fecha_inicio,
-	lf.fecha_fin_de_relacion_laboral AS fecha_fin,
-	lf.modalidad_contratacion AS modalidad_de_trabajo,
-	lf.remuneracion_bruta AS remuneracion_moneda_corriente,
-	CAST(NULL AS DECIMAL) AS remuneracion_moneda_constante
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal"  lf
-LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral"  ol
-	ON (lf.base_origen=ol.base_origen AND lf.oportunidad_laboral_id_old=ol.oportunidad_laboral_id_old)
-GROUP BY 2,3,4,5,6,7,8,9,10,11,12
+	MAX(registro_laboral_formal_id) AS registro_laboral_formal_id,
+	cargo,
+	broker_id,
+	cuit_del_empleador,
+	fecha_inicio,
+	fecha_fin,
+	modalidad_de_trabajo,
+	remuneracion_moneda_corriente,
+	remuneracion_moneda_constante
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_completa"
+GROUP BY
+	cargo,
+	broker_id,
+	cuit_del_empleador,
+	fecha_inicio,
+	fecha_fin,
+	modalidad_de_trabajo,
+	remuneracion_moneda_corriente,
+	remuneracion_moneda_constante
+
+-- 2.-- Crear la tabla definitiva N-N de OPORTUNIDAD LABORAL - REGISTRO LABORAL FORMAL
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral_registro_laboral_formal`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_registro_laboral_formal" AS
+SELECT
+	lfc.registro_laboral_formal_id,
+	lfc.registro_laboral_formal_id_old,
+	lfc.base_origen AS base_origen_registro_laboral_formal,
+	lfc.oportunidad_laboral_id
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_completa" lfc
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_registro_laboral_formal" r ON (r.registro_laboral_formal_id=lfc.registro_laboral_formal_id)
+WHERE lfc.base_origen IS NOT NULL AND lfc.oportunidad_laboral_id IS NOT NULL
+GROUP BY
+	lfc.registro_laboral_formal_id,
+	lfc.registro_laboral_formal_id_old,
+	lfc.base_origen,
+	lfc.oportunidad_laboral_id
 
 
 

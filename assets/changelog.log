@@ -1,0 +1,23 @@
+2023-03-31:
+Se elimina join con voluntarios de la bases_origen PORTALEMPLEO debido a que es una sección del CV y no una opotunidad laboral en el archivo "staging vecinos.sql" (step 07)
+Se cambia la clausula GROUP BY de campos numerados a nombrados en el archivo "consume oportunidad_laboral.sql" (step 20)
+En "staging registro_laboral_formal.sql" (step 23):
+-Se cambia la clausula GROUP BY de campos numerados a nombrados
+-Se quita join con voluntarios de la bases_origen PORTALEMPLEO
+-Se quita del select el vecino_id y se lo reemplaza por el broker_id
+-Se modifica la creación de la tabla tbp_typ_tmp_registro_laboral_formal_afip_agip_ab utilizando la nueva tabla nomencladora tbp_typ_tmp_nomenclador_actividades_economicas
+-Se elimina restriccion de 6 meses entre la oportunidad y la contratacion en registro_laboral_formal
+En "consume_registro_laboral_formal.sql" (step 24):
+-Se crea tabla N-N para relacionar oportunidad_laboral y registro_laboral_formal
+-Se cambia la clausula GROUP BY de campos numerados a nombrados
+-Se quita del select el vecino_id y se lo reemplaza por el broker_id
+
+
+2023-03-17:
+Se modifica el script de la base_origen CRSML y se agregan datos de las bases_origen PORTALEMPLEO y CRMEMPLREO en el archivo "staging vecinos.sql" (step 07)
+En el script que trae informacion de la base_origen CRMSL se modifica el JOIN con vecinos en el archivo "staging cursada.sql" (step 16)
+Se agrega el id de la base_origen y se habilita el script de la tabla histórica de CRMEMPLREO en el archivo "staging oportunidad_laboral.sql" (step 19)
+Se agrega el id de la base_origen y se agrupan los resultados en el archivo "consume oportunidad_laboral.sql" (step 20)
+Se agrega el archivo nuevo "staging registro_laboral_formal.sql" (step 23)
+Se agrega el archivo nuevo "consume_registro_laboral_formal.sql" (step 24)
+
