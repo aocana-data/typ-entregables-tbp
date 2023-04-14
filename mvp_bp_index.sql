@@ -1,4 +1,4 @@
--- 2023.03.31 step 00 - creacion de vistas.sql 
+-- Copy of 2023.04.14 step 00 - creacion de vistas (Vcliente).sql 
 
 
 
@@ -346,9 +346,142 @@ SELECT
 FROM
   "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes"
 
+--8. VISTA NECESARIA PARA CALCULO DE ESTADO DE BENEFICIARIO DE SIENFO
+CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto" AS
+WITH carrera_29 AS (
+SELECT
+    29 AS carrera,
+	COUNT(*) AS cant_materias_plan_estudio,
+	cast(NULL AS int) AS anio_inicio,
+	cast(NULL AS int) AS anio_fin
+FROM
+	"caba-piba-raw-zone-db".sienfo_cursos cu
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_areas a ON
+	cu.id_area = a.id_area
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON
+	CAST(cu.id_carrera AS varchar) = CAST(ca.id_carrera AS varchar)
+WHERE
+	cu.id_carrera_30 = 30
+	AND cu.baja = '1'
+	AND cu.creditos = 1
+), carrera_30 AS (
+SELECT
+    30 AS carrera,
+	COUNT(*) AS cant_materias_plan_estudio,
+	cast(NULL AS int) AS anio_inicio,
+	cast(NULL AS int) AS anio_fin
+FROM
+	"caba-piba-raw-zone-db".sienfo_cursos cu
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_areas a ON
+	cu.id_area = a.id_area
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON
+	CAST(cu.id_carrera AS varchar) = CAST(ca.id_carrera AS varchar)
+WHERE
+	cu.id_carrera_30 = 30
+	AND cu.baja = '1'
+	AND cu.creditos = 1
+), carrera_31 AS (
+SELECT
+    31 AS carrera,
+	COUNT(*) AS cant_materias_plan_estudio,
+	cast(NULL AS int) AS anio_inicio,
+	cast(NULL AS int) AS anio_fin
+FROM
+	"caba-piba-raw-zone-db".sienfo_cursos cu
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_areas a ON
+	cu.id_area = a.id_area
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON
+	CAST(cu.id_carrera AS varchar) = CAST(ca.id_carrera AS varchar)
+WHERE
+	cu.id_carrera_31 = 31
+	AND cu.baja = '1'
+	AND cu.creditos = 1
+), carrera_32 AS (
+SELECT
+    32 AS carrera,
+	COUNT(*) AS cant_materias_plan_estudio,
+	cast(NULL AS int) AS anio_inicio,
+	cast(NULL AS int) AS anio_fin
+FROM
+	"caba-piba-raw-zone-db".sienfo_cursos cu
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_areas a ON
+	cu.id_area = a.id_area
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON
+	CAST(cu.id_carrera AS varchar) = CAST(ca.id_carrera AS varchar)
+WHERE
+	cu.id_carrera_32 = 32
+	AND cu.baja = '1'
+	AND cu.creditos = 1
+), carrera_1 AS (
+SELECT
+    1 AS carrera,
+	COUNT(*) AS cant_materias_plan_estudio,
+	2019 AS ano_inicio,
+	cast(NULL AS int) AS anio_fin
+FROM
+	"caba-piba-raw-zone-db".sienfo_cursos cu
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_areas a ON
+	cu.id_area = a.id_area
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON
+	cu.id_carrera = CAST(ca.id_carrera AS varchar)
+WHERE
+	cu.id_carrera_1 = 1
+	AND cu.baja = '1'
+	AND cu.creditos = 1
+), carrera_1_old AS (
+SELECT
+    1 AS carrera,
+	COUNT(*) -1 AS cant_materias_plan_estudio_old,
+	2016 AS ano_inicio_old,
+	2018 AS anio_fin_old
+FROM
+	"caba-piba-raw-zone-db".sienfo_cursos cu
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_areas a ON
+	cu.id_area = a.id_area
+LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON
+	cu.id_carrera = CAST(ca.id_carrera AS varchar)
+WHERE
+	cu.id_carrera_1 = 1
+	AND cu.baja = '1'
+	AND cu.creditos = 1
+), todas AS (
+SELECT
+    *
+FROM
+    carrera_1
+UNION
+SELECT
+    *
+FROM
+    carrera_29
+UNION
+SELECT
+    *
+FROM
+    carrera_30
+UNION
+SELECT
+    *
+FROM
+    carrera_31
+UNION
+SELECT
+    *
+FROM
+    carrera_32
+)
+SELECT
+    todas.*,
+    carrera_1_old.cant_materias_plan_estudio_old,
+    carrera_1_old.ano_inicio_old,
+    carrera_1_old.anio_fin_old
+FROM
+    todas
+LEFT JOIN carrera_1_old ON carrera_1_old.carrera = todas.carrera
 
 
--- 2023.03.31 step 01 - consume programa.sql 
+
+-- Copy of 2023.04.14 step 01 - consume programa (Vcliente).sql 
 
 
 
@@ -377,7 +510,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- 2023.03.31 step 02 - staging establecimiento.sql 
+-- Copy of 2023.04.14 step 02 - staging establecimiento (Vcliente).sql 
 
 
 
@@ -911,7 +1044,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estand
 
 
 
--- 2023.03.31 step 03 - consume establecimiento.sql 
+-- Copy of 2023.04.14 step 03 - consume establecimiento (Vcliente).sql 
 
 
 
@@ -953,7 +1086,7 @@ ORDER BY tmp.base_origen, tmp.nombre
 
 
 
--- 2023.03.31 step 04 - staging capacitacion asi.sql 
+-- Copy of 2023.04.14 step 04 - staging capacitacion asi (Vcliente).sql 
 
 
 
@@ -1014,7 +1147,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- 2023.03.31 step 05 - staging capacitacion.sql 
+-- Copy of 2023.04.14 step 05 - staging capacitacion (Vcliente).sql 
 
 
 
@@ -1600,7 +1733,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- 2023.03.31 step 06 - consume capacitacion.sql 
+-- Copy of 2023.04.14 step 06 - consume capacitacion (Vcliente).sql 
 
 
 
@@ -1706,7 +1839,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- 2023.03.31 step 07 - staging vecinos.sql 
+-- Copy of 2023.04.14 step 07 - staging vecinos (Vcliente).sql 
 
 
 
@@ -2405,7 +2538,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- 2023.03.31 step 08 - consume vecinos.sql 
+-- Copy of 2023.04.14 step 08 - consume vecinos (Vcliente).sql 
 
 
 
@@ -2516,7 +2649,7 @@ FROM tmp_vec_renaper tvc
 
 
 
--- 2023.03.31 step 09 - staging estado_beneficiario_crmsl.sql 
+-- Copy of 2023.04.14 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
 
 
 
@@ -2620,7 +2753,7 @@ FROM resultado
 
 
 
--- 2023.03.31 step 10 - staging estado_beneficiario_sienfo.sql 
+-- Copy of 2023.04.14 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
 
 
 
@@ -2881,7 +3014,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."sienfo_carreras" sc ON sc.id_carrera = tf2.id
 WHERE tf2.id_carrera != 0
 GROUP BY (tf2.id_carrera, tf2.nrodoc,sc.nom_carrera)
 HAVING min(tf2.fecha) IS NOT NULL AND max(tf2.fecha_fin) IS NOT NULL
-), car_cur AS (
+), car_cur AS ( --SOLO LA CARRERA 2 que todavia no esta definido como calcularla correctamente, el resto se calcula a continuaciÃ³n
 /*
  * SELECT final, estado_beneficiario2 es el calculado con el algoritmo de fechas,
  *  estado de beneficiario se basa en las columnas de la tabla
@@ -2889,63 +3022,359 @@ HAVING min(tf2.fecha) IS NOT NULL AND max(tf2.fecha_fin) IS NOT NULL
 SELECT
     tf2.codigo_ct,
 	tf2.nrodoc,
-	tf2.fecha_inc, -- fecha inicio de la persona
-	tf2.fecha, -- fecha inicio del curso
-	tf2.fecha_fin, -- fecha fin del curso
-	'CURSO' tipo_formacion,
-	UPPER(tf2.nom_curso) nombre_cur_car, --nombre del curso o materia
-	tf2.id_duracion,
-	tf2.baja,
-	tf2.fechabaja,
-	tf2.aprobado,
-	UPPER(tf2.estado_beneficiario2) estado_beneficiario,
-	-- tf2.estado_beneficiario estado_beneficiario_orig,
 	tf2.id_curso,
 	tf2.id_carrera,
-    tf2.nrodoc ||'-'||tf2.codigo_ct AS llave_doc_idcap
+	tf2.estado_beneficiario2 estado_beneficiario,
+	tf2.nrodoc ||'-'||tf2.codigo_ct AS llave_doc_idcap, --si es curso es nrodoc y codigo_ct / si es carrera es nrodoc id_carrera
+	'CURSO' tipo_formacion,
+	UPPER(tf2.nom_curso) nombre_cur_car, --nombre del curso
+	tf2.fecha fecha_inicio_edicion_capacitacion, -- fecha inicio del curso
+	tf2.fecha_fin fecha_fin_edicion_capacitacion, -- fecha fin del curso
+	tf2.fecha_inc fecha_inscipcion -- fecha inicio de la persona
+	--tf2.id_duracion,
+	--tf2.baja,
+	--tf2.fechabaja,
+	--tf2.aprobado,
+	-- tf2.estado_beneficiario estado_beneficiario_orig,
 FROM tf2
 WHERE tf2.id_carrera = 0 --TOMO SOLO LOS QUE SON CURSOS
 UNION (
 SELECT
     cal.codigo_ct,
     cal.nrodoc,
-    cal.fecha_inc,
-    cal.fecha,
-	cal.fecha_fin,
-	'CARRERA' tipo_formacion,
-	UPPER(cal.nom_carrera) nombre_cur_car,
-	cal.id_duracion,
-	cal.baja,
-	cal.fechabaja,
-	cal.aprobado,
-	cal.estado_beneficiario,
-	cal.id_curso,
-	cal.id_carrera,
-	cal.nrodoc ||'-'||CAST(cal.id_carrera AS VARCHAR) llave_doc_idcap --Esta llave es para agrupar las carreras por ediciÃ³n capacitacion anual
+    cal.id_curso,
+    cal.id_carrera,
+    cal.estado_beneficiario,
+    cal.nrodoc ||'-'||CAST(cal.id_carrera AS VARCHAR) llave_doc_idcap, --Esta llave es para agrupar las carreras por ediciÃ³n capacitacion anual
+    'CARRERA' tipo_formacion,
+    UPPER(cal.nom_carrera) nombre_cur_car,
+    cal.fecha fecha_inicio_edicion_capacitacion,
+    cal.fecha_fin fecha_fin_edicion_capacitacion,
+    cal.fecha_inc fecha_inscipcion
+    --cal.id_duracion,
+	--cal.baja,
+	--cal.fechabaja,
+	--cal.aprobado
 FROM
-    carreras_al cal)
---ExISten fechas de inicio del alumno anteriores a fecha de inicio del curso
+    carreras_al cal
+WHERE id_carrera = 2) --Este calculo es provisorio hasta que el area nos de la informaciÃ³n de como calcular carrera 2, el resto se calculan de otra forma
+--Existen fechas de inicio del alumno anteriores a fecha de inicio del curso
 --nrodoc esta muy sucio
 --Los estados de beneficiario2 nulos son cuando aprobado = 9 (nuevo id, no esta en en dump) corresponde a nombre = Actualiza, observa = CETBA [NO SE QUE SIGNIFICA]
+), carrera_18 AS (
+SELECT
+    NULL AS "codigo_ct",
+    a.nrodoc,
+    --a.id_alumno,
+    0 AS id_curso,
+    t.id_carrera,
+    CASE
+        WHEN count(ca.nrocertificado) > 1 AND count( DISTINCT t.id_curso) > 1 THEN 'EGRESADO'
+        WHEN (ca.baja != 0 AND ca.baja IS NOT NULL) OR max(ca.fechabaja) IS NOT NULL THEN 'BAJA'
+        WHEN DATE_ADD('year', 2, max(am.maxft)) < CURRENT_DATE AND (count(ca.nrocertificado) < 2 OR count( DISTINCT t.id_curso) < 2) THEN 'BAJA' -- CRITERIO A CONSULTAR 2 aÃ±os desde la finalizacion del ultimo curso de la carrera y no tiene cert
+        WHEN count(ca.nrocertificado) < 2 OR count( DISTINCT t.id_curso) < 2 THEN 'REGULAR'
+    END AS "estado_beneficiario",
+    a.nrodoc ||'-'||CAST(t.id_carrera AS VARCHAR) llave_doc_idcap,
+    'CARRERA' AS tipo_formacion,
+    sc.nom_carrera AS nombre_cur_car,
+    min(am.miff) AS fecha_inscipcion,
+    min(am.mift) AS fecha_inicio_edicion_capacitacion,
+    DATE_ADD('month', 4, max(am.maxft)) AS fecha_fin_edicion_capacitacion
+    --La duraciÃ³n del ultimo curso es la fecha de inicio del curso + 4 meses
+    --ca.baja,
+    --max(ca.fechabaja) as fechabaja,
+    --count(ca.nrocertificado) as cant_cert,
+    --count( distinct t.id_curso) as cant_cur
+FROM "caba-piba-raw-zone-db".sienfo_alumnos a
+	INNER JOIN "caba-piba-raw-zone-db".sienfo_fichas_carreras ca ON a.nrodoc = ca.nrodoc
+	INNER JOIN "caba-piba-raw-zone-db".sienfo_talleres t ON ca.id_carrera = t.id_carrera
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras sc ON sc.id_carrera = t.id_carrera
+	LEFT JOIN (
+	/* aca toma la maxima fecha de inscripciÃ³n a una cursada de la cual no se diÃ³ de baja
+	no confundir con fechas de baja y aprobaciÃ³n de la carrera que provienen de sienfo_fichas_carrera*/
+		SELECT
+		    ff.nrodoc AS fi_nrodoc,
+			MAX((cast(tt.fecha AS date))) AS maxft,
+			MIN((cast(ff.fecha_inc AS date))) AS miff,
+			MIN((cast(tt.fecha AS date))) AS mift
+		FROM "caba-piba-raw-zone-db".sienfo_cursos cu
+		LEFT JOIN "caba-piba-raw-zone-db".sienfo_talleres tt ON cu.id_curso = tt.id_curso
+		LEFT JOIN "caba-piba-raw-zone-db".sienfo_fichas ff ON tt.codigo_ct = ff.codigo_ct
+		WHERE cu.id_carrera = '18'
+			--AND ff.baja = 0
+			--AND aprobado in('1', '3','5')
+			--AND cu.baja IN ('0', '1')
+		GROUP BY
+		    ff.nrodoc,
+			cu.id_carrera
+	        ) AS am ON ca.nrodoc = am.fi_nrodoc
+WHERE ca.id_carrera = 18
+GROUP BY
+    a.nrodoc,
+    a.id_alumno,
+    t.id_carrera,
+    ca.baja,
+    sc.nom_carrera
+/* existe gente que estÃ¡ como regular (2029) porque no tiene fecha de inicio ni de fin, posiblemente no hace match con el leftjoin de la subconsulta*/
+), carrera_1 AS (
+SELECT
+    NULL AS "codigo_ct",
+    fc.nrodoc,
+    --al.id_alumno,
+    0 AS id_curso,
+    q1.id_carrera_1 AS id_carrera,
+    CASE
+        WHEN fc.id_carrera = 1 AND (year(maxft) BETWEEN cmt.ano_inicio_old AND cmt.anio_fin_old AND cant_mat_ap >= cmt.cant_materias_plan_estudio_old) OR (year(maxft) >=cmt.ano_inicio AND cant_mat_ap >= cmt.cant_materias_plan_estudio) AND fc.baja = 0 THEN 'EGRESADO'
+        WHEN fc.fechabaja IS NOT NULL THEN 'BAJA'
+    	WHEN fc.baja NOT IN (14, 22, 24, 0) AND fc.baja IS NOT NULL THEN 'BAJA'
+    	ELSE 'REGULAR'
+        END AS estado_beneficiario,
+    fc.nrodoc ||'-'||CAST(q1.id_carrera_1 AS VARCHAR) llave_doc_idcap,
+    'CARRERA' AS tipo_formacion,
+    ca.nom_carrera AS nombre_cur_car,
+    q1.miff AS fecha_inscipcion,
+    q1.mift AS fecha_inicio_edicion_capacitacion,
+    DATE_ADD('month', 6, q1.maxft) AS fecha_fin_edicion_capacitacion
+    --q1.cant_mat_ap
+FROM "caba-piba-raw-zone-db".sienfo_fichas_carreras fc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_alumnos al ON fc.nrodoc = al.nrodoc
+	LEFT JOIN (
+		SELECT fi.nrodoc,
+			cu.id_carrera_1,
+			COUNT(fi.nrodoc) AS cant_mat_ap,
+			MAX(cast(tt.fecha AS date)) AS maxft,
+			MIN((cast(fi.fecha_inc AS date))) AS miff,
+			MIN((cast(tt.fecha AS date))) AS mift
+		FROM "caba-piba-raw-zone-db".sienfo_cursos cu
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_talleres tt ON cu.id_curso = tt.id_curso
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_fichas fi ON tt.codigo_ct = fi.codigo_ct
+		WHERE cu.id_carrera_1 = 1
+			AND fi.baja = 0
+			AND aprobado IN('1', '3','5')
+			AND cu.baja IN('0', '1')
+		GROUP BY fi.nrodoc,
+			cu.id_carrera_1
+		ORDER BY cant_mat_ap DESC
+	) q1 ON al.nrodoc = q1.nrodoc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON q1.id_carrera_1 = ca.id_carrera
+	LEFT JOIN "caba-piba-staging-zone-db".goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto cmt ON fc.id_carrera = cast(cmt.carrera AS int)
+WHERE fc.id_carrera = 1
+AND id_carrera_1 = 1
+), carrera_29 AS (
+SELECT
+    NULL AS "codigo_ct",
+    fc.nrodoc,
+    --al.id_alumno,
+    0 AS id_curso,
+    q1.id_carrera_29 AS id_carrera,
+    CASE
+        WHEN fc.id_carrera = 29 AND (year(maxft) >=cmt.ano_inicio AND cant_mat_ap >= cmt.cant_materias_plan_estudio) AND fc.baja = 0 THEN 'EGRESADO'
+        WHEN fc.fechabaja IS NOT NULL THEN 'BAJA'
+    	WHEN fc.baja NOT IN (14, 22, 24, 0) AND fc.baja IS NOT NULL THEN 'BAJA'
+    	ELSE 'REGULAR'
+        END AS estado_beneficiario,
+    fc.nrodoc ||'-'||CAST(q1.id_carrera_29 AS VARCHAR) llave_doc_idcap,
+    'CARRERA' AS tipo_formacion,
+    ca.nom_carrera AS nombre_cur_car,
+    q1.miff AS fecha_inscipcion,
+    q1.mift AS fecha_inicio_edicion_capacitacion,
+    DATE_ADD('month', 6, q1.maxft) AS fecha_fin_edicion_capacitacion
+    --q1.cant_mat_ap
+FROM "caba-piba-raw-zone-db".sienfo_fichas_carreras fc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_alumnos al ON fc.nrodoc = al.nrodoc
+	LEFT JOIN (
+		SELECT fi.nrodoc,
+			cu.id_carrera_29,
+			COUNT(fi.nrodoc) AS cant_mat_ap,
+			MAX(cast(tt.fecha AS date)) AS maxft,
+			MIN((cast(fi.fecha_inc AS date))) AS miff,
+			MIN((cast(tt.fecha AS date))) AS mift
+		FROM "caba-piba-raw-zone-db".sienfo_cursos cu
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_talleres tt ON cu.id_curso = tt.id_curso
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_fichas fi ON tt.codigo_ct = fi.codigo_ct
+		WHERE cu.id_carrera_29 = 29
+			AND fi.baja = 0
+			AND aprobado IN('1', '3','5')
+			AND cu.baja IN('0', '1')
+		GROUP BY fi.nrodoc,
+			cu.id_carrera_29
+		ORDER BY cant_mat_ap DESC
+	) q1 ON al.nrodoc = q1.nrodoc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON q1.id_carrera_29 = ca.id_carrera
+	LEFT JOIN "caba-piba-staging-zone-db".goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto cmt ON fc.id_carrera = cmt.carrera
+WHERE fc.id_carrera = 29
+AND id_carrera_29 = 29
+), carrera_30 AS (
+SELECT
+    NULL AS "codigo_ct",
+    fc.nrodoc,
+    --al.id_alumno,
+    0 AS id_curso,
+    q1.id_carrera_30 AS id_carrera,
+    CASE
+        WHEN fc.id_carrera = 30 AND (year(maxft) >=cmt.ano_inicio AND cant_mat_ap >= cmt.cant_materias_plan_estudio) AND fc.baja = 0 THEN 'EGRESADO'
+        WHEN fc.fechabaja IS NOT NULL THEN 'BAJA'
+    	WHEN fc.baja NOT IN (14, 22, 24, 0) AND fc.baja IS NOT NULL THEN 'BAJA'
+    	ELSE 'REGULAR'
+        END AS estado_beneficiario,
+    fc.nrodoc ||'-'||CAST(q1.id_carrera_30 AS VARCHAR) llave_doc_idcap,
+    'CARRERA' AS tipo_formacion,
+    ca.nom_carrera AS nombre_cur_car,
+    q1.miff AS fecha_inscipcion,
+    q1.mift AS fecha_inicio_edicion_capacitacion,
+    DATE_ADD('month', 6, q1.maxft) AS fecha_fin_edicion_capacitacion
+    --q1.cant_mat_ap
+FROM "caba-piba-raw-zone-db".sienfo_fichas_carreras fc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_alumnos al ON fc.nrodoc = al.nrodoc
+	LEFT JOIN (
+		SELECT fi.nrodoc,
+			cu.id_carrera_30,
+			COUNT(fi.nrodoc) AS cant_mat_ap,
+			MAX(cast(tt.fecha AS date)) AS maxft,
+			MIN((cast(fi.fecha_inc AS date))) AS miff,
+			MIN((cast(tt.fecha AS date))) AS mift
+		FROM "caba-piba-raw-zone-db".sienfo_cursos cu
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_talleres tt ON cu.id_curso = tt.id_curso
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_fichas fi ON tt.codigo_ct = fi.codigo_ct
+		WHERE cu.id_carrera_30 = 30
+			AND fi.baja = 0
+			AND aprobado IN('1', '3','5')
+			AND cu.baja IN('0', '1')
+		GROUP BY fi.nrodoc,
+			cu.id_carrera_30
+		ORDER BY cant_mat_ap DESC
+	) q1 ON al.nrodoc = q1.nrodoc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON q1.id_carrera_30 = ca.id_carrera
+	LEFT JOIN "caba-piba-staging-zone-db".goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto cmt ON fc.id_carrera = cmt.carrera
+WHERE fc.id_carrera = 30
+AND id_carrera_30 = 30
+), carrera_31 AS (
+SELECT
+    NULL AS "codigo_ct",
+    fc.nrodoc,
+    --al.id_alumno,
+    0 AS id_curso,
+    q1.id_carrera_31 AS id_carrera,
+    CASE
+        WHEN fc.id_carrera = 31 AND (year(maxft) >=cmt.ano_inicio AND cant_mat_ap >= cmt.cant_materias_plan_estudio) AND fc.baja = 0 THEN 'EGRESADO'
+        WHEN fc.fechabaja IS NOT NULL THEN 'BAJA'
+    	WHEN fc.baja NOT IN (14, 22, 24, 0) AND fc.baja IS NOT NULL THEN 'BAJA'
+    	ELSE 'REGULAR'
+        END AS estado_beneficiario,
+    fc.nrodoc ||'-'||CAST(q1.id_carrera_31 AS VARCHAR) llave_doc_idcap,
+    'CARRERA' AS tipo_formacion,
+    ca.nom_carrera AS nombre_cur_car,
+    q1.miff AS fecha_inscipcion,
+    q1.mift AS fecha_inicio_edicion_capacitacion,
+    DATE_ADD('month', 6, q1.maxft) AS fecha_fin_edicion_capacitacion
+    --q1.cant_mat_ap
+FROM "caba-piba-raw-zone-db".sienfo_fichas_carreras fc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_alumnos al ON fc.nrodoc = al.nrodoc
+	LEFT JOIN (
+		SELECT fi.nrodoc,
+			cu.id_carrera_31,
+			COUNT(fi.nrodoc) AS cant_mat_ap,
+			MAX(cast(tt.fecha AS date)) AS maxft,
+			MIN((cast(fi.fecha_inc AS date))) AS miff,
+			MIN((cast(tt.fecha AS date))) AS mift
+		FROM "caba-piba-raw-zone-db".sienfo_cursos cu
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_talleres tt ON cu.id_curso = tt.id_curso
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_fichas fi ON tt.codigo_ct = fi.codigo_ct
+		WHERE cu.id_carrera_31 = 31
+			AND fi.baja = 0
+			AND aprobado IN('1', '3','5')
+			AND cu.baja IN('0', '1')
+		GROUP BY fi.nrodoc,
+			cu.id_carrera_31
+		ORDER BY cant_mat_ap DESC
+	) q1 ON al.nrodoc = q1.nrodoc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON q1.id_carrera_31 = ca.id_carrera
+	LEFT JOIN "caba-piba-staging-zone-db".goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto cmt ON fc.id_carrera = cmt.carrera
+WHERE fc.id_carrera = 31
+AND id_carrera_31 = 31
+), carrera_32 AS (
+SELECT
+    NULL AS "codigo_ct",
+    fc.nrodoc,
+    --al.id_alumno,
+    0 AS id_curso,
+    q1.id_carrera_32 AS id_carrera,
+    CASE
+        WHEN fc.id_carrera = 32 AND (year(maxft) >=cmt.ano_inicio AND cant_mat_ap >= cmt.cant_materias_plan_estudio) AND fc.baja = 0 THEN 'EGRESADO'
+        WHEN fc.fechabaja IS NOT NULL THEN 'BAJA'
+    	WHEN fc.baja NOT IN (14, 22, 24, 0) AND fc.baja IS NOT NULL THEN 'BAJA'
+    	ELSE 'REGULAR'
+        END AS estado_beneficiario,
+    fc.nrodoc ||'-'||CAST(q1.id_carrera_32 AS VARCHAR) llave_doc_idcap,
+    'CARRERA' AS tipo_formacion,
+    ca.nom_carrera AS nombre_cur_car,
+    q1.miff AS fecha_inscipcion,
+    q1.mift AS fecha_inicio_edicion_capacitacion,
+    DATE_ADD('month', 6, q1.maxft) AS fecha_fin_edicion_capacitacion
+    --q1.cant_mat_ap
+FROM "caba-piba-raw-zone-db".sienfo_fichas_carreras fc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_alumnos al ON fc.nrodoc = al.nrodoc
+	LEFT JOIN (
+		SELECT fi.nrodoc,
+			cu.id_carrera_32,
+			COUNT(fi.nrodoc) AS cant_mat_ap,
+			MAX(cast(tt.fecha AS date)) AS maxft,
+			MIN((cast(fi.fecha_inc AS date))) AS miff,
+			MIN((cast(tt.fecha AS date))) AS mift
+		FROM "caba-piba-raw-zone-db".sienfo_cursos cu
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_talleres tt ON cu.id_curso = tt.id_curso
+			LEFT JOIN "caba-piba-raw-zone-db".sienfo_fichas fi ON tt.codigo_ct = fi.codigo_ct
+		WHERE cu.id_carrera_32 = 32
+			AND fi.baja = 0
+			AND aprobado IN('1', '3','5')
+			AND cu.baja IN('0', '1')
+		GROUP BY fi.nrodoc,
+			cu.id_carrera_32
+		ORDER BY cant_mat_ap DESC
+	) q1 ON al.nrodoc = q1.nrodoc
+	LEFT JOIN "caba-piba-raw-zone-db".sienfo_carreras ca ON q1.id_carrera_32 = ca.id_carrera
+	LEFT JOIN "caba-piba-staging-zone-db".goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto cmt ON fc.id_carrera = cmt.carrera
+WHERE fc.id_carrera = 32
+AND id_carrera_32 = 32
 )
 SELECT
-    cuca.codigo_ct,
-    cuca.nrodoc,
-    cuca.id_curso,
-    cuca.id_carrera,
-    cuca.estado_beneficiario,
-    cuca.llave_doc_idcap, --CUANDO SE HAGA EL JOIN DIFERENCIAR POR CURSO O CARRERA
-    cuca.tipo_formacion,
-    cuca.nombre_cur_car,
-	cuca.fecha fecha_inicio_edicion_capacitacion,
-	cuca.fecha_fin fecha_fin_edicion_capacitacion,
-	cuca.fecha_inc fecha_inscipcion
+    *
 FROM
-    car_cur cuca
+    carrera_18
+UNION
+SELECT
+    *
+FROM
+    carrera_1
+UNION
+SELECT
+    *
+FROM
+    carrera_29
+UNION
+SELECT
+    *
+FROM
+    carrera_30
+UNION
+SELECT
+    *
+FROM
+    carrera_31
+UNION
+SELECT
+    *
+FROM
+    carrera_32
+UNION
+SELECT
+    *
+FROM
+    car_cur
 
 
 
--- 2023.03.31 step 11 - staging estado_beneficiario_goet.sql 
+-- Copy of 2023.04.14 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
 
 
 
@@ -3146,7 +3575,7 @@ GROUP BY
 
 
 
--- 2023.03.31 step 12 - staging estado_beneficiario_moodle.sql 
+-- Copy of 2023.04.14 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
 
 
 
@@ -3409,7 +3838,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- 2023.03.31 step 13 - staging estado_beneficiario_siu.sql 
+-- Copy of 2023.04.14 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
 
 
 
@@ -3579,16 +4008,16 @@ FROM
 					a.alumno,
 					a.propuesta,
 					a.plan_version,
-					a.comision
+					a.broker_id
 					ORDER BY a.prioridad_orden ASC
 				) AS "orden_duplicado"
 	FROM
 	(SELECT
 		pii2.persona,
+		vec.broker_id,
 		pii2.alumno,
 		pii2.propuesta,
 		pii2.plan_version,
-		pii2.comision,
 		cmp.cant_materias,
 		pii2.cantidad_materias_aprobadas,
 		round((cast(pii2.cantidad_materias_aprobadas AS DOUBLE) / cmp.cant_materias)*100, 0) AS porcentaje_aprob,
@@ -3618,15 +4047,26 @@ FROM
 		END AS prioridad_orden
 	FROM
 		preins_ins2 pii2
-	LEFT JOIN
-		"caba-piba-staging-zone-db"."goayvd_typ_tmp_siu_cantidad_materias_plan" CMP ON
-		cmp.propuesta = pii2.propuesta) a ) resultado
+	LEFT JOIN "caba-piba-staging-zone-db"."goayvd_typ_tmp_siu_cantidad_materias_plan" CMP
+		ON (cmp.propuesta = pii2.propuesta)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_view_siu_toba_3_3_negocio_mdp_personas_no_duplicates" nmp
+		ON (nmp.persona = pii2.persona)
+	LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_mdp_personas_documentos" nmpd
+		ON (nmpd.documento = nmp.documento_principal)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
+		ON (
+			vec.base_origen = 'SIU'
+			AND vec.documento_broker = CAST(nmpd.nro_documento AS VARCHAR)
+			AND vec.genero_broker = nmp.sexo
+			)
+		) a
+	) resultado
 WHERE resultado.orden_duplicado=1
 --Ver casos fecha inicio (min(fecha insc cursada)) > fecha_acta (max(fecha de acta)) 1165 casos de 50816
 
 
 
--- 2023.03.31 step 14 - staging edicion capacitacion.sql 
+-- Copy of 2023.04.14 step 14 - staging edicion capacitacion (Vcliente).sql 
 
 
 
@@ -4303,63 +4743,71 @@ SELECT
 	-- no se completa dado que no se usa en la tabla def
 	' ' descrip_capacitacion_old,
 
-	CAST(comi.comision AS VARCHAR) edicion_capacitacion_id,
+	-- la clave de edicion capacitacion se compone los identificadores del 1-plan de estudio,
+	-- 2-la propuesta academica, 3-el periodo lectivo, 4-el establecimiento donde se dicta la capacitacion y
+	-- 5-la modalidad de la capacitacion
+	CAST(spl.plan AS VARCHAR) || '-' || CAST(spl.propuesta AS VARCHAR) || '-' ||
+	CAST(pl.periodo_lectivo AS VARCHAR)  || '-' || CAST(est.id AS VARCHAR) || '-' ||
+	CAST(dc.modalidad_id AS VARCHAR) edicion_capacitacion_id,
 
-	CAST(SPLIT_PART(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p'), '-', 1)  AS INTEGER) anio_inicio,
+	CAST(SPLIT_PART(MIN(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p')), '-', 1)  AS INTEGER) anio_inicio,
 
 	-- El proximo campo es el semestre de inicio de la edicion capacitacion, NO indica que la misma es semestral o anual
 	CASE
-		WHEN CAST(SPLIT_PART(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p'), '-', 2)  AS INTEGER)  <= 6 THEN 1
-		WHEN CAST(SPLIT_PART(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p'), '-', 2)  AS INTEGER)  > 6 THEN 2
+		WHEN CAST(SPLIT_PART(MIN(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p')), '-', 2)  AS INTEGER)  <= 6 THEN 1
+		WHEN CAST(SPLIT_PART(MIN(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p')), '-', 2)  AS INTEGER)  > 6 THEN 2
 		ELSE NULL
 	END semestre_inicio,
 
-	CAST(DATE_PARSE(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE) fecha_inicio_dictado,
+	CAST(DATE_PARSE(MIN(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p')), '%Y-%m-%d %h:%i%p') AS DATE) fecha_inicio_dictado,
 
-	CAST(DATE_PARSE(date_format(pl.fecha_fin_dictado, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE) fecha_fin_dictado,
+	CAST(DATE_PARSE(MAX(date_format(pl.fecha_fin_dictado, '%Y-%m-%d %h:%i%p')), '%Y-%m-%d %h:%i%p') AS DATE) fecha_fin_dictado,
 
 	-- se obtiene calculando la primer inscripcion en la edicion
-	CAST(DATE_PARSE(date_format(inscriptos.fecha_inicio_inscripcion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE) fecha_inicio_inscripcion,
+	MIN(CAST(DATE_PARSE(date_format(inscriptos.fecha_inscripcion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE)) fecha_inicio_inscripcion,
 
 	-- se obtiene calculando la ultima inscripcion en la edicion
-	CAST(DATE_PARSE(date_format(inscriptos.fecha_limite_inscripcion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE) fecha_limite_inscripcion,
+	MAX(CAST(DATE_PARSE(date_format(inscriptos.fecha_inscripcion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE)) fecha_limite_inscripcion,
 
 	-- se considera turno mañana si la hora de inicio es entre las 7 y 12, tarde entre 12 y 20, noche entre 20 y 24
-	turno_c.nombre turno,
+	array_join(array_agg(DISTINCT(turno_c.nombre)), ',') turno,
 
-	-- si bien la columna dias.d trae la informacion requerida, es necesario realizar lo siguiente para que los dias queden ordenados
-	CASE WHEN position('LUNES' IN UPPER(dias.d))!=0 THEN 'Lunes ' ELSE '' END ||
-	CASE WHEN position('MARTES' IN UPPER(dias.d))!=0 THEN 'Martes ' ELSE '' END ||
-	CASE WHEN position('MIERCOLES' IN UPPER(dias.d))!=0 THEN 'Miercoles ' ELSE '' END ||
-	CASE WHEN position('JUEVES' IN UPPER(dias.d))!=0 THEN 'Jueves ' ELSE '' END ||
-	CASE WHEN position('VIERNES' IN UPPER(dias.d))!=0 THEN 'Viernes ' ELSE '' END ||
-	CASE WHEN position('SABADO' IN UPPER(dias.d))!=0 THEN 'Sabado ' ELSE '' END ||
-	CASE WHEN position('DOMINGO' IN UPPER(dias.d))!=0 THEN 'Domingo ' ELSE '' END dias_cursada,
+	-- si bien la columna dias.d trae la informacion requerida, hay que agruparlo a trabes de array join y realizar lo siguiente para que los dias queden ordenados
+	CASE WHEN position('LUNES' IN UPPER(array_join(array_agg(DISTINCT(dias.d)), ',')))!=0 THEN 'Lunes ' ELSE '' END ||
+	CASE WHEN position('MARTES' IN UPPER(array_join(array_agg(DISTINCT(dias.d)), ',')))!=0 THEN 'Martes ' ELSE '' END ||
+	CASE WHEN position('MIERCOLES' IN UPPER(array_join(array_agg(DISTINCT(dias.d)), ',')))!=0 THEN 'Miercoles ' ELSE '' END ||
+	CASE WHEN position('JUEVES' IN UPPER(array_join(array_agg(DISTINCT(dias.d)), ',')))!=0 THEN 'Jueves ' ELSE '' END ||
+	CASE WHEN position('VIERNES' IN UPPER(array_join(array_agg(DISTINCT(dias.d)), ',')))!=0 THEN 'Viernes ' ELSE '' END ||
+	CASE WHEN position('SABADO' IN UPPER(array_join(array_agg(DISTINCT(dias.d)), ',')))!=0 THEN 'Sabado ' ELSE '' END ||
+	CASE WHEN position('DOMINGO' IN UPPER(array_join(array_agg(DISTINCT(dias.d)), ',')))!=0 THEN 'Domingo ' ELSE '' END dias_cursada,
 
-	CASE WHEN comi.inscripcion_cerrada LIKE 'N'	THEN 'S'
+	-- Si al menos una comision esta abierta, se considera la edicion capacitacion abierta
+	CASE WHEN SUM(CASE WHEN comi.inscripcion_cerrada IN ('N') THEN 1 ELSE 0 END) > 0 THEN 'S'
 		ELSE 'N'
 	END inscripcion_abierta,
 
 	-- Valores posibles de la columna comi.estado: (A)ctivo, (P)endiente, (B)aja
-	CASE WHEN comi.estado = 'A'	THEN 'S'
+	-- Si al menos una comision esta activa, se considera la edicion capacitacion activa
+	CASE WHEN SUM(CASE WHEN comi.estado IN ('A') THEN 1 ELSE 0 END) > 0 THEN 'S'
 		ELSE 'N'
 	END activo,
 
 	-- solo se consideran los alumnos inscriptos y con el estado = A (el estado (P)endiente no se tiene en cuenta)
-	CAST(inscriptos.cant_inscriptos AS VARCHAR) cant_inscriptos,
+	CAST(COUNT(DISTINCT(alumno)) AS VARCHAR) cant_inscriptos,
 
-	CAST(comi.cupo AS VARCHAR) vacantes,
+	CAST(SUM(CAST(comi.cupo AS INTEGER)) AS VARCHAR) vacantes,
 
 	-- La modalidad se toma desde la entidad capacitacion
 	dc.modalidad_id,
 	dc.descrip_modalidad,
+
 	est.id cod_origen_establecimiento
 
 FROM "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes" spl
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_propuestas" spr ON (spl.propuesta = spr.propuesta)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_propuestas" cp ON (cp.propuesta = spr.propuesta)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones" comi ON (comi.comision=cp.comision)
-LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(comi.ubicacion AS VARCHAR))
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(comi.ubicacion AS VARCHAR) AND est.base_origen = 'SIU')
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_periodos_lectivos" pl ON (comi.periodo_lectivo=pl.periodo_lectivo)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_turnos_cursadas" turno_c ON (turno_c.turno=comi.turno)
 LEFT JOIN
@@ -4368,34 +4816,24 @@ LEFT JOIN
 		LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_bh" banda_horaria ON (banda_horaria.comision=c.comision)
 		LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_asignaciones" asig ON (asig.asignacion=banda_horaria.asignacion)
 		GROUP BY c.comision) dias ON (dias.comision=comi.comision)
-
 LEFT JOIN
-		(SELECT comision, count(*) AS cant_inscriptos,
-		MIN(fecha_inscripcion) fecha_inicio_inscripcion,
-		MAX(fecha_inscripcion) fecha_limite_inscripcion
+		(SELECT comision, alumno, CAST(fecha_inscripcion AS DATE) fecha_inscripcion
 		FROM "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_insc_cursada"
 		WHERE estado LIKE 'A'
-		GROUP BY comision) inscriptos ON (inscriptos.comision=comi.comision)
+		GROUP BY comision, alumno, CAST(fecha_inscripcion AS DATE) ) inscriptos ON (inscriptos.comision=comi.comision)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" dcmatch ON (dcmatch.id_old = CAST(spl.plan AS VARCHAR) AND dcmatch.base_origen = 'SIU')
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" dc ON (dcmatch.id_new = dc.id_new AND dcmatch.base_origen = dc.base_origen)
 GROUP BY
 	dcmatch.tipo_capacitacion,
 	dcmatch.id_new,
 	dcmatch.id_old,
-	comi.comision,
-	pl.fecha_inicio_dictado,
-	pl.fecha_fin_dictado,
-	inscriptos.fecha_inicio_inscripcion,
-	inscriptos.fecha_limite_inscripcion,
-	turno_c.nombre,
-	dias.d,
-	comi.inscripcion_cerrada,
-	comi.estado,
-	inscriptos.cant_inscriptos,
-	comi.cupo,
+	spl.plan,
+	spl.propuesta,
+	pl.periodo_lectivo,
 	dc.modalidad_id,
 	dc.descrip_modalidad,
 	est.id
+
 
 -- 2.-- Crear EDICION CAPACITACION GOET, MOODLE, SIENFO Y CRMSL paso 2
 -- se agrega un indice incremental
@@ -4498,7 +4936,7 @@ WHERE a.id IS NULL
 
 
 
--- 2023.03.31 step 15 - consume edicion capacitacion.sql 
+-- Copy of 2023.04.14 step 15 - consume edicion capacitacion (Vcliente).sql 
 
 
 
@@ -4535,7 +4973,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- 2023.03.31 step 16 - staging cursada.sql 
+-- Copy of 2023.04.14 step 16 - staging cursada (Vcliente).sql 
 
 
 
@@ -4947,6 +5385,8 @@ SELECT
 	eb.estado_beneficiario AS estado_beneficiario
 
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_view_siu_toba_3_3_negocio_mdp_personas_no_duplicates" nmp
+LEFT JOIN "caba-piba-raw-zone-db"."siu_preinscripcion_public_sga_preinscripcion" pre ON (nmp.persona = pre.persona)
+LEFT JOIN "caba-piba-raw-zone-db"."siu_preinscripcion_public_sga_preinscripcion_propuestas" pre_pro ON (pre.id_preinscripcion = pre_pro.id_preinscripcion)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_mdp_personas_documentos" nmpd ON (nmpd.documento = nmp.documento_principal)
 LEFT JOIN  "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_alumnos" alumnos ON (alumnos.persona=nmp.persona)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_insc_cursada" insc_cur ON (insc_cur.alumno=alumnos.alumno)
@@ -4954,11 +5394,16 @@ LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones" comi ON 
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_propuestas" cp ON (comi.comision = cp.comision)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes" spl ON (spl.propuesta = cp.propuesta)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" dcmatch ON (dcmatch.id_old = CAST(spl.plan AS VARCHAR) AND dcmatch.base_origen = 'SIU')
-
-LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON
-		(ed.edicion_capacitacion_id_old=CAST(comi.comision AS VARCHAR)
-		AND ed.base_origen = 'SIU')
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_periodos_lectivos" pl ON (comi.periodo_lectivo=pl.periodo_lectivo)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" dc ON (dcmatch.id_new = dc.id_new AND dcmatch.base_origen = dc.base_origen)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(comi.ubicacion AS VARCHAR) AND est.base_origen = dc.base_origen)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON
+		(ed.edicion_capacitacion_id_old=
+									(CAST(spl.plan AS VARCHAR) || '-' || CAST(spl.propuesta AS VARCHAR) || '-' ||
+									CAST(pl.periodo_lectivo AS VARCHAR)  || '-' || CAST(est.id AS VARCHAR) || '-' ||
+									CAST(dc.modalidad_id AS VARCHAR))
+		AND ed.base_origen = 'SIU')
+
 LEFT JOIN
 		(SELECT ca.alumno, ca_acum.comision, MIN(cla.fecha) fecha_inicio
 		FROM
@@ -4976,15 +5421,12 @@ LEFT JOIN "caba-piba-raw-zone-db"."siu_preinscripcion_public_sga_preinscripcion"
 LEFT JOIN "caba-piba-raw-zone-db"."siu_preinscripcion_public_sga_preinscripcion_propuestas" pp ON (p.id_preinscripcion = pp.id_preinscripcion AND pp.propuesta=alumnos.propuesta)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_siu" eb
 	ON (
-	CASE WHEN eb.comision  IS NOT NULL
-
-	THEN insc_cur.comision=eb.comision AND eb.alumno=alumnos.alumno AND eb.plan_version=alumnos.plan_version
-
-	-- cuando el estado es preinscripto no se puede obtener la comision, porque nunca se inscribio, por lo tanto
-	-- solo se tendrÃ¡n las capacitaciones a las que se preinscribio y no habrÃ¡ ningun dato asociado a la edicion capacitacion
-	ELSE eb.persona=alumnos.persona AND eb.propuesta=cp.propuesta AND eb.estado_beneficiario LIKE 'PREINSCRIPTO'
-	END
-		)
+		(eb.estado_beneficiario!='PREINSCRIPTO' AND eb.broker_id=vec.broker_id
+		AND eb.plan_version=alumnos.plan_version AND eb.propuesta=alumnos.propuesta)
+		-- cuando el estado es preinscripto no tiene plan_version
+		OR
+		(eb.estado_beneficiario='PREINSCRIPTO' AND eb.broker_id=vec.broker_id AND eb.propuesta=pre_pro.propuesta)
+	)
 GROUP BY
 	alumnos.alumno,
 	nmpd.nro_documento,
@@ -5049,12 +5491,12 @@ GROUP BY
 
 
 
--- 2023.03.31 step 17 - consume cursada.sql 
+-- Copy of 2023.04.14 step 17 - consume cursada (Vcliente).sql 
 
 
 
--- EDICION CURSADA GOET, MOODLE, SIENFO Y CRMSL
--- 1.- Crear tabla edicion cursada definitiva
+-- CURSADA GOET, MOODLE, SIENFO, CRMSL Y SIU
+-- 1.- Crear tabla cursada definitiva
 -- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cursada`;
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cursada" AS
 SELECT row_number() OVER () AS id,
@@ -5111,7 +5553,7 @@ GROUP BY
 
 
 
--- 2023.03.31 step 18 - consume trayectoria_educativa.sql 
+-- Copy of 2023.04.14 step 18 - consume trayectoria_educativa (Vcliente).sql 
 
 
 
@@ -5119,47 +5561,53 @@ GROUP BY
 -- 1.- Crear tabla trayectoria educativa definitiva
 -- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_trayectoria_educativa`;
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_trayectoria_educativa" AS
-SELECT CAST(row_number() OVER () AS VARCHAR) AS cursado_id,
-	   bg.id broker_id,
-       bg.nombre,
-       bg.apellido,
-       bg.tipo_doc_broker tipo_documento,
-       bg.documento_broker numero_documento,
-       vec.nacionalidad_broker nacionalidad,
-       bg.genero,
-       dc.capacitacion_id_asi codigo_curso,
-       COALESCE(dc.descrip_capacitacion, dc.descrip_normalizada) nombre_curso,
-	   dc.detalle_capacitacion,
-	   p.codigo_programa,
-	   p.nombre_programa detalle,
-       DATE_FORMAT(CAST(dcu.fecha_inicio AS DATE), '%d-%m-%Y') fecha_inicio_cursada,
-       dcu.estado_beneficiario estado
-       FROM "caba-piba-staging-zone-db"."tbp_broker_def_broker_general" bg
-       INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (bg.id = vec.broker_id)
-       LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_cursada" dcu ON (dcu.broker_id = vec.broker_id)
-	   LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON (ed.id = dcu.edicion_capacitacion_id_new AND ed.base_origen = dcu.base_origen)
-       LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" dc ON (dc.id_new = ed.capacitacion_id_new AND dc.base_origen = ed.base_origen)
-	   LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_programa" p ON (p.programa_id = dc.programa_id)
-WHERE dc.base_origen != 'MOODLE' AND dcu.estado_beneficiario IS NOT NULL
-GROUP BY bg.id,
-       bg.apellidos_nombres,
-       bg.nombre,
-       bg.apellido,
-       bg.tipo_doc_broker,
-       bg.documento_broker,
-       vec.nacionalidad_broker,
-       bg.genero,
-       dc.capacitacion_id_asi,
-       COALESCE(dc.descrip_capacitacion, dc.descrip_normalizada),
-	   dc.detalle_capacitacion,
-	   p.codigo_programa,
-	   p.nombre_programa,
-       DATE_FORMAT(CAST(dcu.fecha_inicio AS DATE), '%d-%m-%Y'),
-       dcu.estado_beneficiario
+SELECT
+	CAST(row_number() OVER () AS VARCHAR) AS cursado_id,
+	bg.id broker_id,
+	bg.nombre,
+	bg.apellido,
+	bg.tipo_doc_broker tipo_documento,
+	bg.documento_broker numero_documento,
+	vec.nacionalidad_broker nacionalidad,
+	bg.genero,
+	dc.capacitacion_id_asi codigo_curso,
+	COALESCE(dc.descrip_capacitacion, dc.descrip_normalizada) nombre_curso,
+	dc.detalle_capacitacion,
+	p.codigo_programa,
+	p.nombre_programa detalle,
+	DATE_FORMAT(CAST(dcu.fecha_inicio AS DATE), '%d-%m-%Y') fecha_inicio_cursada,
+	dcu.estado_beneficiario estado,
+	-- Si existe mas de una fecha de egreso, se toma la menor
+	DATE_FORMAT(MIN(CAST(dcu.fecha_egreso AS DATE)), '%d-%m-%Y') fecha_egreso
+FROM "caba-piba-staging-zone-db"."tbp_broker_def_broker_general" bg
+	INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (bg.id = vec.broker_id)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_cursada" dcu ON (dcu.broker_id = vec.broker_id)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON (ed.id = dcu.edicion_capacitacion_id_new AND ed.base_origen = dcu.base_origen)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" dc ON (dc.id_new = ed.capacitacion_id_new AND dc.base_origen = ed.base_origen)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_programa" p ON (p.programa_id = dc.programa_id)
+WHERE
+	dc.base_origen != 'MOODLE' AND
+	dcu.estado_beneficiario IS NOT NULL
+GROUP BY
+	bg.id,
+	bg.apellidos_nombres,
+	bg.nombre,
+	bg.apellido,
+	bg.tipo_doc_broker,
+	bg.documento_broker,
+	vec.nacionalidad_broker,
+	bg.genero,
+	dc.capacitacion_id_asi,
+	COALESCE(dc.descrip_capacitacion, dc.descrip_normalizada),
+	dc.detalle_capacitacion,
+	p.codigo_programa,
+	p.nombre_programa,
+	DATE_FORMAT(CAST(dcu.fecha_inicio AS DATE), '%d-%m-%Y'),
+	dcu.estado_beneficiario
 
 
 
--- 2023.03.31 step 19 - staging oportunidad_laboral.sql 
+-- Copy of 2023.04.14 step 19 - staging oportunidad_laboral (Vcliente).sql 
 
 
 
@@ -5984,7 +6432,7 @@ FROM ecr3
 
 
 
--- 2023.03.31 step 20 - consume oportunidad_laboral.sql 
+-- Copy of 2023.04.14 step 20 - consume oportunidad_laboral (Vcliente).sql 
 
 
 
@@ -6050,7 +6498,7 @@ GROUP BY
 
 
 
--- 2023.03.31 step 21 - staging sector_productivo.sql 
+-- Copy of 2023.04.14 step 21 - staging sector_productivo (Vcliente).sql 
 
 
 
@@ -6071,7 +6519,7 @@ ORDER BY REPLACE(REPLACE(sp.sector_productivo,'Ã','I'),'Ã','O')
 
 
 
--- 2023.03.31 step 22 - consume sector_productivo.sql 
+-- Copy of 2023.04.14 step 22 - consume sector_productivo (Vcliente).sql 
 
 
 
@@ -6097,7 +6545,7 @@ ORDER BY id_sector_productivo
 
 
 
--- 2023.03.31 step 23 - staging registro_laboral_formal.sql 
+-- Copy of 2023.04.14 step 23 - staging registro_laboral_formal (Vcliente).sql 
 
 
 
@@ -6279,16 +6727,16 @@ WITH aa_ab AS (
 		ab.fecha_de_movimiento,
 		TRY_CAST(ab.codigo_de_actividad AS INT) AS codigo_de_actividad,
 		CASE
-		    WHEN aa.desc_actividad_afip_o_naes IS NULL OR LENGTH(TRIM(aa.desc_actividad_afip_o_naes)) = 0 THEN ba.desc_actividad_naecba
+		    WHEN aa.desc_actividad_afip_o_naes IS NULL OR LENGTH(TRIM(aa.desc_actividad_afip_o_naes)) = 0 THEN ba.desc_actividad_agip_o_naecba
 		    ELSE aa.desc_actividad_afip_o_naes
 		END descripcion_actividad,
 
 		CASE
 		    WHEN (aa.desc_actividad_afip_o_naes IS NULL OR LENGTH(TRIM(aa.desc_actividad_afip_o_naes)) = 0)
-			AND LENGTH(TRIM(ba.desc_actividad_naecba)) > 0
+			AND LENGTH(TRIM(ba.desc_actividad_agip_o_naecba)) > 0
 				THEN 'AGIP-CLAE'
 
-			WHEN (ba.desc_actividad_naecba IS NULL OR LENGTH(TRIM(ba.desc_actividad_naecba)) = 0)
+			WHEN (ba.desc_actividad_agip_o_naecba IS NULL OR LENGTH(TRIM(ba.desc_actividad_agip_o_naecba)) = 0)
 			AND LENGTH(TRIM(aa.desc_actividad_afip_o_naes)) > 0
 				THEN 'AFIP-CLAE'
 
@@ -6317,12 +6765,12 @@ WITH aa_ab AS (
 			TRY_CAST(ab.codigo_de_actividad AS INT) = TRY_CAST(aa.cod_actividad_afip_o_naes AS INT)
 		)
 		LEFT JOIN (
-			SELECT cod_actividad_naecba,
-                desc_actividad_naecba
+			SELECT cod_actividad_agip_o_naecba,
+                desc_actividad_agip_o_naecba
 			FROM "caba-piba-staging-zone-db".tbp_typ_tmp_nomenclador_actividades_economicas
-			ORDER BY cod_actividad_naecba
+			ORDER BY cod_actividad_agip_o_naecba
 		) ba ON (
-			TRY_CAST(ab.codigo_de_actividad AS INT) = TRY_CAST(ba.cod_actividad_naecba AS INT)
+			TRY_CAST(ab.codigo_de_actividad AS INT) = TRY_CAST(ba.cod_actividad_agip_o_naecba AS INT)
 		)
 	WHERE SUBSTRING(ab.cuil_del_empleado, 1, 2) NOT IN ('IS')
 ),
@@ -6618,7 +7066,7 @@ FROM
 
 
 
--- 2023.03.31 step 24 - consume_registro_laboral_formal.sql 
+-- Copy of 2023.04.14 step 24 - consume_registro_laboral_formal (Vcliente).sql 
 
 
 
@@ -6662,6 +7110,274 @@ GROUP BY
 	lfc.registro_laboral_formal_id_old,
 	lfc.base_origen,
 	lfc.oportunidad_laboral_id
+
+
+
+-- Copy of 2023.04.14 step 25 - staging entrevista (Vcliente).sql 
+
+
+
+-- 1.-- Crear ENTREVISTA LABORAL
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_entrevista`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_entrevista" AS
+-- PORTALEMPLEO
+SELECT vec.base_origen,
+	vec.vecino_id,
+	ol.oportunidad_laboral_id,
+	CAST(NULL AS VARCHAR) AS "tipo_entrevista",
+	-- es la fecha de alta del registro, no hay una fecha de entrevista
+	CAST(jac.created_at AS DATE) AS "fecha_entrevista",
+	-- es la fecha de postulacion del candidato, no hay una fecha de notificacion
+	CAST(ja.application_date AS DATE) AS "fecha_notificacion",
+	-- 1 si fue contratado, 0 en caso contrario
+	ja.hired AS "consiguio_trabajo",
+	CASE
+	WHEN ja.contacted = 1 OR ja.hired = 1 THEN 'COMPLETA'
+	WHEN ja.contacted = 0 AND ja.hired = 0 THEN 'PENDIENTE'
+	END estado_entrevista
+FROM "caba-piba-raw-zone-db"."portal_empleo_job_applications" ja
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_candidates" pec ON (pec.id = ja.candidate_id)
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_job_application_comments" jac ON (ja.id = jac.job_application_id)
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (ja.job_posting_id = jp.id)
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
+		vec.genero_broker = (
+			CASE
+				WHEN (pec.gender = 'M') THEN 'M'
+				WHEN (pec.gender = 'F') THEN 'F' ELSE 'X'
+			END
+		)
+		AND vec.documento_broker = CAST(pec.doc_number AS VARCHAR)
+		AND vec.tipo_doc_broker = CASE
+			WHEN (
+				pec.doc_type IN ('DNI', 'LC', 'CI', 'LE', 'CUIL')
+			) THEN pec.doc_type
+			WHEN (pec.doc_type = 'PAS') THEN 'PE'
+			WHEN (pec.doc_type = 'DE') THEN 'CE'
+			WHEN (pec.doc_type = 'CRP') THEN 'OTRO' ELSE 'NN'
+		END
+		AND vec.base_origen = 'PORTALEMPLEO'
+	)
+	LEFT JOIN  "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.oportunidad_laboral_id_old=CAST(jp.id AS VARCHAR) AND ol.base_origen= 'PORTALEMPLEO')
+	GROUP BY
+	vec.base_origen,
+	vec.vecino_id,
+	ol.oportunidad_laboral_id,
+	jac.created_at,
+	ja.application_date,
+	ja.hired,
+	ja.contacted
+UNION
+-- CRMEMPLEO
+SELECT vec.base_origen,
+	 vec.vecino_id,
+	ol.oportunidad_laboral_id,
+	CASE
+		WHEN e.tipo_de_entrevista__c LIKE 'TelefÃ³nica' THEN 'Virtual Individual'
+		WHEN e.tipo_de_entrevista__c LIKE 'Presencial Individual' THEN 'Presencial Individual'
+		ELSE ''
+	END AS "tipo_entrevista",
+	CAST(e.fecha_de_entrevista__c AS DATE) AS "fecha_entrevista",
+	-- es la fecha de creacion del registro, no hay una fecha de notificacion
+	CAST(e.createddate AS DATE) AS "fecha_notificacion",
+	-- 1 si fue contratado, 0 en caso contrario
+	CASE WHEN p.estado__c LIKE 'Contratado' THEN 1 ELSE 0 END  AS "consiguio_trabajo",
+	CASE
+	WHEN p.estado__c IN ('Contratado', 'Entrevista realizada', 'Enviado al solicitante') THEN 'COMPLETA'
+	WHEN p.estado__c IN ('Contactado') THEN 'PENDIENTE'
+	END estado_entrevista
+FROM "caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e
+LEFT JOIN "caba-piba-raw-zone-db"."crm_empleo_account"  cea ON (e.dni__c=cea.numero_de_documento__c)
+LEFT JOIN"caba-piba-raw-zone-db"."crm_empleo_anuncio_postulante__c" p ON (cea.id=p.cuenta__c
+)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
+		vec.genero_broker = (CASE
+		WHEN (cea.genero__c = 'MASCULINIO' OR cea.genero__c = 'Masculino' ) THEN 'M'
+		WHEN (cea.genero__c = 'FEMENINA' OR cea.genero__c = 'Femenino') THEN 'F' ELSE 'X' END)
+
+		AND vec.documento_broker = CAST(cea.numero_de_documento__c AS VARCHAR)
+
+		AND vec.tipo_doc_broker = (CASE
+		WHEN (cea.tipo_de_documento__c = 'DNI') THEN 'DNI'
+		WHEN (cea.tipo_de_documento__c = 'DNIEx') THEN 'CE'
+		WHEN (cea.tipo_de_documento__c = 'CI' OR UPPER(cea.tipo_de_documento__c) LIKE '%IDENTIDAD%') THEN 'CI'
+		WHEN (UPPER(cea.tipo_de_documento__c) LIKE '%Libreta C%') THEN 'LC'
+		WHEN (cea.tipo_de_documento__c IN ('Pasaporte', 'PAS')) THEN 'PE'
+		WHEN (cea.tipo_de_documento__c IN ('DNIEx', 'DNI extranjero')) THEN 'CE'
+		WHEN (cea.tipo_de_documento__c IN ('DNIEx', 'DNI extranjero')) THEN 'CE'
+		WHEN (cea.tipo_de_documento__c IN ('PRECARIA', 'Credencial Residencia Precaria')) THEN 'OTRO' ELSE 'NN' END)
+		AND vec.base_origen = 'CRMEMPLEO'
+	)
+	LEFT JOIN "caba-piba-raw-zone-db"."crm_empleo_anuncio__c" anu ON (anu.id=p.anuncio__c)
+	LEFT JOIN  "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.oportunidad_laboral_id_old=CAST(anu.id AS VARCHAR) AND ol.base_origen= 'CRMEMPLEO')
+	WHERE e.isdeleted = FALSE
+GROUP BY
+	vec.base_origen,
+	vec.vecino_id,
+	ol.oportunidad_laboral_id,
+	CASE
+		WHEN e.tipo_de_entrevista__c LIKE 'TelefÃ³nica' THEN 'Virtual Individual'
+		WHEN e.tipo_de_entrevista__c LIKE 'Presencial Individual' THEN 'Presencial Individual'
+		ELSE ''
+	END,
+	e.fecha_de_entrevista__c,
+	e.createddate,
+	CASE WHEN p.estado__c LIKE 'Contratado' THEN 1 ELSE 0 END,
+	CASE
+	WHEN p.estado__c IN ('Contratado', 'Entrevista realizada', 'Enviado al solicitante') THEN 'COMPLETA'
+	WHEN p.estado__c IN ('Contactado') THEN 'PENDIENTE'
+	END
+
+UNION
+-- CRMEMPLEO - TABLAS HISTORICAS
+SELECT vec.base_origen,
+	 vec.vecino_id,
+	ol.oportunidad_laboral_id,
+	CASE
+		WHEN e.tipo_de_entrevista__c LIKE 'TelefÃ³nica' THEN 'Virtual Individual'
+		WHEN e.tipo_de_entrevista__c LIKE 'Presencial Individual' THEN 'Presencial Individual'
+		WHEN e.tipo_de_entrevista__c LIKE 'Presencial Grupal' THEN 'Presencial Grupal'
+		ELSE ''
+	END AS "tipo_entrevista",
+	CAST(e.fecha_de_entrevista__c AS DATE) AS "fecha_entrevista",
+	-- se deje en NULL porque no existe fecha de notificacion y la fecha de creacion es inexacta
+	CAST(NULL AS DATE) AS "fecha_notificacion",
+	-- 1 si fue contratado, 0 en caso contrario
+	CASE WHEN p.estado__c LIKE 'Contratado' THEN 1 ELSE 0 END  AS "consiguio_trabajo",
+	CASE
+	WHEN p.estado__c IN ('Contratado', 'Entrevista realizada', 'Enviado al solicitante') THEN 'COMPLETA'
+	WHEN p.estado__c IN ('Contactado') THEN 'PENDIENTE'
+	END estado_entrevista
+FROM "caba-piba-raw-zone-db"."crm_empleo_historico_entrevista__c" e
+LEFT JOIN "caba-piba-raw-zone-db"."crm_empleo_account"  cea ON (e.dni__c=cea.numero_de_documento__c)
+LEFT JOIN"caba-piba-raw-zone-db"."crm_empleo_hist_rico_anuncio_postulante__c" p ON (cea.id=p.cuenta__c
+)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
+		vec.genero_broker = (CASE
+		WHEN (cea.genero__c = 'MASCULINIO' OR cea.genero__c = 'Masculino' ) THEN 'M'
+		WHEN (cea.genero__c = 'FEMENINA' OR cea.genero__c = 'Femenino') THEN 'F' ELSE 'X' END)
+
+		AND vec.documento_broker = CAST(cea.numero_de_documento__c AS VARCHAR)
+
+		AND vec.tipo_doc_broker = (CASE
+		WHEN (cea.tipo_de_documento__c = 'DNI') THEN 'DNI'
+		WHEN (cea.tipo_de_documento__c = 'DNIEx') THEN 'CE'
+		WHEN (cea.tipo_de_documento__c = 'CI' OR UPPER(cea.tipo_de_documento__c) LIKE '%IDENTIDAD%') THEN 'CI'
+		WHEN (UPPER(cea.tipo_de_documento__c) LIKE '%Libreta C%') THEN 'LC'
+		WHEN (cea.tipo_de_documento__c IN ('Pasaporte', 'PAS')) THEN 'PE'
+		WHEN (cea.tipo_de_documento__c IN ('DNIEx', 'DNI extranjero')) THEN 'CE'
+		WHEN (cea.tipo_de_documento__c IN ('DNIEx', 'DNI extranjero')) THEN 'CE'
+		WHEN (cea.tipo_de_documento__c IN ('PRECARIA', 'Credencial Residencia Precaria')) THEN 'OTRO' ELSE 'NN' END)
+		AND vec.base_origen = 'CRMEMPLEO'
+	)
+	LEFT JOIN "caba-piba-raw-zone-db"."crm_empleo_anuncio__c" anu ON (anu.id=p.hist_rico_anuncio__c)
+	LEFT JOIN  "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.oportunidad_laboral_id_old=(CAST(anu.id AS VARCHAR) || 'H') AND ol.base_origen= 'CRMEMPLEO')
+	WHERE e.isdeleted = 'false'
+GROUP BY
+	vec.base_origen,
+	vec.vecino_id,
+	ol.oportunidad_laboral_id,
+	CASE
+		WHEN e.tipo_de_entrevista__c LIKE 'TelefÃ³nica' THEN 'Virtual Individual'
+		WHEN e.tipo_de_entrevista__c LIKE 'Presencial Individual' THEN 'Presencial Individual'
+		WHEN e.tipo_de_entrevista__c LIKE 'Presencial Grupal' THEN 'Presencial Grupal'
+		ELSE ''
+	END,
+	e.fecha_de_entrevista__c,
+	CASE WHEN p.estado__c LIKE 'Contratado' THEN 1 ELSE 0 END,
+	CASE
+	WHEN p.estado__c IN ('Contratado', 'Entrevista realizada', 'Enviado al solicitante') THEN 'COMPLETA'
+	WHEN p.estado__c IN ('Contactado') THEN 'PENDIENTE'
+	END
+
+UNION
+
+--CRMSL
+SELECT vec.base_origen,
+	vec.vecino_id,
+	NULL AS oportunidad_laboral_id,
+	c.tipo_entrevista,
+	CAST(c.fecha_notificacion AS DATE) AS fecha_notificacion,
+	CAST(c.fecha_entrevista AS DATE) AS fecha_entrevista,
+	c.consiguio_trabajo,
+	c.estado_entrevista
+FROM (
+	SELECT el.id AS id_entrevista_old,
+		el.date_entered AS fecha_notificacion,
+		CASE
+			WHEN el.fecha_entrevista IS NULL
+			OR LENGTH(TRIM(CAST(el.fecha_entrevista AS VARCHAR))) = 0 THEN el.date_modified ELSE el.fecha_entrevista
+		END fecha_entrevista,
+		CASE
+			WHEN el.tipo_entrevista = 'telefonica' THEN 'Virtual Individual'
+			WHEN el.tipo_entrevista = 'presencial' THEN 'Presencial Individual'
+		END tipo_entrevista,
+		CASE
+			WHEN cstm.estado_entrevista_c = 'completa' OR cstm.estado_entrevista_c = 'completa_con_cv' THEN 'COMPLETA'
+			WHEN cstm.estado_entrevista_c = 'incompleta' THEN 'INCOMPLETA'
+			ELSE 'PENDIENTE'
+		END estado_entrevista,
+		cc.per_entrevista_laboral_contactscontacts_ida,
+		CAST(NULL AS INT) AS consiguio_trabajo,
+		CASE WHEN (ccstm.tipo_documento_c = 'dni') THEN 'DNI' ELSE 'NN' END tipo_documento,
+		CAST(ccstm.numero_documento_c AS VARCHAR) numero_documento,
+		CASE
+			WHEN ccstm.genero_c LIKE 'masculino' OR SUBSTRING(CAST(ccstm.cuil2_c AS VARCHAR),1,2) = '20' THEN 'M'
+			WHEN ccstm.genero_c LIKE 'femenino' OR SUBSTRING(CAST(ccstm.cuil2_c AS VARCHAR),1,2) = '27' THEN 'F'
+			ELSE 'X'
+		END genero
+	FROM "caba-piba-raw-zone-db".crm_sociolaboral_per_entrevista_laboral el
+		JOIN (
+			SELECT id_c,
+				estado_entrevista_c
+			FROM "caba-piba-raw-zone-db".crm_sociolaboral_per_entrevista_laboral_cstm
+		) cstm ON (el.id = cstm.id_c)
+		JOIN (
+			SELECT per_entrevista_laboral_contactscontacts_ida,
+				per_entrevista_laboral_contactsper_entrevista_laboral_idb
+			FROM "caba-piba-raw-zone-db".crm_sociolaboral_per_entrevista_laboral_contacts_c
+			WHERE deleted = FALSE
+		) cc ON (
+			el.id = cc.per_entrevista_laboral_contactsper_entrevista_laboral_idb
+		)
+		JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" ccstm ON (
+			cc.per_entrevista_laboral_contactscontacts_ida = ccstm.id_c
+		)
+) c
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
+		vec.genero_broker = c.genero
+		AND vec.documento_broker = c.numero_documento
+		AND vec.tipo_doc_broker = c.tipo_documento
+		AND vec.base_origen = 'CRMSL'
+	)
+GROUP BY
+	vec.base_origen,
+	vec.vecino_id,
+	CAST(NULL AS INT),
+	CAST(c.fecha_notificacion AS DATE),
+	CAST(c.fecha_entrevista AS DATE),
+	c.tipo_entrevista,
+	c.consiguio_trabajo,
+	c.estado_entrevista
+
+
+
+-- Copy of 2023.04.14 step 26 - consume entrevista (Vcliente).sql 
+
+
+
+-- 1.-- Crear la tabla def de entrevista
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_entrevista`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_entrevista" AS
+SELECT
+row_number() OVER () AS id_entrevista,
+vecino_id,
+oportunidad_laboral_id,
+tipo_entrevista,
+fecha_notificacion,
+fecha_entrevista,
+consiguio_trabajo,
+estado_entrevista
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_entrevista"
 
 
 
