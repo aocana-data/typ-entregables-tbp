@@ -1,4 +1,234 @@
--- Copy of 2023.04.14 step 00 - creacion de vistas (Vcliente).sql 
+-- Copy of 2023.04.28 scripts de conteos (Vcliente).sql 
+
+
+
+-- ***************************************************************************************************************
+-- ARCHIVO DE CONTEOS PARA TYP
+--
+-- IMPORTANTE!!!! LEER!!!
+-- Para realizar los conteos se debe:
+--
+-- 1- Abrir el archivo "ConteosEntidadesTyP V2" disponible en drive en la ruta 1_Desarrollo\1_Proyectos\3. Trabajo y Progreso\3. Modelado (Bases Unficadas)
+--
+-- 2- Completar las distintas secciones con las queries de este script
+--
+-- 3- Exportar el archivo a .xlsx
+
+
+-- HOJA "Atributos Vecinos"
+SELECT dv.base_origen,
+       COUNT(1) cant_vecinos,
+       SUM(CASE WHEN dv.nombre IS NULL THEN 0 ELSE 1 END) completitud_nombre,
+       SUM(CASE WHEN dv.apellido IS NULL THEN 0 ELSE 1 END) completitud_apellido,
+       SUM(CASE WHEN dv.fecha_nacimiento IS NULL THEN 0 ELSE 1 END) completitud_fec_nac,
+       SUM(CASE WHEN dv.descrip_nacionalidad IS NULL THEN 0 ELSE 1 END) completitud_nacionalidad,
+       SUM(dv.nombre_valido) nombre_valido,
+       SUM(dv.apellido_valido) apellido_valido
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
+GROUP BY dv.base_origen
+ORDER BY dv.base_origen
+
+
+-- ***************************************************************************************************************
+-- HOJA "Registros Duplicados Vecinos"
+SELECT vec.vecino_id, vec.base_origen, vec.cod_origen, vec.broker_id, vec.tipo_doc_broker, vec.documento_broker, vec.genero_broker, vec.nombre, vec.apellido
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec,
+(
+SELECT vec.broker_id, vec.base_origen
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
+--WHERE vec.base_origen LIKE 'CRM%'--= 'SIENFO'
+GROUP BY vec.broker_id, vec.base_origen
+HAVING COUNT(1)>1
+) tmp
+WHERE tmp.broker_id = vec.broker_id
+AND tmp.base_origen = vec.base_origen
+
+-- ***************************************************************************************************************
+-- HOJA "Vecinos"
+-- DUPLICADOS DNI POR BASE
+SELECT base_origen, COUNT(1)
+FROM
+(
+SELECT vec.broker_id, vec.base_origen
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
+--WHERE vec.base_origen LIKE 'CRM%'--= 'SIENFO'
+GROUP BY vec.broker_id, vec.base_origen
+HAVING COUNT(1)>1
+)
+GROUP BY base_origen
+ORDER BY base_origen
+
+-- CANTIDAD DE VECINOS CON BROKER ID VALIDO
+SELECT COUNT(1) cant_vecinos
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
+WHERE broker_id_valido = 1 AND dni_valido = 0
+
+-- CANTIDAD DE VECINOS CON DNI VALIDO
+SELECT COUNT(1) cant_vecinos
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
+WHERE broker_id_valido = 0 AND dni_valido = 1
+
+-- CANTIDAD DE RENAPER  VALIDO
+SELECT COUNT(1) cant_vecinos
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
+WHERE broker_id_valido = 0  AND renaper_valido=1
+
+-- RENAPER: VALIDOS RENAPER POR DNI Y FECHA NAC
+SELECT coincidencia, count(1)
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_view_ciudadanos_renaper_no_duplicates"
+GROUP BY coincidencia
+
+--CANTIDAD VECINOS EN BROKER CON Y SIN MI BA (broker_valido_sin_login, broker_valido_con_login)
+SELECT CASE WHEN bo.login2_id IS NULL THEN 0 ELSE 1 END con_login,
+	   COUNT(1) cant
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
+LEFT JOIN "caba-piba-staging-zone-db".tbp_broker_def_broker_general bo ON (bo.id = vec.broker_id)
+GROUP BY CASE WHEN bo.login2_id IS NULL THEN 0 ELSE 1 END
+
+-- DNI VALIDO sin login y con login (dni_valido_sin_login dni_valido_con_login)
+SELECT CASE WHEN cit.dni IS NULL THEN 'SIN LOGIN' ELSE 'CON LOGIN' END login,
+	   count(1)
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
+LEFT JOIN "caba-piba-consume-zone-db"."login2_citizen" cit ON (CAST(cit.dni AS VARCHAR) = vec.documento_broker)
+WHERE vec.dni_valido = 1
+GROUP BY CASE WHEN cit.dni IS NULL THEN 'SIN LOGIN' ELSE 'CON LOGIN' END
+
+-- RENAPER VALIDO sin login y con login (renaper_valido_sin_login renaper_valido_con_login)
+SELECT CASE WHEN cit.dni IS NULL THEN 'SIN LOGIN' ELSE 'CON LOGIN' END login,
+	   count(1)
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
+LEFT JOIN "caba-piba-consume-zone-db"."login2_citizen" cit ON (CAST(cit.dni AS VARCHAR) = vec.documento_broker)
+WHERE vec.renaper_valido = 1
+GROUP BY CASE WHEN cit.dni IS NULL THEN 'SIN LOGIN' ELSE 'CON LOGIN' END
+
+--  tabla excel "Sin Match con Broker"
+SELECT dv.base_origen,
+       COUNT(1) cant_vecinos
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
+WHERE broker_id_valido = 0
+GROUP BY dv.base_origen
+ORDER BY dv.base_origen
+
+-- tabla excel "Sin Match con Broker" seccion nacionalidad
+SELECT nacionalidad, SUM(cantidad) cant
+FROM (
+SELECT CASE WHEN descrip_nacionalidad IN ('Argentina','Argentina') THEN 'Argentino'
+		    WHEN descrip_nacionalidad IS NULL THEN 'Sin Nacionalidad'
+			ELSE 'Extranjeros' END nacionalidad,
+	   COUNT(1) cantidad
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino"
+WHERE broker_id_valido = 0
+GROUP BY descrip_nacionalidad)
+GROUP BY nacionalidad
+
+-- ***************************************************************************************************************
+-- HOJA "Match Maestro Capacitacion ASI"
+-- total de capacitaciones
+SELECT COUNT(1)
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion"
+
+-- CON MATCH
+SELECT COUNT(1)
+FROM  "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+WHERE EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+WHERE ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
+
+-- SIN MATCH (No va en el excel, es solo para control dado que el valor se calcula en el excel desde otras celdas)
+SELECT COUNT(1)
+FROM  "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+WHERE NOT EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+WHERE ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
+
+-- (columnas: "match_asi, estado, cantidad")
+SELECT
+CASE WHEN ca.base_origen IS NULL THEN 'N' ELSE 'S' END match_asi, tc.estado, COUNT(1) cantidad
+FROM  "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+	ON (ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
+GROUP BY tc.estado, CASE WHEN ca.base_origen IS NULL THEN 'N' ELSE 'S' END
+
+-- MAESTRO CAPACITACIONES -CATALOGO ASI POR NOMBRE 90%
+-- para calcular el porcentaje de diferencia entre strings se utiliza la funcion levenshtein_distance
+-- conjuntamente con greatest para que el porcentaje sea como maximo el 100% independientemente
+-- de cual es el string mas extenso
+-- Ej.: 15 de 15 caracteres iguales es el 100% => 1.0
+-- Ej.: 3 carateres de diferencia es el (15-3)/15 => 80% => 0.8
+SELECT count(1)
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+ON (
+((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
+-CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
+/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE))
+>= 0.9 AND tc.capacitacion_id_asi IS NULL)
+
+-- MAESTRO CAPACITACIONES -CATALOGO ASI POR NOMBRE 80%
+SELECT count(1)
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+ON (
+((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
+-CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
+/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE))
+>= 0.8 AND tc.capacitacion_id_asi IS NULL)
+
+-- CATALOGO ASI -MAESTRO CAPACITACIONES POR CODIGO -- cantidad total
+SELECT COUNT(1) FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi"
+
+-- CATALOGO ASI -MAESTRO CAPACITACIONES POR CODIGO -- sin match
+SELECT COUNT(1)
+FROM  "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+WHERE NOT EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+WHERE ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
+
+-- CATALOGO ASI -MAESTRO CAPACITACIONES POR CODIGO -- con match
+SELECT COUNT(1)
+FROM  "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+WHERE EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+WHERE ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
+
+-- CATALOGO ASI -MAESTRO CAPACITACIONES POR NOMBRE -- sin match
+SELECT COUNT(1)
+FROM  "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+WHERE NOT EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+WHERE ((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
+-CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
+/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)) >= 0.9 AND ca.base_origen = tc.base_origen)
+
+-- CATALOGO ASI -MAESTRO CAPACITACIONES POR NOMBRE -- con match
+SELECT COUNT(1)
+FROM  "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+WHERE  EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+WHERE ((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
+-CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
+/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)) >= 0.9 AND ca.base_origen = tc.base_origen)
+
+-- REGISTROS CON MATCH POR SIMILITUD DE NOMBRES
+SELECT
+tc.descrip_normalizada "descrip_maestro",
+upper(ca.descrip_capacitacion) "descrip asi",
+tc.base_origen,
+tc.id "id maestro",
+tc.tipo_capacitacion,
+tc.estado,
+ca.capacitacion_id "codigo_capacitacion_asi",
+'90%' "grado de confianza"
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
+INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
+ON (
+((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
+-CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
+/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)) >= 0.9 AND tc.capacitacion_id_asi IS NULL)
+
+-- ***************************************************************************************************************
+-- HOJA "Atributos tablas def"
+-- EjecuciÃ³n de script
+-- git\estandarizacion-proceso-de-gobernanza-de-datos\4-scripts\conexion_aws_y_calculo_calidad.py
+-- Al ejecutarlo se generarÃ¡ un archivo .xlsx cuyo contenido debe copiarse en la hoja "Atributos tablas def"
+
+
+
+-- Copy of 2023.04.28 step 00 - creacion de vistas(Vcliente).sql 
 
 
 
@@ -481,7 +711,7 @@ LEFT JOIN carrera_1_old ON carrera_1_old.carrera = todas.carrera
 
 
 
--- Copy of 2023.04.14 step 01 - consume programa (Vcliente).sql 
+-- Copy of 2023.04.28 step 01 - consume programa (Vcliente).sql 
 
 
 
@@ -510,7 +740,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- Copy of 2023.04.14 step 02 - staging establecimiento (Vcliente).sql 
+-- Copy of 2023.04.28 step 02 - staging establecimiento (Vcliente).sql 
 
 
 
@@ -1044,7 +1274,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estand
 
 
 
--- Copy of 2023.04.14 step 03 - consume establecimiento (Vcliente).sql 
+-- Copy of 2023.04.28 step 03 - consume establecimiento (Vcliente).sql 
 
 
 
@@ -1086,7 +1316,7 @@ ORDER BY tmp.base_origen, tmp.nombre
 
 
 
--- Copy of 2023.04.14 step 04 - staging capacitacion asi (Vcliente).sql 
+-- Copy of 2023.04.28 step 04 - staging capacitacion asi (Vcliente).sql 
 
 
 
@@ -1147,7 +1377,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.04.14 step 05 - staging capacitacion (Vcliente).sql 
+-- Copy of 2023.04.28 step 05 - staging capacitacion (Vcliente).sql 
 
 
 
@@ -1733,7 +1963,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- Copy of 2023.04.14 step 06 - consume capacitacion (Vcliente).sql 
+-- Copy of 2023.04.28 step 06 - consume capacitacion (Vcliente).sql 
 
 
 
@@ -1839,7 +2069,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.04.14 step 07 - staging vecinos (Vcliente).sql 
+-- Copy of 2023.04.28 step 07 - staging vecinos(Vcliente).sql 
 
 
 
@@ -2538,7 +2768,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- Copy of 2023.04.14 step 08 - consume vecinos (Vcliente).sql 
+-- Copy of 2023.04.28 step 08 - consume vecinos(Vcliente).sql 
 
 
 
@@ -2649,7 +2879,7 @@ FROM tmp_vec_renaper tvc
 
 
 
--- Copy of 2023.04.14 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
+-- Copy of 2023.04.28 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
 
 
 
@@ -2753,7 +2983,7 @@ FROM resultado
 
 
 
--- Copy of 2023.04.14 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
+-- Copy of 2023.04.28 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
 
 
 
@@ -3374,7 +3604,7 @@ FROM
 
 
 
--- Copy of 2023.04.14 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
+-- Copy of 2023.04.28 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
 
 
 
@@ -3575,7 +3805,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.14 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
+-- Copy of 2023.04.28 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
 
 
 
@@ -3838,7 +4068,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.04.14 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
+-- Copy of 2023.04.28 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
 
 
 
@@ -4066,7 +4296,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.04.14 step 14 - staging edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.04.28 step 14 - staging edicion capacitacion (Vcliente).sql 
 
 
 
@@ -4936,7 +5166,7 @@ WHERE a.id IS NULL
 
 
 
--- Copy of 2023.04.14 step 15 - consume edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.04.28 step 15 - consume edicion capacitacion(Vcliente).sql 
 
 
 
@@ -4973,7 +5203,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- Copy of 2023.04.14 step 16 - staging cursada (Vcliente).sql 
+-- Copy of 2023.04.28 step 16 - staging cursada (Vcliente).sql 
 
 
 
@@ -5491,7 +5721,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.14 step 17 - consume cursada (Vcliente).sql 
+-- Copy of 2023.04.28 step 17 - consume cursada (Vcliente).sql 
 
 
 
@@ -5553,7 +5783,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.14 step 18 - consume trayectoria_educativa (Vcliente).sql 
+-- Copy of 2023.04.28 step 18 - consume trayectoria_educativa (Vcliente).sql 
 
 
 
@@ -5607,7 +5837,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.14 step 19 - staging oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.04.28 step 19 - staging oportunidad_laboral (Vcliente).sql 
 
 
 
@@ -5626,8 +5856,8 @@ GROUP BY
 -- Turno de Trabajo => MAÃANA, MAÃANA-TARDE, MAÃANA-TARDE-NOCHE, TARDE, TARDE-NOCHE, NOCHE
 -- Grado de Estudio => SECUNDARIO, TERCIARIO, UNIVERSITARIO, OTROS
 -- Duracion Practica formativa
--- Sector Productivo => ABASTECIMIENTO Y LOGISTICA, ADMINISTRACION, CONTABILIDAD Y FINANZAS, COMERCIAL, VENTAS Y NEGOCIOS, GASTRONOMIA, HOTELERIA Y TURISMO, HIPODROMO, OFICIOS Y OTROS, PRODUCCION Y MANUFACTURA, SALUD, MEDICINA Y FARMACIA, SECTOR PUBLICO
--- Nota: la tabla deberÃ¡ estar relacionada con la entidad "Registro laboral formal" si tomo el empleo
+-- Sector Productivo => ABASTECIMIENTO Y LOGISTICA, ADMINISTRACION, CONTABILIDAD Y FINANZAS,ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING,ADUANA Y COMERCIO EXTERIOR, COMERCIAL, VENTAS Y NEGOCIOS, GASTRONOMIA, HOTELERIA Y TURISMO, INGENIERIAS , LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS), OFICIOS Y OTROS, PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ), SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL, SECTOR PUBLICO,MINERIA, ENERGIA, PETROLEO, AGUA Y GAS
+-- Nota: la tabla deberÃ¡ estar relacionada con la entidad "Registro laboral formal" si toma el empleo
 -- y con la entidad "Programa"
 
 -- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_oportunidad_laboral`;
@@ -6277,18 +6507,22 @@ CASE
     WHEN regexp_like(etf.sector_productivo,'GastronomÃ­a, HotelerÃ­a y Turismo|Camareros') OR regexp_like(etf.descripcion,'Camarero/a|Cocinero/a|Bachero/a') THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
     WHEN LENGTH(etf.sector_productivo) = 0 OR LENGTH(etf.industria) > 0 THEN UPPER(etf.industria)
     WHEN regexp_like(etf.sector_productivo,'Abastecimiento y LogÃ­stica|AlmacÃ©n / DepÃ³sito / ExpediciÃ³n') THEN 'ABASTECIMIENTO Y LOGISTICA'
-    WHEN regexp_like(etf.sector_productivo,'Contabilidad|Recursos Humanos y CapacitaciÃ³n|Secretarias y RecepciÃ³n|AdministraciÃ³n, Contabilidad y Finanzas|Gerencia y DirecciÃ³n General') THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
-    WHEN regexp_like(etf.sector_productivo,'Aduana y Comercio Exterior|Marketing y Publicidad|AtenciÃ³n al Cliente, Call Center y Telemarketing|Ventas|Comercial, Ventas y Negocios|Comercial') THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN regexp_like(etf.sector_productivo,'Contabilidad|Secretarias y RecepciÃ³n|AdministraciÃ³n, Contabilidad y Finanzas|Gerencia y DirecciÃ³n General') THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN regexp_like(etf.sector_productivo,'Recursos Humanos y CapacitaciÃ³n') THEN 'RECURSOS HUMANOS Y CAPACITACION'
+    WHEN regexp_like(etf.sector_productivo,'Marketing y Publicidad|Ventas|Comercial, Ventas y Negocios|Comercial') THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN regexp_like(etf.sector_productivo,'Aduana y Comercio Exterior') THEN 'ADUANA Y COMERCIO EXTERIOR'
+    WHEN regexp_like(etf.sector_productivo,'AtenciÃ³n al Cliente, Call Center y Telemarketing') THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
     WHEN regexp_like(etf.sector_productivo,'ComunicaciÃ³n, Relaciones Institucionales y PÃºblicas')  THEN 'COMUNICACION, RELACIONES INSTITUCIONALES Y PUBLICAS'
     WHEN regexp_like(etf.sector_productivo,'DiseÃ±o') THEN 'DISEÃO'
     WHEN regexp_like(etf.sector_productivo,'EducaciÃ³n, Docencia e InvestigaciÃ³n') THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
-    WHEN regexp_like(etf.sector_productivo,'HipÃ³dromo de Palermo') THEN 'HIPODROMO'
+    WHEN regexp_like(etf.sector_productivo,'HipÃ³dromo de Palermo') THEN 'LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS)'
     WHEN regexp_like(etf.sector_productivo,'IngenierÃ­a Civil, Arquitectura y ConstrucciÃ³n') THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
     WHEN regexp_like(etf.sector_productivo,'Legales/AbogacÃ­a') THEN 'LEGALES/ABOGACIA'
-    WHEN regexp_like(etf.sector_productivo,'MinerÃ­a, EnergÃ­a, PetrÃ³leo y Gas') THEN 'MINERIA, ENERGIA, PETROLEO Y GAS'
+    WHEN regexp_like(etf.sector_productivo,'MinerÃ­a, EnergÃ­a, PetrÃ³leo y Gas') THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
     WHEN regexp_like(etf.sector_productivo,'Oficios y Otros') THEN 'OFICIOS Y OTROS'
-    WHEN regexp_like(etf.sector_productivo,'IngenierÃ­as|ProducciÃ³n y Manufactura') THEN 'PRODUCCION Y MANUFACTURA'
-    WHEN regexp_like(etf.sector_productivo,'Salud, Medicina y Farmacia') THEN 'SALUD, MEDICINA Y FARMACIA'
+    WHEN regexp_like(etf.sector_productivo,'ProducciÃ³n y Manufactura') THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN regexp_like(etf.sector_productivo,'INGENIERIAS') THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN regexp_like(etf.sector_productivo,'Salud, Medicina y Farmacia') THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
     WHEN regexp_like(etf.sector_productivo,'AdministraciÃ³n PÃºblica|Postas de vacunacion - CABA') THEN 'SECTOR PUBLICO'
     WHEN regexp_like(etf.sector_productivo,'Seguros') THEN 'SEGUROS'
     WHEN regexp_like(etf.sector_productivo,'TecnologÃ­a, Sistemas y Telecomunicaciones') THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
@@ -6432,7 +6666,7 @@ FROM ecr3
 
 
 
--- Copy of 2023.04.14 step 20 - consume oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.04.28 step 20 - consume oportunidad_laboral (Vcliente).sql 
 
 
 
@@ -6451,7 +6685,7 @@ FROM ecr3
 -- Turno de Trabajo => MAÃANA, MAÃANA-TARDE, MAÃANA-TARDE-NOCHE, TARDE, TARDE-NOCHE, NOCHE
 -- Grado de Estudio => SECUNDARIO, TERCIARIO, UNIVERSITARIO, OTROS
 -- Duracion Practica formativa
--- Sector Productivo => ABASTECIMIENTO Y LOGISTICA, ADMINISTRACION, CONTABILIDAD Y FINANZAS, COMERCIAL, VENTAS Y NEGOCIOS, GASTRONOMIA, HOTELERIA Y TURISMO, HIPODROMO, OFICIOS Y OTROS, PRODUCCION Y MANUFACTURA, SALUD, MEDICINA Y FARMACIA, SECTOR PUBLICO
+-- Sector Productivo => ABASTECIMIENTO Y LOGISTICA, ADMINISTRACION, CONTABILIDAD Y FINANZAS,ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING,ADUANA Y COMERCIO EXTERIOR, COMERCIAL, VENTAS Y NEGOCIOS, GASTRONOMIA, HOTELERIA Y TURISMO, INGENIERIAS , LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS), OFICIOS Y OTROS, PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ), SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL, SECTOR PUBLICO,MINERIA, ENERGIA, PETROLEO, AGUA Y GAS
 -- Nota: la tabla deberÃ¡ estar relacionada con la entidad "Registro laboral formal" si tomo el empleo
 -- y con la entidad "Programa"
 
@@ -6498,54 +6732,113 @@ GROUP BY
 
 
 
--- Copy of 2023.04.14 step 21 - staging sector_productivo (Vcliente).sql 
+-- Copy of 2023.04.28 step 21 - consume sector_productivo (Vcliente).sql 
 
 
 
--- 1.-- Crear tabla tmp de Sector_Productivo
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_sector_productivo`;
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_sector_productivo" AS
-WITH sp AS (
-SELECT sector_productivo
-FROM "caba-piba-staging-zone-db".tbp_typ_tmp_oportunidad_laboral
-GROUP BY sector_productivo
-)
-SELECT
-REPLACE(REPLACE(sp.sector_productivo,'Ã','I'),'Ã','O') AS sector_productivo
-FROM sp
-WHERE sp.sector_productivo NOT LIKE ''
-GROUP BY REPLACE(REPLACE(sp.sector_productivo,'Ã','I'),'Ã','O')
-ORDER BY REPLACE(REPLACE(sp.sector_productivo,'Ã','I'),'Ã','O')
-
-
-
--- Copy of 2023.04.14 step 22 - consume sector_productivo (Vcliente).sql 
-
-
-
--- 1.-- Crear la tabla def de Sector_Productivo
+-- 1.-- Crear tabla def de Sector_Productivo
 -- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_sector_productivo`;
--- CAMPOS REQUERIDOS EN TABLA DEF SEGUN MODELO
--- CÃ³digo (1+)
--- Sector Productivo => ABASTECIMIENTO Y LOGISTICA, ADMINISTRACION, CONTABILIDAD Y FINANZAS, COMERCIAL, VENTAS Y NEGOCIOS, GASTRONOMIA, HOTELERIA Y TURISMO, HIPODROMO, OFICIOS Y OTROS, PRODUCCION Y MANUFACTURA, SALUD, MEDICINA Y FARMACIA, SECTOR PUBLICO
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_sector_productivo" AS
-WITH sp AS (
-SELECT sector_productivo
-FROM "caba-piba-staging-zone-db".tbp_typ_tmp_oportunidad_laboral
+--CLAE
+WITH clae AS (
+SELECT
+TRY_CAST(cod_actividad_afip_o_naes AS INT) AS codigo_clae,
+CASE
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (771210,432110,530010,492230,492290,492221,492229,492250,492190,492170,492280,512000,491200,502200,501200,492240,493200,493110,493120,524290,524190,523020,522099,524210,524110,522092,523090,521030,521020,521010,530090,523039,801010,524230,351201,492210,771290,492160,492150,492180,492140,492110,492130,491120,491110,502101,501100,524130,492120,649210) THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (653000,649100,774000,643009,661999,661910,821100,682010,661992,829100,649910,702099,702092,702091,949990,651320,661920,692000,649290,649220,661991,662010,643001,649999,821900,663000,641943,641941,641942,641920,641910,641930,661121,661111,949910,941100,941200,931010,942000,661930,642000,649991,829900) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (523019,523031,523032,523011) THEN 'ADUANA Y COMERCIO EXTERIOR'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (524390,524310,771220,303000,511000,524320,524330) THEN 'AERONAUTICA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (462110,462132,461014,13,16292,773010,14910,161001,161002,17010,14930,14990,14810,14300,14121,14113,14430,14440,14221,14211,14410,14420,14520,14510,11501,11111,11329,12510,11129,11119,12800,11911,12200,12320,12319,12490,12420,12410,12600,11291,11331,11341,11342,12311,11121,11299,11310,11130,11912,11509,12590,11211,11400,11321,11112,12709,12121,12110,12701,12900,11990,14920,104012,104011,104013,106131,106200,107200,103099,103030,103091,103020,105010,110211,107992,110212,14115,32000,21030,22010,22020,81100,89300,51000,52000,89200,101091,102003,16210,14114,101099,101011,101040,106110,461031,461032,31200,31110,31120,21010,106120,103011,131120,131110,120010,107920,106139,101012,14820,14710,14610,14620,13020,14720,602320,13019,13013,13011,13012,101020,31130,331220,21020,101013,522020,522010,16190,17020,31300,16299,16130,16220,16120,16230,16119,990000,939010,16140,16150,24020,24010,107911,282130,202101,282120,102001,107930) THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (631190,631120,631110,822000) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (771110,771190,281100,221901,221110,452700,452101,452800,454020,452990,221120,293011,452401,452220,452210,452600,452500,452300) THEN 'AUTOMOTRIZ'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (732000,900040,661131,823000,465500,464910,466310,466932,463153,463170,464632,464950,466330,464620,464223,466391,464149,464112,466931,464420,464999,464631,464410,466399,466360,463129,463152,463219,463212,463220,464940,463154,464130,463121,462131,463160,463300,466110,466129,465220,466350,464212,464501,464222,465930,464502,465210,465100,463112,464991,463191,464330,469010,464930,462201,464211,464113,465920,464920,462190,462209,464122,469090,466200,465690,465610,464610,465400,465910,465990,465340,465320,465360,465310,465390,465350,463151,464221,466370,453100,463130,464141,466340,464121,464129,463199,464320,466320,464310,466920,466940,466910,466939,466990,463111,464119,464340,463159,462120,464142,464114,464111,464150,463211,461092,461094,461099,461039,461011,461040,461013,461021,461022,461093,461095,461091,461019,461029,461012,463180,463140,475300,476200,475210,478010,477830,474020,476320,475440,475230,475430,477290,477420,477210,477410,477490,475490,475250,475190,477890,453220,472200,477430,472172,477230,477220,472130,475420,473000,475120,475260,453210,476120,476310,474010,472112,477440,472160,477460,475110,472140,477140,477130,477330,476400,476110,477820,475220,475290,477450,475410,477810,477480,477840,472171,476130,475270,453291,453292,472150,475240,477150,477190,472190,477320,472120,477310,472111,478090,477470,477110,472300,477120,471900,471110,471190,471130,471120,479900,479109,479101,451110,451210,454010,451190,451290,465330) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (741000) THEN 'DISEÃO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (749009,853100,854960,854920,854950,854910,854940,851020,854930,852100,852200,853201,8,853300,721030,722020,722010,721090,855000,854990) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (920009,900021,591200,581100,602310,591300,931020,602200,591120,900011,591110,931030,182000,900030,910900,910100,939090,900091,592000,910200,920001,939030,939020,931090,931041,931042) THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (791909,561013,552000,551022,551023,551021,551010,562099,561014,561019,551090,791901,791200,791100) THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (431210,439990,432920,439100,773030,433030,429090,301100,301200,410021,410011,421000,429010,422200,431100,162201,282400,239592,432910,432990,332000,711009,711001,880000,433090,433010) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (432190) THEN 'INGENIERIAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (691002,691001) THEN 'LEGALES/ABOGACIA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (331290,331210,331900,960101,812090,16113,16112,813000,811000) THEN 'LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS)'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949920,812010) THEN 'LIMPIEZA Y MANTENIMIENTO DE EDFICIOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (731001,731009) THEN 'MARKETING Y PUBLICIDAD'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (773020,351310,351320,89900,81300,62000,72910,71000,72990,89110,89120,72100,61000,271020,251300,271010,192000,466121,351130,351190,351110,351120,452910,431220,331400,331101,91000,99000,711002,353001,259200,81400,360010,360020,432200,422100) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (801090,9,239600,581200,181109,7,433040,960300,952910,952990,952920,952300,949930,812020,742000,970000,749002,749003,561012,561011,749001,863200,522091,16291,12,433020,11,181200,870920,524120) THEN 'OFICIOS Y OTROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (639100,581300,581900,602100,601000,181101,639900) THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (110100,352020,239421,108000,242010,110420,110492,107301,239422,239410,110300,120091,107991,101030,107110,110491,239591,104020,107410,107420,102002,107999,107309,107129,120099,105090,105020,110290,105030,107121,103012,107912,110411,81200,221909,281900,201300,272000,201210,275099,267002,252000,239593,239399,259302,323001,139203,162902,170910,170990,239310,162901,309200,321020,201220,281201,273110,259992,152011,152021,152031,251101,292000,329030,170202,259309,275010,281400,202907,201140,261000,281301,202320,139400,201120,231010,259910,222010,267001,265102,329040,309900,329020,202906,203000,139201,352010,201110,275020,259301,273190,162100,281500,322001,265101,202312,321011,324000,239201,274000,329010,151200,282300,282500,282901,281600,281700,282909,201130,201409,201180,201190,210010,210020,239510,309100,310020,310010,282200,239391,321012,170201,170102,293090,170101,202200,275092,202311,239209,239100,162903,191000,210090,162909,231090,259999,259993,251102,239900,222090,242090,202908,162300,265200,201401,239202,139202,110412,310030,268000,251200,139300,259991,139100,282110,291000,275091,162202,241009,231020,302000,259100,243100,243200,439910,329090,241001,109000,204000,152040,952200) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (780000) THEN 'RECURSOS HUMANOS Y CAPACITACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (651310,721020,266090,266010,712000,210030,331301,863300,862110,931050,870100,862130,864000,702010,861020,861010,862120,863110,863190,863120,869010,651110,862200,869090,870990,750000,870210,870910,870220) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (641100,842400,10,841900,842100,842200,910300,843000,16111,842500,841100,842300,841300,841200) THEN 'SECTOR PUBLICO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (652000,662090,651210,662020,651120,651220,651130) THEN 'SEGUROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (390000,381100,381200,382010,382020,370000) THEN 'SERVICIOS DE MANEJO DE RESIDUOS Y DE REMEDIACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949200,949100) THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (107500,561030,562091,829200,562010,561020,561040) THEN 'SERVICIOS DE PREPARACION DE ALIMENTOS Y BEBIDAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (772099,773040,773090,772091,772010,851010,681020,681010,524220,682099,681099,681098,682091) THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (960910,960201,960202,960990) THEN 'SERVICIOS PERSONALES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (279000,262000,264000,263000,721010,631200,952100,951200,951100,620200,620100,620300,620900,611010,614010,801020,619000,613000,614090,611090,612000,602900,711003) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (131300,141202,141199,141130,141140,141120,141110,151100,141201,141191,139209,139204,131132,131131,131139,282600,143010,143020,139900,131202,131209,131201,960102,149000,142000) THEN 'TEXTIL'
+END sector_productivo
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas"
+WHERE (cod_actividad_afip_o_naes IS NOT NULL OR LENGTH(TRIM(TRY_CAST(cod_actividad_afip_o_naes AS VARCHAR))) <> 0)
+GROUP BY 1,2
+),
+--portal_empleo_mtr_industry_sectors
+inds AS (
+SELECT
+TRY_CAST(isec.code AS INT) AS codigo_mtr,
+CASE
+    WHEN TRY_CAST(isec.code AS INT) IN (1143) THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN TRY_CAST(isec.code AS INT) IN (558,1773,701) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN TRY_CAST(isec.code AS INT) IN (2723) THEN 'ADUANA Y COMERCIO EXTERIOR'
+    WHEN TRY_CAST(isec.code AS INT) IN (1174) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
+    WHEN TRY_CAST(isec.code AS INT) IN (2888) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN TRY_CAST(isec.code AS INT) IN (659) THEN 'COMUNICACION, RELACIONES INSTITUCIONALES Y PUBLICAS'
+    WHEN TRY_CAST(isec.code AS INT) IN (16) THEN 'DISEÃO'
+    WHEN TRY_CAST(isec.code AS INT) IN (18) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN TRY_CAST(isec.code AS INT) IN (25) THEN  'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN TRY_CAST(isec.code AS INT) IN (4) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN TRY_CAST(isec.code AS INT) IN (648) THEN 'INGENIERIAS'
+    WHEN TRY_CAST(isec.code AS INT) IN (601) THEN 'LEGALES/ABOGACIA'
+    WHEN TRY_CAST(isec.code AS INT) IN (45) THEN 'MARKETING Y PUBLICIDAD'
+    WHEN TRY_CAST(isec.code AS INT) IN (19) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN TRY_CAST(isec.code AS INT) IN (1108) THEN 'OFICIOS Y OTROS'
+    WHEN TRY_CAST(isec.code AS INT) IN (734) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN TRY_CAST(isec.code AS INT) IN (590) THEN 'RECURSOS HUMANOS Y CAPACITACION'
+    WHEN TRY_CAST(isec.code AS INT) IN (48) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN TRY_CAST(isec.code AS INT) IN (2889,2890,2891) THEN 'SECTOR PUBLICO'
+    WHEN TRY_CAST(isec.code AS INT) IN (49) THEN 'SEGUROS'
+    WHEN TRY_CAST(isec.code AS INT) IN (32) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+END sector_productivo
+FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_industry_sectors" isec
+),
+uf AS (
+SELECT
+clae.codigo_clae,
+inds.codigo_mtr,
+CASE
+    WHEN clae.sector_productivo IS NULL THEN inds.sector_productivo
+    ELSE clae.sector_productivo
+END sector_productivo
+FROM inds
+FULL OUTER JOIN clae ON (clae.sector_productivo = inds.sector_productivo)
+GROUP BY 1,2,3
+),
+sp AS (
+SELECT
+sector_productivo
+FROM uf
+WHERE sector_productivo IS NOT NULL
 GROUP BY sector_productivo
 ORDER BY sector_productivo
 )
 SELECT
 row_number() OVER () AS id_sector_productivo,
-REPLACE(REPLACE(sp.sector_productivo,'Ã','I'),'Ã','O') AS sector_productivo
+sector_productivo
 FROM sp
-WHERE sp.sector_productivo NOT LIKE ''
-GROUP BY REPLACE(REPLACE(sp.sector_productivo,'Ã','I'),'Ã','O')
-ORDER BY id_sector_productivo
 
 
 
--- Copy of 2023.04.14 step 23 - staging registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.04.28 step 22 - staging registro_laboral_formal (Vcliente).sql 
 
 
 
@@ -7066,7 +7359,7 @@ FROM
 
 
 
--- Copy of 2023.04.14 step 24 - consume_registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.04.28 step 23 - consume_registro_laboral_formal (Vcliente).sql 
 
 
 
@@ -7113,7 +7406,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.14 step 25 - staging entrevista (Vcliente).sql 
+-- Copy of 2023.04.28 step 24 - staging entrevista (Vcliente).sql 
 
 
 
@@ -7361,7 +7654,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.14 step 26 - consume entrevista (Vcliente).sql 
+-- Copy of 2023.04.28 step 25 - consume entrevista (Vcliente).sql 
 
 
 
@@ -7378,6 +7671,403 @@ fecha_entrevista,
 consiguio_trabajo,
 estado_entrevista
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_entrevista"
+
+
+
+-- Copy of 2023.04.28 step 26 - consume organizaciones (Vcliente).sql 
+
+
+
+-- 1.-- Crear tabla tmp de organizaciones
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_organizaciones`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones" AS
+--Se obtiene el "CUIT" de las organizaciones de las fuentes de registro laboral formal y oportunidades laborales
+WITH rlf_op AS (
+SELECT
+	  cuit_del_empleador
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_registro_laboral_formal"
+UNION
+SELECT
+    ol.organizacion_empleadora_cuit AS cuit_del_empleador
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral" ol
+),
+--Se agrega el campo "razon_social_new" que contiene las denominaciones sociales obtenidas fuentes oficiales. En primera instancia, se obtiene la data del Registro Nacional de Sociededades (solo se podrÃ¡ obtener data de personas jurÃ­dicas).
+rlf_op1 AS (
+SELECT
+rlf_op.cuit_del_empleador,
+UPPER(rc.razon_social) AS razon_social_new
+FROM rlf_op
+LEFT JOIN "caba-piba-raw-zone-db"."registro_nacional_sociedades" rc ON (rc.cuit = rlf_op.cuit_del_empleador)
+WHERE LENGTH(TRIM(rlf_op.cuit_del_empleador)) = 11
+GROUP BY 1,2
+),
+--Se agrega el campo "razon_social_old" que contiene las denominaciones sociales obtenidas fuentes de CRM de oportunidades laborales. Es importante destacar que se tratan de nombres de fantasÃ­a y no de denominaciones sociales de fuentes oficiales.
+rlf_op2 AS (
+SELECT
+rlf_op1.cuit_del_empleador,
+UPPER(organizacion_empleadora) AS razon_social_old,
+rlf_op1.razon_social_new,
+CASE
+    WHEN SUBSTRING(rlf_op1.cuit_del_empleador,1,2) IN ('20', '23', '24', '25', '26', '27') THEN 'PF'
+    WHEN SUBSTRING(rlf_op1.cuit_del_empleador,1,2) IN ('30', '33', '34') THEN 'PJ'
+END tipo_persona
+FROM rlf_op1
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral" ol ON (ol.organizacion_empleadora_cuit = rlf_op1.cuit_del_empleador)
+GROUP BY 1,2,3
+)
+--Se agregan los campos "estado" y "ente_gubernamental"
+SELECT
+rlf_op2.cuit_del_empleador AS cuit,
+rlf_op2.razon_social_old,
+rlf_op2.razon_social_new,
+CAST(NULL AS VARCHAR) AS estado,
+CASE
+    WHEN regexp_like(rlf_op2.razon_social_old ,'MINISTERIO|GOBIERNO|SUBSECRETARÃA|TSJ|GOB|AFIP|RENAPER|INTA|AGIP|PODER JUDICIAL|BANCO CENTRAL|ARBA') THEN 1
+    ELSE 0
+END ente_gubernamental
+FROM rlf_op2
+
+
+
+-- Copy of 2023.04.28 step 27 - consume sector_estrategico (Vcliente).sql 
+
+
+
+-- 1.-- Crear tabla def de Sector Estrategico
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_sector_estrategico`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_sector_estrategico" AS
+WITH c AS (
+SELECT
+id AS codigo_sector_estrategico,
+UPPER(nombre) AS sector_estrategico,
+tipo
+FROM "caba-piba-raw-zone-db"."api_asi_categoria_back"
+WHERE tipo IN ('sector_estrategico_asociado')
+GROUP BY 1,2,3
+)
+SELECT
+codigo_sector_estrategico,
+REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(sector_estrategico,'"',''),'Ã','A'),'Ã','E'),'Ã','I'),'Ã','O'),'Ã','U') AS sector_estrategico
+FROM c
+ORDER BY 2
+
+
+
+-- Copy of 2023.04.28 step 28 - consume match_sector_estrategico_sector_productivo(Vcliente).sql 
+
+
+
+-- 1.-- Crear tabla def de match entre sector estrategico y sector productivo
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_match_sector_estrategico_sector_productivo`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_match_sector_estrategico_sector_productivo" AS
+--match sector estrategico - sector productivo - CLAE
+WITH clae AS (
+SELECT
+cod_actividad_afip_o_naes AS codigo_clae,
+cod_actividad_afip_o_naes_string AS codigo_clae_string,
+SUBSTRING(cod_actividad_afip_o_naes_string,1,2) AS codigo_corto_clae,
+--se crea el campo sector productivo
+CASE
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (771210,432110,530010,492230,492290,492221,492229,492250,492190,492170,492280,512000,491200,502200,501200,492240,493200,493110,493120,524290,524190,523020,522099,524210,524110,522092,523090,521030,521020,521010,530090,523039,801010,524230,351201,492210,771290,492160,492150,492180,492140,492110,492130,491120,491110,502101,501100,524130,492120,649210) THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (653000,649100,774000,643009,661999,661910,821100,682010,661992,829100,649910,702099,702092,702091,949990,651320,661920,692000,649290,649220,661991,662010,643001,649999,821900,663000,641943,641941,641942,641920,641910,641930,661121,661111,949910,941100,941200,931010,942000,661930,642000,649991,829900) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (523019,523031,523032,523011) THEN 'ADUANA Y COMERCIO EXTERIOR'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (524390,524310,771220,303000,511000,524320,524330) THEN 'AERONAUTICA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (462110,462132,461014,13,16292,773010,14910,161001,161002,17010,14930,14990,14810,14300,14121,14113,14430,14440,14221,14211,14410,14420,14520,14510,11501,11111,11329,12510,11129,11119,12800,11911,12200,12320,12319,12490,12420,12410,12600,11291,11331,11341,11342,12311,11121,11299,11310,11130,11912,11509,12590,11211,11400,11321,11112,12709,12121,12110,12701,12900,11990,14920,104012,104011,104013,106131,106200,107200,103099,103030,103091,103020,105010,110211,107992,110212,14115,32000,21030,22010,22020,81100,89300,51000,52000,89200,101091,102003,16210,14114,101099,101011,101040,106110,461031,461032,31200,31110,31120,21010,106120,103011,131120,131110,120010,107920,106139,101012,14820,14710,14610,14620,13020,14720,602320,13019,13013,13011,13012,101020,31130,331220,21020,101013,522020,522010,16190,17020,31300,16299,16130,16220,16120,16230,16119,990000,939010,16140,16150,24020,24010,107911,282130,202101,282120,107930,102001) THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (631190,631120,631110,822000) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (771110,771190,281100,221901,221110,452700,452101,452800,454020,452990,221120,293011,452401,452220,452210,452600,452500,452300) THEN 'AUTOMOTRIZ'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (732000,900040,661131,823000,465500,464910,466310,466932,463153,463170,464632,464950,466330,464620,464223,466391,464149,464112,466931,464420,464999,464631,464410,466399,466360,463129,463152,463219,463212,463220,464940,463154,464130,463121,462131,463160,463300,466110,466129,465220,466350,464212,464501,464222,465930,464502,465210,465100,463112,464991,463191,464330,469010,464930,462201,464211,464113,465920,464920,462190,462209,464122,469090,466200,465690,465610,464610,465400,465910,465990,465340,465320,465360,465310,465390,465350,463151,464221,466370,453100,463130,464141,466340,464121,464129,463199,464320,466320,464310,466920,466940,466910,466939,466990,463111,464119,464340,463159,462120,464142,464114,464111,464150,463211,461092,461094,461099,461039,461011,461040,461013,461021,461022,461093,461095,461091,461019,461029,461012,463180,463140,475300,476200,475210,478010,477830,474020,476320,475440,475230,475430,477290,477420,477210,477410,477490,475490,475250,475190,477890,453220,472200,477430,472172,477230,477220,472130,475420,473000,475120,475260,453210,476120,476310,474010,472112,477440,472160,477460,475110,472140,477140,477130,477330,476400,476110,477820,475220,475290,477450,475410,477810,477480,477840,472171,476130,475270,453291,453292,472150,475240,477150,477190,472190,477320,472120,477310,472111,478090,477470,477110,472300,477120,471900,471110,471190,471130,471120,479900,479109,479101,451110,451210,454010,451190,451290,465330) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (741000) THEN 'DISEÃO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (749009,853100,854960,854920,854950,854910,854940,851020,854930,852100,852200,853201,8,853300,721030,722020,722010,721090,855000,854990) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (920009,900021,591200,581100,602310,591300,931020,602200,591120,900011,591110,931030,182000,900030,910900,910100,939090,900091,592000,910200,920001,939030,939020,931090,931041,931042) THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (791909,561013,552000,551022,551023,551021,551010,562099,561014,561019,551090,791901,791200,791100) THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (431210,439990,432920,439100,773030,433030,429090,301100,301200,410021,410011,421000,429010,422200,431100,162201,282400,239592,432910,432990,332000,711009,711001,880000,433090,433010) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (432190) THEN 'INGENIERIAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (691002,691001) THEN 'LEGALES/ABOGACIA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (331290,331210,331900,960101,812090,16113,16112,813000,811000) THEN 'LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS)'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949920,812010) THEN 'LIMPIEZA Y MANTENIMIENTO DE EDFICIOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (731001,731009) THEN 'MARKETING Y PUBLICIDAD'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (773020,351310,351320,89900,81300,62000,72910,71000,72990,89110,89120,72100,61000,271020,251300,271010,192000,466121,351130,351190,351110,351120,452910,431220,331400,331101,91000,99000,711002,353001,259200,81400,360010,360020,432200,422100) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (801090,9,239600,581200,181109,7,433040,960300,952910,952990,952920,952300,949930,812020,742000,970000,749002,749003,561012,561011,749001,863200,522091,16291,12,433020,11,181200,870920,524120) THEN 'OFICIOS Y OTROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (639100,581300,581900,602100,601000,181101,639900) THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (110100,352020,239421,108000,242010,110420,110492,107301,239422,239410,110300,120091,107991,101030,107110,110491,239591,104020,107410,107420,102002,107999,107309,107129,120099,105090,105020,110290,107930,105030,107121,103012,107912,110411,81200,221909,281900,201300,272000,201210,275099,267002,252000,239593,239399,259302,323001,139203,162902,170910,170990,239310,162901,309200,321020,201220,281201,273110,259992,152011,152021,152031,251101,292000,329030,170202,259309,275010,281400,202907,201140,261000,281301,202320,139400,201120,231010,259910,222010,267001,265102,329040,309900,329020,202906,203000,139201,352010,201110,275020,259301,273190,162100,281500,322001,265101,202312,321011,324000,239201,274000,329010,151200,282300,282500,282901,281600,281700,282909,201130,201409,201180,201190,210010,210020,239510,309100,310020,310010,282200,239391,321012,170201,170102,293090,170101,202200,275092,202311,239209,239100,162903,191000,210090,162909,231090,259999,259993,251102,239900,222090,242090,202908,162300,265200,201401,239202,139202,110412,310030,268000,251200,139300,259991,139100,282110,291000,275091,162202,241009,231020,302000,259100,243100,243200,439910,329090,241001,109000,204000,152040,952200) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (780000) THEN 'RECURSOS HUMANOS Y CAPACITACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (651310,721020,266090,266010,712000,210030,331301,863300,862110,931050,870100,862130,864000,702010,861020,861010,862120,863110,863190,863120,869010,651110,862200,869090,870990,750000,870210,870910,870220) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (641100,842400,10,841900,842100,842200,910300,843000,16111,842500,841100,842300,841300,841200) THEN 'SECTOR PUBLICO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (652000,662090,651210,662020,651120,651220,651130) THEN 'SEGUROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (390000,381100,381200,382010,382020,370000) THEN 'SERVICIOS DE MANEJO DE RESIDUOS Y DE REMEDIACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949200,949100) THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (107500,561030,562091,829200,562010,561020,561040) THEN 'SERVICIOS DE PREPARACION DE ALIMENTOS Y BEBIDAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (772099,773040,773090,772091,772010,851010,681020,681010,524220,682099,681099,681098,682091) THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (960910,960201,960202,960990) THEN 'SERVICIOS PERSONALES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (279000,262000,264000,263000,721010,631200,952100,951200,951100,620200,620100,620300,620900,611010,614010,801020,619000,613000,614090,611090,612000,602900,711003) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (131300,141202,141199,141130,141140,141120,141110,151100,141201,141191,139209,139204,131132,131131,131139,282600,143010,143020,139900,131202,131209,131201,960102,149000,142000) THEN 'TEXTIL'
+END sector_productivo,
+--se crea el campo sector estrategico
+CASE
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('29') THEN 'AUTOMOTRIZ'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('45','46') THEN 'COMERCIO'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('41','42','43') THEN 'CONSTRUCCION'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('87','88') THEN 'CUIDADOS DE PERSONA'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('26') THEN 'ELECTRONICA'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('35') THEN 'ENERGIA'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('72','85') THEN 'ENSEÃANZA'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2) IN ('56') THEN 'GASTRONOMIA'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('55') THEN 'HOTELERIA'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('10','11','12','17','18','19','20','21','22','23','24','25','27','28','30','31','32','33') THEN 'INDUSTRIA MANUFACTURERA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('58','59','73','90') THEN 'INDUSTRIAS CREATIVAS'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('62','63') THEN 'INFORMATICA'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('52','53') THEN 'LOGISTICA'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('86') THEN 'SALUD (SIN CUIDADOS DE PERSONAS)'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('69','70','71','74','78','82') THEN 'SERVICIOS EMPRESARIALES'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('64','65','66') THEN 'SERVICIOS FINANCIEROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (960910,960201,960202,960990) THEN 'SERVICIOS PERSONALES'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('13','14','15') THEN 'TEXTIL'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('79','91') THEN 'TURISMO (SIN HOTELERIA Y GASTRONOMIA)'
+END sector_estrategico
+FROM
+(SELECT
+TRY_CAST(cod_actividad_afip_o_naes AS INT) AS cod_actividad_afip_o_naes,
+cod_actividad_afip_o_naes AS cod_actividad_afip_o_naes_string,
+UPPER(desc_actividad_afip_o_naes) AS actividad_clae
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas"
+) cl
+WHERE (cod_actividad_afip_o_naes IS NOT NULL OR LENGTH(TRIM(TRY_CAST(cod_actividad_afip_o_naes AS VARCHAR))) <> 0)
+GROUP BY 1,2,3,4,5
+),
+--Match sector estrategico - sector productivo
+asi AS (
+SELECT
+asi.codigo_sector_estrategico,
+--se crea el campo sector productivo
+CASE
+    WHEN asi.codigo_sector_estrategico IN (15,13) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN asi.codigo_sector_estrategico IN (4)  THEN 'AUTOMOTRIZ'
+    WHEN asi.codigo_sector_estrategico IN (7)  THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN asi.codigo_sector_estrategico IN (16) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN asi.codigo_sector_estrategico IN (12) THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
+    WHEN asi.codigo_sector_estrategico IN (9,10,11) THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN asi.codigo_sector_estrategico IN (6) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN asi.codigo_sector_estrategico IN (8) THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN asi.codigo_sector_estrategico IN (5) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN asi.codigo_sector_estrategico IN (1) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN asi.codigo_sector_estrategico IN (17,18) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN asi.codigo_sector_estrategico IN (19) THEN 'SERVICIOS PERSONALES'
+    WHEN asi.codigo_sector_estrategico IN (3,14)  THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+    WHEN asi.codigo_sector_estrategico IN (2) THEN 'TEXTIL'
+END sector_productivo,
+--se crea el campo sector estrategico
+asi.sector_estrategico
+FROM (
+SELECT * FROM "caba-piba-staging-zone-db"."tbp_typ_def_sector_estrategico"
+) asi
+),
+--Match sector estrategico - sector productivo - CLANAE
+clanae AS (
+SELECT
+cln.codigo_4_digitos_clanae,
+cln.sector_productivo AS sp_clanae,
+--se crea el campo sector productivo
+CASE
+    WHEN cln.sector_productivo IN ('FABRICACION DE EQUIPO DE TRANSPORTE N.C.P.','SERVICIOS DE MANIPULACION Y DE ALMACENAMIENTO; SERVICIOS DE APOYO AL TRANSPORTE','SERVICIO DE CORREOS Y MENSAJERIAS','SERVICIO DE TRANSPORTE POR VIA ACUATICA','SERVICIO DE TRANSPORTE TERRESTRE') THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN cln.sector_productivo IN ('SERVICIOS AUXILIARES A LA ACTIVIDAD FINANCIERA','OFICINAS CENTRALES Y SERVICIOS DE ASESORAMIENTO EMPRESARIAL','INTERMEDIACION FINANCIERA Y OTROS SERVICIOS FINANCIEROS','SERVICIOS DE ASOCIACIONES','SERVICIOS EMPRESARIALES N.C.P.','SERVICIOS JURIDICOS, DE CONTABILIDAD Y AUDITORIA; ASESORAMIENTO EMPRESARIAL Y EN MATERIA DE GESTION') THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN cln.sector_productivo IN ('SERVICIO DE TRANSPORTE AEREO') THEN 'AERONAUTICA'
+    WHEN cln.sector_productivo IN ('AGRICULTURA, GANADERIA, CAZA Y SERVICIOS DE APOYO','SILVICULTURA, EXTRACCIÃN DE PRODUCTOS FORESTALES Y SERVICIOS DE APOYO','ELABORACION DE PRODUCTOS DE TABACO','PESCA, ACUICULTURA Y SERVICIOS DE APOYO') THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
+    WHEN cln.sector_productivo IN ('FABRICACION DE VEHICULOS AUTOMOTORES, REMOLQUES Y SEMIRREMOLQUES') THEN 'AUTOMOTRIZ'
+    WHEN cln.sector_productivo IN ('VENTA, MANTENIMIENTO Y REPARACION DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS','COMERCIO AL POR MAYOR Y/O EN COMISION O CONSIGNACION, EXCEPTO EL COMERCIO DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS','COMERCIO AL POR MENOR, EXCEPTO EL COMERCIO DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS') THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN cln.sector_productivo IN ('ENSEÃANZA','ACTIVIDADES PROFESIONALES, CIENTIFICAS Y TECNICAS N.C.P.') THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE BIBLIOTECAS, ARCHIVOS, MUSEOS Y SERVICIOS CULTURALES N.C.P.','SERVICIOS PARA LA PRACTICA DEPORTIVA Y DE ENTRETENIMIENTO','IMPRESIÃN Y REPRODUCCIÃN DE GRABACIONES','SERVICIOS DE CINEMATOGRAFIA','SERVICIOS RELACIONADOS CON JUEGOS DE AZAR Y APUESTAS','SERVICIOS ARTISTICOS Y DE ESPECTÃCULOS') THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE ALOJAMIENTO','SERVICIOS DE AGENCIAS DE VIAJE Y OTRAS ACTIVIDADES COMPLEMENTARIAS DE APOYO TURISTICO') THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN cln.sector_productivo IN ('CONSTRUCCION DE EDIFICIOS Y SUS PARTES','OBRAS DE INGENIERÃA CIVIL','ACTIVIDADES ESPECIALIZADAS DE CONSTRUCCION','SERVICIOS DE ARQUITECTURA E INGENIERIA Y SERVICIOS CONEXOS DE ASESORAMIENTO TECNICO') THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN cln.sector_productivo IN ('REPARACION, MANTENIMIENTO E INSTALACION DE MAQUINAS Y EQUIPOS','SERVICIOS DE LIMPIEZA Y MANTENIMIENTO DE EDIFICIOS Y ESPACIOS VERDES') THEN 'LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS)'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE PUBLICIDAD E INVESTIGACION DE MERCADO') THEN 'MARKETING Y PUBLICIDAD'
+    WHEN cln.sector_productivo IN ('EXTRACCION DE CARBON Y LIGNITO','EXTRACCION DE MINERALES METALIFEROS','EXPLOTACION DE MINAS Y CANTERAS N.C.P.','FABRICACION DE PRODUCTOS MINERALES NO METALICOS','SUMINISTRO DE ELECTRICIDAD, GAS; VAPOR Y AIRE ACONDICIONADO','SERVICIOS DE APOYO PARA LA MINERÃA','FABRICACIÃN DE COQUE Y PRODUCTOS DE LA REFINACIÃN DEL PETROLEO','CAPTACION, DEPURACION Y DISTRIBUCION DE AGUA','EXTRACCION DE PETROLEO CRUDO Y GAS NATURAL') THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN cln.sector_productivo IN ('SERVICIOS SEGURIDAD E INVESTIGACION') THEN 'OFICIOS Y OTROS'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE EDICION','ACTIVIDADES DE PRESTACIÃN DE SERVICIOS DE INFORMACION','SERVICIOS DE RADIO Y TELEVISION') THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
+    WHEN cln.sector_productivo IN ('ELABORACION DE PRODUCTOS ALIMENTICIOS','CURTIDO Y TERMINACION DE CUEROS; FABRICACION DE ARTICULOS DE MARROQUINERIA, TALABARTERIA Y CALZADO Y DE SUS PARTES','PRODUCCION DE MADERA Y FABRICACION DE PRODUCTOS DE MADERA Y CORCHO, EXCEPTO MUEBLES; FABRICACION DE ARTICULOS DE PAJA Y DE MATERIALES TRENZABLES','FABRICACION DE PAPEL Y DE PRODUCTOS DE PAPEL','FABRICACION DE SUSTANCIAS Y PRODUCTOS QUIMICOS','FABRICACION DE METALES COMUNES','FABRICACION DE PRODUCTOS ELABORADOS DE METAL, EXCEPTO MAQUINARIA Y EQUIPO','FABRICACION DE MAQUINARIA Y EQUIPO N.C.P.','INDUSTRIAS MANUFACTURERAS N.C.P.','ELABORACION DE BEBIDAS','FABRICACION DE PRODUCTOS DE CAUCHO Y PLASTICO','FABRICACION DE MUEBLES Y COLCHONES') THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN cln.sector_productivo IN ('OBTENCIÃN Y DOTACION DE PERSONAL') THEN 'RECURSOS HUMANOS Y CAPACITACION'
+    WHEN cln.sector_productivo IN ('SERVICIOS VETERINARIOS','SERVICIOS DE ATENCION A LA SALUD HUMANA','SERVICIOS SOCIALES CON ALOJAMIENTO','SERVICIOS DE HOGARES PRIVADOS QUE CONTRATAN SERVICIO DOMESTICO','FABRICACION DE PRODUCTOS FARMACEUTICOS, SUSTANCIAS QUIMICAS MEDICINALES Y PRODUCTOS BOTANICOS DE USO FARMACEUTICO','SERVICIOS SOCIALES SIN ALOJAMIENTO') THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN cln.sector_productivo IN ('ADMINISTRACION PUBLICA, DEFENSA Y SEGURIDAD SOCIAL OBLIGATORIA') THEN 'SECTOR PUBLICO'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE SEGUROS') THEN 'SEGUROS'
+    WHEN cln.sector_productivo IN ('RECOLECCIÃN, TRANSPORTE, TRATAMIENTO Y DISPOSICIÃN FINAL DE RESIDUOS. RECUPERACION DE MATERIALES Y DESECHOS','DESCONTAMINACIÃN Y OTROS SERVICIOS DE GESTIÃN DE RESIDUOS','SERVICIO DE DEPURACION DE AGUAS RESIDUALES, ALCANTARILLADO Y CLOACAS') THEN 'SERVICIOS DE MANEJO DE RESIDUOS Y DE REMEDIACION'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE ORGANIZACIONES Y ORGANOS EXTRATERRITORIALES') THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE COMIDAS Y BEBIDAS') THEN 'SERVICIOS DE PREPARACION DE ALIMENTOS Y BEBIDAS'
+    WHEN cln.sector_productivo IN ('SERVICIOS INMOBILIARIOS','ACTIVIDADES DE ALQUILER Y ARRENDAMIENTO, EXCEPTO LAS ACTIVIDADES INMOBILIARIAS') THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
+    WHEN cln.sector_productivo IN ('SERVICIOS PERSONALES N.C.P.') THEN 'SERVICIOS PERSONALES'
+    WHEN cln.sector_productivo IN ('FABRICACION DE PRODUCTOS INFORMATICOS, ELECTRONICOS Y OPTICOS','FABRICACION DE MAQUINARIA Y EQUIPOS ELECTRICOS N.C.P.','SERVICIOS DE TELECOMUNICACIONES','SERVICIOS DE PROGRAMACIÃN Y CONSULTORÃA INFORMÃTICA Y ACTIVIDADES CONEXAS','INVESTIGACION Y DESARROLLO','REPARACION Y MANTENIMIENTO DE EQUIPOS INFORMATICOS Y DE COMUNICACIÃN; EFECTOS PERSONALES Y ENSERES DOMESTICOS') THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+    WHEN cln.sector_productivo IN ('FABRICACION DE PRODUCTOS TEXTILES','CONFECCION DE PRENDAS DE VESTIR; TERMINACION Y TEÃIDO DE PIELES') THEN 'TEXTIL'
+END sector_productivo,
+--se crea el campo sector estrategico
+CASE
+    WHEN cln.sector_productivo IN ('FABRICACION DE VEHICULOS AUTOMOTORES, REMOLQUES Y SEMIRREMOLQUES') THEN 'AUTOMOTRIZ'
+    WHEN cln.sector_productivo IN ('VENTA, MANTENIMIENTO Y REPARACION DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS','COMERCIO AL POR MAYOR Y/O EN COMISION O CONSIGNACION, EXCEPTO EL COMERCIO DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS','COMERCIO AL POR MENOR, EXCEPTO EL COMERCIO DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS') THEN 'COMERCIO'
+    WHEN cln.sector_productivo IN ('CONSTRUCCION DE EDIFICIOS Y SUS PARTES','OBRAS DE INGENIERÃA CIVIL','ACTIVIDADES ESPECIALIZADAS DE CONSTRUCCION') THEN 'CONSTRUCCION'
+    WHEN cln.sector_productivo IN ('SERVICIOS SOCIALES CON ALOJAMIENTO','SERVICIOS DE HOGARES PRIVADOS QUE CONTRATAN SERVICIO DOMESTICO','SERVICIOS SOCIALES SIN ALOJAMIENTO') THEN 'CUIDADOS DE PERSONA'
+    WHEN cln.sector_productivo IN ('EXTRACCION DE CARBON Y LIGNITO','EXTRACCION DE MINERALES METALIFEROS','EXPLOTACION DE MINAS Y CANTERAS N.C.P.','SUMINISTRO DE ELECTRICIDAD, GAS; VAPOR Y AIRE ACONDICIONADO','SERVICIOS DE APOYO PARA LA MINERÃA','FABRICACIÃN DE COQUE Y PRODUCTOS DE LA REFINACIÃN DEL PETROLEO','CAPTACION, DEPURACION Y DISTRIBUCION DE AGUA','EXTRACCION DE PETROLEO CRUDO Y GAS NATURAL') THEN 'ENERGIA'
+    WHEN cln.sector_productivo IN ('ENSEÃANZA','INVESTIGACION Y DESARROLLO') THEN 'ENSEÃANZA'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE COMIDAS Y BEBIDAS') THEN 'GASTRONOMIA'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE ALOJAMIENTO') THEN 'HOTELERIA'
+    WHEN cln.sector_productivo IN ('IMPRESIÃN Y REPRODUCCIÃN DE GRABACIONES','SERVICIOS DE CINEMATOGRAFIA','SERVICIOS ARTISTICOS Y DE ESPECTÃCULOS','SERVICIOS DE PUBLICIDAD E INVESTIGACION DE MERCADO','SERVICIOS DE EDICION','SERVICIOS DE RADIO Y TELEVISION') THEN 'INDUSTRIAS CREATIVAS'
+    WHEN cln.sector_productivo IN ('ELABORACION DE PRODUCTOS ALIMENTICIOS','CURTIDO Y TERMINACION DE CUEROS; FABRICACION DE ARTICULOS DE MARROQUINERIA, TALABARTERIA Y CALZADO Y DE SUS PARTES','PRODUCCION DE MADERA Y FABRICACION DE PRODUCTOS DE MADERA Y CORCHO, EXCEPTO MUEBLES; FABRICACION DE ARTICULOS DE PAJA Y DE MATERIALES TRENZABLES','FABRICACION DE PAPEL Y DE PRODUCTOS DE PAPEL','FABRICACION DE SUSTANCIAS Y PRODUCTOS QUIMICOS','FABRICACION DE METALES COMUNES','FABRICACION DE PRODUCTOS ELABORADOS DE METAL, EXCEPTO MAQUINARIA Y EQUIPO','FABRICACION DE MAQUINARIA Y EQUIPO N.C.P.','INDUSTRIAS MANUFACTURERAS N.C.P.','ELABORACION DE BEBIDAS','FABRICACION DE PRODUCTOS DE CAUCHO Y PLASTICO','FABRICACION DE MUEBLES Y COLCHONES','REPARACION, MANTENIMIENTO E INSTALACION DE MAQUINAS Y EQUIPOS','FABRICACION DE PRODUCTOS FARMACEUTICOS, SUSTANCIAS QUIMICAS MEDICINALES Y PRODUCTOS BOTANICOS DE USO FARMACEUTICO','FABRICACION DE PRODUCTOS MINERALES NO METALICOS','ELABORACION DE PRODUCTOS DE TABACO') THEN 'INDUSTRIA MANUFACTURERA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN cln.sector_productivo IN ('FABRICACION DE EQUIPO DE TRANSPORTE N.C.P.','SERVICIOS DE MANIPULACION Y DE ALMACENAMIENTO; SERVICIOS DE APOYO AL TRANSPORTE','SERVICIO DE CORREOS Y MENSAJERIAS','SERVICIO DE TRANSPORTE POR VIA ACUATICA','SERVICIO DE TRANSPORTE TERRESTRE','SERVICIO DE TRANSPORTE AEREO') THEN 'LOGISTICA'
+    WHEN cln.sector_productivo IN ('OFICINAS CENTRALES Y SERVICIOS DE ASESORAMIENTO EMPRESARIAL','SERVICIOS DE ASOCIACIONES','SERVICIOS EMPRESARIALES N.C.P.','SERVICIOS JURIDICOS, DE CONTABILIDAD Y AUDITORIA; ASESORAMIENTO EMPRESARIAL Y EN MATERIA DE GESTION','SERVICIOS DE ARQUITECTURA E INGENIERIA Y SERVICIOS CONEXOS DE ASESORAMIENTO TECNICO','ACTIVIDADES PROFESIONALES, CIENTIFICAS Y TECNICAS N.C.P.','OBTENCIÃN Y DOTACION DE PERSONAL') THEN 'SERVICIOS EMPRESARIALES'
+    WHEN cln.sector_productivo IN ('SERVICIOS AUXILIARES A LA ACTIVIDAD FINANCIERA','INTERMEDIACION FINANCIERA Y OTROS SERVICIOS FINANCIEROS','SERVICIOS DE SEGUROS') THEN 'SERVICIOS FINANCIEROS'
+    WHEN cln.sector_productivo IN ('SERVICIOS VETERINARIOS','SERVICIOS DE ATENCION A LA SALUD HUMANA') THEN 'SALUD (SIN CUIDADOS DE PERSONAS)'
+    WHEN cln.sector_productivo IN ('SERVICIOS PERSONALES N.C.P.') THEN 'SERVICIOS PERSONALES'
+    WHEN cln.sector_productivo IN ('FABRICACION DE PRODUCTOS INFORMATICOS, ELECTRONICOS Y OPTICOS','FABRICACION DE MAQUINARIA Y EQUIPOS ELECTRICOS N.C.P.','SERVICIOS DE TELECOMUNICACIONES','SERVICIOS DE PROGRAMACIÃN Y CONSULTORÃA INFORMÃTICA Y ACTIVIDADES CONEXAS','REPARACION Y MANTENIMIENTO DE EQUIPOS INFORMATICOS Y DE COMUNICACIÃN; EFECTOS PERSONALES Y ENSERES DOMESTICOS') THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+    WHEN cln.sector_productivo IN ('FABRICACION DE PRODUCTOS TEXTILES','CONFECCION DE PRENDAS DE VESTIR; TERMINACION Y TEÃIDO DE PIELES') THEN 'TEXTIL'
+    WHEN cln.sector_productivo IN ('SERVICIOS DE AGENCIAS DE VIAJE Y OTRAS ACTIVIDADES COMPLEMENTARIAS DE APOYO TURISTICO','SERVICIOS DE BIBLIOTECAS, ARCHIVOS, MUSEOS Y SERVICIOS CULTURALES N.C.P.') THEN 'TURISMO (SIN HOTELERIA Y GASTRONOMIA)'
+END sector_estrategico
+FROM (SELECT
+	codigo_4_digitos AS codigo_4_digitos_clanae,
+	sp.sector_productivo
+FROM "caba-piba-raw-zone-db"."mec_codigos_clanae_ctividades_economicas" clae
+	JOIN (
+		SELECT "letra",
+			"codigo_2_digitos",
+			"descripcion" AS sector_productivo
+		FROM "caba-piba-raw-zone-db"."mec_codigos_clanae_ctividades_economicas"
+		WHERE "codigo_3_digitos" IS NULL
+			AND "codigo_4_digitos" IS NULL
+			AND "codigo_5_digitos" IS NULL
+		GROUP BY "letra",
+			"codigo_2_digitos",
+			"descripcion"
+	) sp ON (
+		clae.letra = sp.letra
+		AND clae.codigo_2_digitos = sp.codigo_2_digitos
+	)
+WHERE codigo_4_digitos IS NOT NULL
+GROUP BY 1,2) cln
+),
+--Se unifican los sectores productivos y estrategicos (en caso de corresponder) provenientes de CLAE, CLANAE y la tabla de sectores estrategicos definidos por GCBA
+uf AS (
+SELECT
+clae.codigo_clae_string AS codigo_clae,
+asi.codigo_sector_estrategico,
+'' AS codigo_4_digitos_clanae,
+CASE
+    WHEN clae.sector_productivo IS NULL AND asi.sector_productivo IS NOT NULL THEN asi.sector_productivo
+    ELSE clae.sector_productivo
+END sector_productivo,
+CASE
+    WHEN clae.sector_estrategico IS NULL AND asi.sector_estrategico IS NOT NULL THEN asi.sector_estrategico
+    ELSE clae.sector_estrategico
+END sector_estrategico
+FROM clae
+FULL OUTER JOIN asi ON (clae.sector_productivo = asi.sector_productivo AND clae.sector_estrategico = asi.sector_estrategico)
+UNION
+SELECT
+NULL AS codigo_clae,
+asi.codigo_sector_estrategico,
+clanae.codigo_4_digitos_clanae,
+CASE
+    WHEN asi.sector_productivo IS NOT NULL THEN clanae.sector_productivo
+    ELSE asi.sector_productivo
+END sector_productivo,
+CASE
+    WHEN asi.sector_estrategico IS NOT NULL THEN clanae.sector_estrategico
+    ELSE clanae.sector_estrategico
+END sector_estrategico
+FROM clanae
+FULL OUTER JOIN asi ON (clanae.sector_productivo = asi.sector_productivo AND clanae.sector_estrategico = asi.sector_estrategico)
+),
+--Se agrega el campo "codigo_sector_productivo"
+sp AS (
+SELECT
+uf.codigo_clae,
+uf.codigo_sector_estrategico,
+CASE WHEN LENGTH(TRIM(uf.codigo_4_digitos_clanae))=0 THEN NULL ELSE uf.codigo_4_digitos_clanae END codigo_4_digitos_clanae,
+sp.id_sector_productivo AS codigo_sector_productivo,
+uf.sector_productivo,
+uf.sector_estrategico
+FROM uf
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_sector_productivo" sp ON (uf.sector_productivo = sp.sector_productivo)
+WHERE uf.codigo_clae IS NOT NULL
+OR (uf.codigo_4_digitos_clanae IS NOT NULL AND LENGTH(TRIM(uf.codigo_4_digitos_clanae))>0)
+GROUP BY
+uf.codigo_clae,
+uf.codigo_sector_estrategico,
+CASE WHEN LENGTH(TRIM(uf.codigo_4_digitos_clanae))=0 THEN NULL ELSE uf.codigo_4_digitos_clanae END,
+sp.id_sector_productivo,
+uf.sector_productivo,
+uf.sector_estrategico
+)
+SELECT *
+FROM sp
+
+
+
+-- Copy of 2023.04.28 step 29 - staging organizacion_actividad (Vcliente).sql 
+
+
+
+-- 1.-- Crear tabla tmp de organizacion_actividades
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_organizacion_actividad`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_organizacion_actividad" AS
+--Se agrega la data de codigo y descripcion de actividades al universo de organizaciones
+WITH c AS (
+SELECT
+org.cuit,
+ab.codigo_de_actividad,
+ab.descripcion_actividad
+FROM "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones" org
+JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_afip_agip_ab" ab
+ON (org.cuit = ab.cuit_del_empleador)
+WHERE ab.descripcion_actividad IS NOT NULL
+GROUP BY 1,2,3
+)
+SELECT *
+FROM c
+
+
+
+-- Copy of 2023.04.28 step 30 - consume actividad_area_de_interes (Vcliente).sql 
+
+
+
+-- 1.-- Crear tabla def de actividad/area de interes
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_actividad_area_de_interes`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_actividad_area_de_interes" AS
+--Se realiza un cruce entre la tabla de organizacion_actividades y la tabla match sp y se para obtener el cÃ³digo de sector productivo correspondiente a la actividad clae
+WITH c1 AS (
+SELECT
+org.codigo_de_actividad,
+org.descripcion_actividad,
+m.codigo_clae,
+m.codigo_sector_productivo
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_organizacion_actividad" org
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_match_sector_estrategico_sector_productivo" m ON (org.codigo_de_actividad = TRY_CAST(m.codigo_clae AS INT))
+),
+--Como se detectan casos de codigo de actividad correspondientes a AGIP (que utiliza subcategorias del CLAE) que no matchean con la tabla match sp y se, entonces se realiza un cruce con la tabla del nomeclador para obtener los codigos CLAE AFIP correspondientes a los codigos SUB CLAE de AGIP y asÃ­ poder matchear mas casos
+c3 AS (
+SELECT
+c1.codigo_de_actividad,
+ae.cod_actividad_agip_o_naecba AS codigo_agip,
+c1.descripcion_actividad,
+CASE
+    WHEN TRY_CAST(c1.codigo_clae AS INT) IS NULL THEN TRY_CAST(ae.cod_actividad_afip_o_naes AS INT)
+    ELSE  TRY_CAST(c1.codigo_clae AS INT)
+END codigo_clae_clean,
+c1.codigo_clae,
+c1.codigo_sector_productivo
+FROM c1
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas" ae ON (c1.codigo_de_actividad = TRY_CAST(ae.cod_actividad_afip_o_naes AS INT) OR c1.codigo_de_actividad = TRY_CAST(ae.cod_actividad_agip_o_naecba AS INT))
+),
+c4 AS (
+SELECT
+CASE
+    WHEN c3.codigo_clae_clean IS NULL THEN c3.codigo_de_actividad
+    ELSE c3.codigo_clae_clean
+END codigo_de_actividad,
+c3.descripcion_actividad,
+m1.codigo_sector_productivo
+FROM c3
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_match_sector_estrategico_sector_productivo" m1 ON (c3.codigo_clae_clean = TRY_CAST(m1.codigo_clae AS INT))
+GROUP BY 1,2,3
+)
+SELECT *
+FROM c4
+WHERE c4.codigo_sector_productivo IS NOT NULL
 
 
 
