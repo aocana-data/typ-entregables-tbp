@@ -1,234 +1,4 @@
--- Copy of 2023.04.28 scripts de conteos (Vcliente).sql 
-
-
-
--- ***************************************************************************************************************
--- ARCHIVO DE CONTEOS PARA TYP
---
--- IMPORTANTE!!!! LEER!!!
--- Para realizar los conteos se debe:
---
--- 1- Abrir el archivo "ConteosEntidadesTyP V2" disponible en drive en la ruta 1_Desarrollo\1_Proyectos\3. Trabajo y Progreso\3. Modelado (Bases Unficadas)
---
--- 2- Completar las distintas secciones con las queries de este script
---
--- 3- Exportar el archivo a .xlsx
-
-
--- HOJA "Atributos Vecinos"
-SELECT dv.base_origen,
-       COUNT(1) cant_vecinos,
-       SUM(CASE WHEN dv.nombre IS NULL THEN 0 ELSE 1 END) completitud_nombre,
-       SUM(CASE WHEN dv.apellido IS NULL THEN 0 ELSE 1 END) completitud_apellido,
-       SUM(CASE WHEN dv.fecha_nacimiento IS NULL THEN 0 ELSE 1 END) completitud_fec_nac,
-       SUM(CASE WHEN dv.descrip_nacionalidad IS NULL THEN 0 ELSE 1 END) completitud_nacionalidad,
-       SUM(dv.nombre_valido) nombre_valido,
-       SUM(dv.apellido_valido) apellido_valido
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
-GROUP BY dv.base_origen
-ORDER BY dv.base_origen
-
-
--- ***************************************************************************************************************
--- HOJA "Registros Duplicados Vecinos"
-SELECT vec.vecino_id, vec.base_origen, vec.cod_origen, vec.broker_id, vec.tipo_doc_broker, vec.documento_broker, vec.genero_broker, vec.nombre, vec.apellido
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec,
-(
-SELECT vec.broker_id, vec.base_origen
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
---WHERE vec.base_origen LIKE 'CRM%'--= 'SIENFO'
-GROUP BY vec.broker_id, vec.base_origen
-HAVING COUNT(1)>1
-) tmp
-WHERE tmp.broker_id = vec.broker_id
-AND tmp.base_origen = vec.base_origen
-
--- ***************************************************************************************************************
--- HOJA "Vecinos"
--- DUPLICADOS DNI POR BASE
-SELECT base_origen, COUNT(1)
-FROM
-(
-SELECT vec.broker_id, vec.base_origen
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
---WHERE vec.base_origen LIKE 'CRM%'--= 'SIENFO'
-GROUP BY vec.broker_id, vec.base_origen
-HAVING COUNT(1)>1
-)
-GROUP BY base_origen
-ORDER BY base_origen
-
--- CANTIDAD DE VECINOS CON BROKER ID VALIDO
-SELECT COUNT(1) cant_vecinos
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
-WHERE broker_id_valido = 1 AND dni_valido = 0
-
--- CANTIDAD DE VECINOS CON DNI VALIDO
-SELECT COUNT(1) cant_vecinos
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
-WHERE broker_id_valido = 0 AND dni_valido = 1
-
--- CANTIDAD DE RENAPER  VALIDO
-SELECT COUNT(1) cant_vecinos
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
-WHERE broker_id_valido = 0  AND renaper_valido=1
-
--- RENAPER: VALIDOS RENAPER POR DNI Y FECHA NAC
-SELECT coincidencia, count(1)
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_view_ciudadanos_renaper_no_duplicates"
-GROUP BY coincidencia
-
---CANTIDAD VECINOS EN BROKER CON Y SIN MI BA (broker_valido_sin_login, broker_valido_con_login)
-SELECT CASE WHEN bo.login2_id IS NULL THEN 0 ELSE 1 END con_login,
-	   COUNT(1) cant
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
-LEFT JOIN "caba-piba-staging-zone-db".tbp_broker_def_broker_general bo ON (bo.id = vec.broker_id)
-GROUP BY CASE WHEN bo.login2_id IS NULL THEN 0 ELSE 1 END
-
--- DNI VALIDO sin login y con login (dni_valido_sin_login dni_valido_con_login)
-SELECT CASE WHEN cit.dni IS NULL THEN 'SIN LOGIN' ELSE 'CON LOGIN' END login,
-	   count(1)
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
-LEFT JOIN "caba-piba-consume-zone-db"."login2_citizen" cit ON (CAST(cit.dni AS VARCHAR) = vec.documento_broker)
-WHERE vec.dni_valido = 1
-GROUP BY CASE WHEN cit.dni IS NULL THEN 'SIN LOGIN' ELSE 'CON LOGIN' END
-
--- RENAPER VALIDO sin login y con login (renaper_valido_sin_login renaper_valido_con_login)
-SELECT CASE WHEN cit.dni IS NULL THEN 'SIN LOGIN' ELSE 'CON LOGIN' END login,
-	   count(1)
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
-LEFT JOIN "caba-piba-consume-zone-db"."login2_citizen" cit ON (CAST(cit.dni AS VARCHAR) = vec.documento_broker)
-WHERE vec.renaper_valido = 1
-GROUP BY CASE WHEN cit.dni IS NULL THEN 'SIN LOGIN' ELSE 'CON LOGIN' END
-
---  tabla excel "Sin Match con Broker"
-SELECT dv.base_origen,
-       COUNT(1) cant_vecinos
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" dv
-WHERE broker_id_valido = 0
-GROUP BY dv.base_origen
-ORDER BY dv.base_origen
-
--- tabla excel "Sin Match con Broker" seccion nacionalidad
-SELECT nacionalidad, SUM(cantidad) cant
-FROM (
-SELECT CASE WHEN descrip_nacionalidad IN ('Argentina','Argentina') THEN 'Argentino'
-		    WHEN descrip_nacionalidad IS NULL THEN 'Sin Nacionalidad'
-			ELSE 'Extranjeros' END nacionalidad,
-	   COUNT(1) cantidad
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino"
-WHERE broker_id_valido = 0
-GROUP BY descrip_nacionalidad)
-GROUP BY nacionalidad
-
--- ***************************************************************************************************************
--- HOJA "Match Maestro Capacitacion ASI"
--- total de capacitaciones
-SELECT COUNT(1)
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion"
-
--- CON MATCH
-SELECT COUNT(1)
-FROM  "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-WHERE EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-WHERE ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
-
--- SIN MATCH (No va en el excel, es solo para control dado que el valor se calcula en el excel desde otras celdas)
-SELECT COUNT(1)
-FROM  "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-WHERE NOT EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-WHERE ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
-
--- (columnas: "match_asi, estado, cantidad")
-SELECT
-CASE WHEN ca.base_origen IS NULL THEN 'N' ELSE 'S' END match_asi, tc.estado, COUNT(1) cantidad
-FROM  "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-	ON (ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
-GROUP BY tc.estado, CASE WHEN ca.base_origen IS NULL THEN 'N' ELSE 'S' END
-
--- MAESTRO CAPACITACIONES -CATALOGO ASI POR NOMBRE 90%
--- para calcular el porcentaje de diferencia entre strings se utiliza la funcion levenshtein_distance
--- conjuntamente con greatest para que el porcentaje sea como maximo el 100% independientemente
--- de cual es el string mas extenso
--- Ej.: 15 de 15 caracteres iguales es el 100% => 1.0
--- Ej.: 3 carateres de diferencia es el (15-3)/15 => 80% => 0.8
-SELECT count(1)
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-ON (
-((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
--CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
-/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE))
->= 0.9 AND tc.capacitacion_id_asi IS NULL)
-
--- MAESTRO CAPACITACIONES -CATALOGO ASI POR NOMBRE 80%
-SELECT count(1)
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-ON (
-((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
--CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
-/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE))
->= 0.8 AND tc.capacitacion_id_asi IS NULL)
-
--- CATALOGO ASI -MAESTRO CAPACITACIONES POR CODIGO -- cantidad total
-SELECT COUNT(1) FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi"
-
--- CATALOGO ASI -MAESTRO CAPACITACIONES POR CODIGO -- sin match
-SELECT COUNT(1)
-FROM  "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-WHERE NOT EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-WHERE ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
-
--- CATALOGO ASI -MAESTRO CAPACITACIONES POR CODIGO -- con match
-SELECT COUNT(1)
-FROM  "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-WHERE EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-WHERE ca.capacitacion_id = tc.capacitacion_id_asi AND ca.base_origen = tc.base_origen)
-
--- CATALOGO ASI -MAESTRO CAPACITACIONES POR NOMBRE -- sin match
-SELECT COUNT(1)
-FROM  "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-WHERE NOT EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-WHERE ((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
--CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
-/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)) >= 0.9 AND ca.base_origen = tc.base_origen)
-
--- CATALOGO ASI -MAESTRO CAPACITACIONES POR NOMBRE -- con match
-SELECT COUNT(1)
-FROM  "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-WHERE  EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-WHERE ((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
--CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
-/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)) >= 0.9 AND ca.base_origen = tc.base_origen)
-
--- REGISTROS CON MATCH POR SIMILITUD DE NOMBRES
-SELECT
-tc.descrip_normalizada "descrip_maestro",
-upper(ca.descrip_capacitacion) "descrip asi",
-tc.base_origen,
-tc.id "id maestro",
-tc.tipo_capacitacion,
-tc.estado,
-ca.capacitacion_id "codigo_capacitacion_asi",
-'90%' "grado de confianza"
-FROM "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" tc
-INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" ca
-ON (
-((cast(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)
--CAST(levenshtein_distance(UPPER(ca.descrip_capacitacion),tc.descrip_normalizada) AS DOUBLE))
-/CAST(greatest(length(ca.descrip_capacitacion), length(tc.descrip_normalizada)) AS DOUBLE)) >= 0.9 AND tc.capacitacion_id_asi IS NULL)
-
--- ***************************************************************************************************************
--- HOJA "Atributos tablas def"
--- EjecuciÃ³n de script
--- git\estandarizacion-proceso-de-gobernanza-de-datos\4-scripts\conexion_aws_y_calculo_calidad.py
--- Al ejecutarlo se generarÃ¡ un archivo .xlsx cuyo contenido debe copiarse en la hoja "Atributos tablas def"
-
-
-
--- Copy of 2023.04.28 step 00 - creacion de vistas(Vcliente).sql 
+-- Copy of 2023.05.12 step 00 - creacion de vistas (Vcliente).sql 
 
 
 
@@ -325,10 +95,18 @@ a.insert_into_dl_timestamp
 
 FROM (
 SELECT c.*,
-  ROW_NUMBER() OVER(PARTITION BY CONCAT(CAST(c.numero_documento_c AS VARCHAR), c.genero_c) ORDER BY tipo_documento_c ASC)
+  ROW_NUMBER() OVER(
+	PARTITION BY CONCAT(
+						CAST(
+						COALESCE(
+							CAST(numero_documento_c AS VARCHAR),
+							SUBSTR(CAST(cuil2_c AS VARCHAR),3,LENGTH(CAST(cuil2_c AS VARCHAR)) -3)
+							)
+						AS VARCHAR)
+				, c.genero_c)
+			ORDER BY tipo_documento_c ASC)
     AS orden_duplicado
  FROM "caba-piba-raw-zone-db"."crm_sociolaboral_contacts_cstm" c
-
  ) a
  WHERE a.orden_duplicado=1
 
@@ -711,7 +489,7 @@ LEFT JOIN carrera_1_old ON carrera_1_old.carrera = todas.carrera
 
 
 
--- Copy of 2023.04.28 step 01 - consume programa (Vcliente).sql 
+-- Copy of 2023.05.12 step 01 - consume programa (Vcliente).sql 
 
 
 
@@ -740,7 +518,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- Copy of 2023.04.28 step 02 - staging establecimiento (Vcliente).sql 
+-- Copy of 2023.05.12 step 02 - staging establecimiento (Vcliente).sql 
 
 
 
@@ -1274,7 +1052,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estand
 
 
 
--- Copy of 2023.04.28 step 03 - consume establecimiento (Vcliente).sql 
+-- Copy of 2023.05.12 step 03 - consume establecimiento (Vcliente).sql 
 
 
 
@@ -1316,7 +1094,7 @@ ORDER BY tmp.base_origen, tmp.nombre
 
 
 
--- Copy of 2023.04.28 step 04 - staging capacitacion asi (Vcliente).sql 
+-- Copy of 2023.05.12 step 04 - staging capacitacion asi (Vcliente).sql 
 
 
 
@@ -1377,7 +1155,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.04.28 step 05 - staging capacitacion (Vcliente).sql 
+-- Copy of 2023.05.12 step 05 - staging capacitacion (Vcliente).sql 
 
 
 
@@ -1963,7 +1741,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- Copy of 2023.04.28 step 06 - consume capacitacion (Vcliente).sql 
+-- Copy of 2023.05.12 step 06 - consume capacitacion (Vcliente).sql 
 
 
 
@@ -2069,7 +1847,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.04.28 step 07 - staging vecinos(Vcliente).sql 
+-- Copy of 2023.05.12 step 07 - staging vecinos (Vcliente).sql 
 
 
 
@@ -2163,19 +1941,24 @@ INNER JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_alumnos" nsa ON nsa
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_mdp_nacionalidades" nmn ON nmn.nacionalidad = nmp.nacionalidad
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_mdp_personas_documentos" nmpd ON nmpd.documento = nmp.documento_principal
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_mdp_tipo_documento" nmtd ON nmtd.tipo_documento = nmpd.tipo_documento
-GROUP BY nmp.persona,
-		 nmtd.desc_abreviada,
-		 nmpd.nro_documento,
-		 nmp.sexo,
-		 nmn.descripcion,
-		 nmpd.nro_documento,
-		 UPPER(nmp.nombres),
-		 UPPER(nmp.apellido),
-		 nmp.fecha_nacimiento,
-		 nmp.nacionalidad,
-		 CAST(nmp.persona AS VARCHAR),
-		 CAST(nmp.nacionalidad AS VARCHAR),
-		 CAST(nmpd.tipo_documento AS VARCHAR)
+GROUP BY
+	   CAST(nmp.persona AS VARCHAR),
+	   nmtd.desc_abreviada ,
+	   CAST(nmpd.nro_documento AS varchar),
+	   nmp.sexo,
+	   nmn.descripcion,
+	   CAST(nmpd.tipo_documento AS VARCHAR),
+	   UPPER(nmp.nombres),
+       UPPER(nmp.apellido),
+       nmp.fecha_nacimiento,
+       CAST(nmp.nacionalidad AS VARCHAR),
+	   CASE WHEN nmtd.desc_abreviada IN ('DNI',
+									 'LC',
+									 'LE',
+									 'CI',
+									 'CUIT',
+									 'CUIL') THEN REGEXP_REPLACE(UPPER(nmpd.nro_documento),'[A-Za-z]+|\.','') ELSE
+	   CAST(nmpd.nro_documento AS VARCHAR) END
 UNION ALL
 
 SELECT 'GOET' base_origen,
@@ -2288,16 +2071,42 @@ UNION ALL
 SELECT 'CRMSL' base_origen,
 	    CAST(MAX(co.id) AS VARCHAR) codigo_origen,
 		CONCAT((CASE WHEN (cs.tipo_documento_c = 'dni') THEN 'DNI' ELSE 'NN' END),
-				CAST(cs.numero_documento_c AS varchar),
-				(CASE WHEN (cs.genero_c = 'masculino') THEN 'M' WHEN (cs.genero_c = 'femenino') THEN 'F' ELSE 'X' END),
-				(CASE WHEN (cs.tipo_documento_c = 'dni') THEN 'ARG' ELSE 'NN' END)) broker_id_din,
+			COALESCE(
+					CAST(cs.numero_documento_c AS VARCHAR),
+					CAST(SUBSTR(CAST(cs.cuil2_c AS VARCHAR), 3,LENGTH(CAST(cs.cuil2_c AS VARCHAR)) -3) AS VARCHAR)
+				),
+			(CASE
+				WHEN cs.genero_c LIKE 'masculino' OR SUBSTRING(CAST(cs.cuil2_c AS VARCHAR),1,2) = '20' THEN 'M'
+				WHEN cs.genero_c LIKE 'femenino' OR SUBSTRING(CAST(cs.cuil2_c AS VARCHAR),1,2) = '27' THEN 'F'
+				ELSE 'X' END),
+			(CASE WHEN UPPER(SUBSTR(cs.nacionalidad_c, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN' END)
+		) broker_id_din,
+
 		CONCAT(RPAD(CASE WHEN (cs.tipo_documento_c = 'dni') THEN 'DNI' ELSE 'NN' END,4,' '),
-				LPAD(CAST(cs.numero_documento_c AS VARCHAR),11,'0'),
-				(CASE WHEN (cs.genero_c = 'masculino') THEN 'M' WHEN (cs.genero_c = 'femenino') THEN 'F' ELSE 'X' END),
-				(CASE WHEN (cs.tipo_documento_c = 'dni') THEN 'ARG' ELSE 'NNN' END)) broker_id_est,
+				LPAD(COALESCE(
+					CAST(cs.numero_documento_c AS VARCHAR),
+					CAST(SUBSTR(CAST(cs.cuil2_c AS VARCHAR), 3,LENGTH(CAST(cs.cuil2_c AS VARCHAR)) -3) AS VARCHAR)
+				),11,'0'),
+				(CASE
+				WHEN cs.genero_c LIKE 'masculino' OR SUBSTRING(CAST(cs.cuil2_c AS VARCHAR),1,2) = '20' THEN 'M'
+				WHEN cs.genero_c LIKE 'femenino' OR SUBSTRING(CAST(cs.cuil2_c AS VARCHAR),1,2) = '27' THEN 'F'
+				ELSE 'X' END),
+				(CASE WHEN UPPER(SUBSTR(cs.nacionalidad_c, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NNN' END)) broker_id_est,
+
 		cs.tipo_documento_c tipo_documento,
-		(CASE WHEN (cs.tipo_documento_c = 'dni') THEN 'DNI' ELSE 'NN' END) tipo_doc_broker,
-		CAST(cs.numero_documento_c AS VARCHAR) documento_broker,
+
+		CASE
+			WHEN UPPER(cs.tipo_documento_c) IN ('DNI','LC','LE','CI','CUIT','CUIL') THEN UPPER(cs.tipo_documento_c)
+			WHEN cs.tipo_documento_c = 'PAS' THEN 'PE' ELSE 'NN'
+		END tipo_doc_broker,
+
+		CAST(
+			COALESCE(
+				CAST(cs.numero_documento_c AS VARCHAR),
+				SUBSTR(CAST(cs.cuil2_c AS VARCHAR),	3,LENGTH(CAST(cs.cuil2_c AS VARCHAR)) -3)
+				)
+		AS VARCHAR) documento_broker,
+
 		UPPER(co.first_name) nombre,
 		UPPER(co.last_name) apellido,
 		co.birthdate fecha_nacimiento,
@@ -2308,12 +2117,16 @@ SELECT 'CRMSL' base_origen,
 			ELSE 'X'
 		END genero_broker,
 
-		NULL nacionalidad,
-		NULL descrip_nacionalidad,
-		(CASE WHEN (cs.tipo_documento_c = 'dni') THEN 'ARG' ELSE 'NNN' END) nacionalidad_broker,
+		cs.nacionalidad_c nacionalidad,
+		cs.nacionalidad_c descrip_nacionalidad,
+
+		CASE WHEN UPPER(SUBSTR(cs.nacionalidad_c, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN' END nacionalidad_broker,
+
 		(CASE WHEN ((UPPER(co.first_name) IS NULL) OR (("length"(UPPER(co.first_name)) < 3) AND (NOT ("upper"(UPPER(co.first_name)) IN ('BO', 'GE', 'HE', 'LI', 'LU', 'QI', 'WU', 'XI', 'XU', 'YE', 'YI', 'YU')))) OR (UPPER(co.first_name) LIKE '%PRUEBA%')) THEN 0 ELSE 1 END) nombre_valido,
 	    (CASE WHEN ((UPPER(co.last_name) IS NULL) OR (("length"(UPPER(co.last_name)) < 3) AND (NOT ("upper"(UPPER(co.last_name)) IN ('AL', 'AM', 'AN', 'BO', U&'B\00D3', 'CO', 'DE', 'DO', 'DU', 'FU', 'GE', 'GO', 'GU', 'HA', 'HE', 'HO', 'HU', 'IM', 'IN', 'IS', 'JI', 'JO', 'JU', 'KE', 'KI', 'KO', 'KU', 'LI', 'LO', 'LU', 'MA', 'MO', 'MU', 'NA', 'NG', 'NI', 'NO', 'OH', 'OU', 'PI', 'PO', 'PY', 'QI', 'QU', 'RA', 'RE', U&'R\00C9', 'RO', 'RU', 'SA', U&'S\00C1', 'SO', 'SU', 'TU', 'UM', 'UZ', 'WU', 'XU', 'YA', 'YE', 'YI', 'YO', 'YU')))) OR (UPPER(co.last_name) LIKE '%PRUEBA%')) THEN 0 ELSE 1 END) apellido_valido,
-		CAST(cs.numero_documento_c AS VARCHAR) documento_original
+
+		COALESCE(CAST(cs.numero_documento_c AS VARCHAR), CAST(cs.cuil2_c AS VARCHAR)) documento_original
+
 FROM "caba-piba-raw-zone-db"."crm_sociolaboral_contacts" co
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" cs ON (co.id = cs.id_c)
 WHERE
@@ -2326,16 +2139,46 @@ WHERE
 	OR
 	-- esta condicion es para traer adicionalmente los vecinos que han formado parte de entrevistas laborales
 	(co.id IN (SELECT DISTINCT(id_c) FROM "caba-piba-raw-zone-db".crm_sociolaboral_contacts_cstm))
+	OR
+	-- esta condicion es para traer adicionalmente los vecinos que han cargado curriculum vitae
+	(co.id IN (SELECT DISTINCT(per_entrevista_laboral_contactscontacts_ida) FROM "caba-piba-raw-zone-db".crm_sociolaboral_per_entrevista_laboral_contacts_c WHERE deleted = FALSE))
+	OR
+	-- esta condicion es para traer adicionalmente los vecinos que han cargado curriculum vitae
+	(co.id IN (SELECT DISTINCT(re_experiencia_laboral_contactscontacts_ida) FROM "caba-piba-raw-zone-db".crm_sociolaboral_re_experiencia_laboral_contacts_c))
 )
-AND cs.numero_documento_c IS NOT NULL
-GROUP BY cs.tipo_documento_c,
-         cs.numero_documento_c,
-         cs.genero_c,
-         UPPER(co.last_name),
-         UPPER(co.first_name),
-         co.birthdate,
-		 cuil2_c
+AND (cs.numero_documento_c IS NOT NULL OR cs.cuil2_c IS NOT NULL)
+GROUP BY
+		cs.tipo_documento_c,
+		cs.numero_documento_c,
+		cs.genero_c,
+		UPPER(co.last_name),
+		UPPER(co.first_name),
+		co.birthdate,
+		cuil2_c,
+		CONCAT((CASE WHEN (cs.tipo_documento_c = 'dni') THEN 'DNI' ELSE 'NN' END),
+			COALESCE(
+					CAST(cs.numero_documento_c AS VARCHAR),
+					CAST(SUBSTR(CAST(cs.cuil2_c AS VARCHAR), 3,LENGTH(CAST(cs.cuil2_c AS VARCHAR)) -3) AS VARCHAR)
+				),
+			(CASE
+				WHEN cs.genero_c LIKE 'masculino' OR SUBSTRING(CAST(cs.cuil2_c AS VARCHAR),1,2) = '20' THEN 'M'
+				WHEN cs.genero_c LIKE 'femenino' OR SUBSTRING(CAST(cs.cuil2_c AS VARCHAR),1,2) = '27' THEN 'F'
+				ELSE 'X' END),
+			(CASE WHEN UPPER(SUBSTR(cs.nacionalidad_c, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN' END)
+			),
 
+		CONCAT(RPAD(CASE WHEN (cs.tipo_documento_c = 'dni') THEN 'DNI' ELSE 'NN' END,4,' '),
+			LPAD(COALESCE(
+				CAST(cs.numero_documento_c AS VARCHAR),
+				CAST(SUBSTR(CAST(cs.cuil2_c AS VARCHAR), 3,LENGTH(CAST(cs.cuil2_c AS VARCHAR)) -3) AS VARCHAR)
+			),11,'0'),
+			(CASE
+			WHEN cs.genero_c LIKE 'masculino' OR SUBSTRING(CAST(cs.cuil2_c AS VARCHAR),1,2) = '20' THEN 'M'
+			WHEN cs.genero_c LIKE 'femenino' OR SUBSTRING(CAST(cs.cuil2_c AS VARCHAR),1,2) = '27' THEN 'F'
+			ELSE 'X' END),
+			(CASE WHEN UPPER(SUBSTR(cs.nacionalidad_c, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NNN' END)),
+
+		cs.nacionalidad_c
 
 UNION ALL
 
@@ -2366,10 +2209,10 @@ SELECT 'MOODLE' base_origen,
 					ELSE split_part(mu.username, '.', 1) END AS VARCHAR)),'[A-Za-z]+|\.','') documento_broker,
 		UPPER(mu.firstname) nombre,
 		UPPER(mu.lastname) apellido,
-		NULL fecha_nacimiento,
+		CAST(NULL AS DATE) fecha_nacimiento,
 		COALESCE(do.genero,'X') genero_broker,
-		NULL nacionalidad,
-		NULL descrip_nacionalidad,
+		CAST(NULL AS VARCHAR) nacionalidad,
+		CAST(NULL AS VARCHAR) descrip_nacionalidad,
 		'ARG' nacionalidad_broker,
 		(CASE WHEN ((UPPER(mu.firstname) IS NULL) OR (("length"(UPPER(mu.firstname)) < 3) AND (NOT ("upper"(UPPER(mu.firstname)) IN ('BO', 'GE', 'HE', 'LI', 'LU', 'QI', 'WU', 'XI', 'XU', 'YE', 'YI', 'YU')))) OR (UPPER(mu.firstname) LIKE '%PRUEBA%')) THEN 0 ELSE 1 END) nombre_valido,
 	    (CASE WHEN ((UPPER(mu.lastname) IS NULL) OR (("length"(UPPER(mu.lastname)) < 3) AND (NOT ("upper"(UPPER(mu.lastname)) IN ('AL', 'AM', 'AN', 'BO', U&'B\00D3', 'CO', 'DE', 'DO', 'DU', 'FU', 'GE', 'GO', 'GU', 'HA', 'HE', 'HO', 'HU', 'IM', 'IN', 'IS', 'JI', 'JO', 'JU', 'KE', 'KI', 'KO', 'KU', 'LI', 'LO', 'LU', 'MA', 'MO', 'MU', 'NA', 'NG', 'NI', 'NO', 'OH', 'OU', 'PI', 'PO', 'PY', 'QI', 'QU', 'RA', 'RE', U&'R\00C9', 'RO', 'RU', 'SA', U&'S\00C1', 'SO', 'SU', 'TU', 'UM', 'UZ', 'WU', 'XU', 'YA', 'YE', 'YI', 'YO', 'YU')))) OR (UPPER(mu.lastname) LIKE '%PRUEBA%')) THEN 0 ELSE 1 END) apellido_valido,
@@ -2410,7 +2253,7 @@ SELECT 'PORTALEMPLEO' base_origen,
 		CONCAT((CASE WHEN (pec.doc_type  IN ('DNI', 'LC',  'CI', 'LE', 'CUIL')) THEN pec.doc_type ELSE 'NN' END),
 				CAST(pec.doc_number AS varchar),
 				(CASE WHEN (pec.gender = 'M') THEN 'M' WHEN (pec.gender = 'F') THEN 'F' ELSE 'X' END),
-				(CASE WHEN pec.doc_type IN ('DNI', 'LC',  'CI', 'LE', 'CUIL') THEN 'ARG' ELSE 'NN' END)) broker_id_din,
+				(CASE WHEN UPPER(SUBSTR(pec.document_nationality, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN' END)) broker_id_din,
 
 
 		CONCAT(RPAD(CASE
@@ -2420,7 +2263,7 @@ SELECT 'PORTALEMPLEO' base_origen,
 				WHEN (pec.doc_type= 'CRP') THEN 'OTRO' ELSE 'NN' END,4,' '),
 				LPAD(CAST(pec.doc_number AS VARCHAR),11,'0'),
 				(CASE WHEN (pec.gender = 'M') THEN 'M' WHEN (pec.gender = 'F') THEN 'F' ELSE 'X' END),
-				(CASE WHEN (pec.doc_type = 'DNI') THEN 'ARG' ELSE 'NNN' END)) broker_id_est,
+				(CASE WHEN UPPER(SUBSTR(pec.document_nationality, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NNN' END)) broker_id_est,
 
 		pec.doc_type tipo_documento,
 
@@ -2433,12 +2276,12 @@ SELECT 'PORTALEMPLEO' base_origen,
 		CAST(pec.doc_number AS VARCHAR) documento_broker,
 		UPPER(u.name) nombre,
 		UPPER(u.lastname) apellido,
-		pec.birth_date fecha_nacimiento,
+		TRY_CAST(pec.birth_date AS DATE) fecha_nacimiento,
 		(CASE WHEN (pec.gender = 'M') THEN 'M' WHEN (pec.gender = 'F') THEN 'F' ELSE 'X' END) genero_broker,
 		pec.nationality nacionalidad,
 		pec.nationality descrip_nacionalidad,
 
-		(CASE WHEN pec.doc_type IN ('DNI', 'LC',  'CI', 'LE', 'CUIL') THEN 'ARG' ELSE 'NNN' END) nacionalidad_broker,
+		(CASE WHEN UPPER(SUBSTR(pec.document_nationality, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NNN' END) nacionalidad_broker,
 
 		(CASE
 			WHEN ((UPPER(u.name) IS NULL) OR (("length"(UPPER(u.name)) < 3) AND (NOT ("upper"(UPPER(u.name)) IN ('BO', 'GE', 'HE', 'LI', 'LU', 'QI', 'WU', 'XI', 'XU', 'YE', 'YI', 'YU'))))
@@ -2470,7 +2313,11 @@ AND pec.id IN
 				FROM "caba-piba-raw-zone-db"."portal_empleo_job_applications"
 				UNION
 				SELECT DISTINCT(candidate_id)
-				FROM "caba-piba-raw-zone-db"."portal_empleo_job_hirings")
+				FROM "caba-piba-raw-zone-db"."portal_empleo_job_hirings"
+				UNION
+				SELECT DISTINCT(candidate_id)
+				FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes"
+				)
 GROUP BY 1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
 
 UNION ALL
@@ -2527,7 +2374,7 @@ SELECT 'CRMEMPLEO' base_origen,
 	CAST(cea.numero_de_documento__c AS VARCHAR) documento_broker,
 	UPPER(cea.firstname) nombre,
 	UPPER(cea.lastname) apellido,
-	cea.personbirthdate fecha_nacimiento,
+	TRY_CAST(cea.personbirthdate AS DATE) fecha_nacimiento,
 	(CASE
 		WHEN (cea.genero__c = 'MASCULINIO' OR cea.genero__c = 'Masculino' ) THEN 'M'
 		WHEN (cea.genero__c = 'FEMENINA' OR cea.genero__c = 'Femenino') THEN 'F' ELSE 'X' END) genero_broker,
@@ -2768,7 +2615,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- Copy of 2023.04.28 step 08 - consume vecinos(Vcliente).sql 
+-- Copy of 2023.05.12 step 08 - consume vecinos (Vcliente).sql 
 
 
 
@@ -2879,7 +2726,7 @@ FROM tmp_vec_renaper tvc
 
 
 
--- Copy of 2023.04.28 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
+-- Copy of 2023.05.12 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
 
 
 
@@ -2983,7 +2830,7 @@ FROM resultado
 
 
 
--- Copy of 2023.04.28 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
+-- Copy of 2023.05.12 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
 
 
 
@@ -3604,7 +3451,7 @@ FROM
 
 
 
--- Copy of 2023.04.28 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
+-- Copy of 2023.05.12 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
 
 
 
@@ -3805,7 +3652,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.28 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
+-- Copy of 2023.05.12 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
 
 
 
@@ -4068,7 +3915,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.04.28 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
+-- Copy of 2023.05.12 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
 
 
 
@@ -4296,7 +4143,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.04.28 step 14 - staging edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.05.12 step 14 - staging edicion capacitacion (Vcliente).sql 
 
 
 
@@ -5166,7 +5013,7 @@ WHERE a.id IS NULL
 
 
 
--- Copy of 2023.04.28 step 15 - consume edicion capacitacion(Vcliente).sql 
+-- Copy of 2023.05.12 step 15 - consume edicion capacitacion (Vcliente).sql 
 
 
 
@@ -5203,7 +5050,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- Copy of 2023.04.28 step 16 - staging cursada (Vcliente).sql 
+-- Copy of 2023.05.12 step 16 - staging cursada (Vcliente).sql 
 
 
 
@@ -5721,7 +5568,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.28 step 17 - consume cursada (Vcliente).sql 
+-- Copy of 2023.05.12 step 17 - consume cursada (Vcliente).sql 
 
 
 
@@ -5783,7 +5630,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.28 step 18 - consume trayectoria_educativa (Vcliente).sql 
+-- Copy of 2023.05.12 step 18 - consume trayectoria_educativa (Vcliente).sql 
 
 
 
@@ -5837,7 +5684,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.28 step 19 - staging oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.05.12 step 19 - staging oportunidad_laboral (Vcliente).sql 
 
 
 
@@ -6666,7 +6513,7 @@ FROM ecr3
 
 
 
--- Copy of 2023.04.28 step 20 - consume oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.05.12 step 20 - consume oportunidad_laboral (Vcliente).sql 
 
 
 
@@ -6732,113 +6579,41 @@ GROUP BY
 
 
 
--- Copy of 2023.04.28 step 21 - consume sector_productivo (Vcliente).sql 
+-- Copy of 2023.05.12 step 21 - staging nomenclador_actividades_economicas (Vcliente).sql 
 
 
 
--- 1.-- Crear tabla def de Sector_Productivo
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_sector_productivo`;
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_sector_productivo" AS
---CLAE
-WITH clae AS (
-SELECT
-TRY_CAST(cod_actividad_afip_o_naes AS INT) AS codigo_clae,
-CASE
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (771210,432110,530010,492230,492290,492221,492229,492250,492190,492170,492280,512000,491200,502200,501200,492240,493200,493110,493120,524290,524190,523020,522099,524210,524110,522092,523090,521030,521020,521010,530090,523039,801010,524230,351201,492210,771290,492160,492150,492180,492140,492110,492130,491120,491110,502101,501100,524130,492120,649210) THEN 'ABASTECIMIENTO Y LOGISTICA'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (653000,649100,774000,643009,661999,661910,821100,682010,661992,829100,649910,702099,702092,702091,949990,651320,661920,692000,649290,649220,661991,662010,643001,649999,821900,663000,641943,641941,641942,641920,641910,641930,661121,661111,949910,941100,941200,931010,942000,661930,642000,649991,829900) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (523019,523031,523032,523011) THEN 'ADUANA Y COMERCIO EXTERIOR'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (524390,524310,771220,303000,511000,524320,524330) THEN 'AERONAUTICA'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (462110,462132,461014,13,16292,773010,14910,161001,161002,17010,14930,14990,14810,14300,14121,14113,14430,14440,14221,14211,14410,14420,14520,14510,11501,11111,11329,12510,11129,11119,12800,11911,12200,12320,12319,12490,12420,12410,12600,11291,11331,11341,11342,12311,11121,11299,11310,11130,11912,11509,12590,11211,11400,11321,11112,12709,12121,12110,12701,12900,11990,14920,104012,104011,104013,106131,106200,107200,103099,103030,103091,103020,105010,110211,107992,110212,14115,32000,21030,22010,22020,81100,89300,51000,52000,89200,101091,102003,16210,14114,101099,101011,101040,106110,461031,461032,31200,31110,31120,21010,106120,103011,131120,131110,120010,107920,106139,101012,14820,14710,14610,14620,13020,14720,602320,13019,13013,13011,13012,101020,31130,331220,21020,101013,522020,522010,16190,17020,31300,16299,16130,16220,16120,16230,16119,990000,939010,16140,16150,24020,24010,107911,282130,202101,282120,102001,107930) THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (631190,631120,631110,822000) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (771110,771190,281100,221901,221110,452700,452101,452800,454020,452990,221120,293011,452401,452220,452210,452600,452500,452300) THEN 'AUTOMOTRIZ'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (732000,900040,661131,823000,465500,464910,466310,466932,463153,463170,464632,464950,466330,464620,464223,466391,464149,464112,466931,464420,464999,464631,464410,466399,466360,463129,463152,463219,463212,463220,464940,463154,464130,463121,462131,463160,463300,466110,466129,465220,466350,464212,464501,464222,465930,464502,465210,465100,463112,464991,463191,464330,469010,464930,462201,464211,464113,465920,464920,462190,462209,464122,469090,466200,465690,465610,464610,465400,465910,465990,465340,465320,465360,465310,465390,465350,463151,464221,466370,453100,463130,464141,466340,464121,464129,463199,464320,466320,464310,466920,466940,466910,466939,466990,463111,464119,464340,463159,462120,464142,464114,464111,464150,463211,461092,461094,461099,461039,461011,461040,461013,461021,461022,461093,461095,461091,461019,461029,461012,463180,463140,475300,476200,475210,478010,477830,474020,476320,475440,475230,475430,477290,477420,477210,477410,477490,475490,475250,475190,477890,453220,472200,477430,472172,477230,477220,472130,475420,473000,475120,475260,453210,476120,476310,474010,472112,477440,472160,477460,475110,472140,477140,477130,477330,476400,476110,477820,475220,475290,477450,475410,477810,477480,477840,472171,476130,475270,453291,453292,472150,475240,477150,477190,472190,477320,472120,477310,472111,478090,477470,477110,472300,477120,471900,471110,471190,471130,471120,479900,479109,479101,451110,451210,454010,451190,451290,465330) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (741000) THEN 'DISEÃO'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (749009,853100,854960,854920,854950,854910,854940,851020,854930,852100,852200,853201,8,853300,721030,722020,722010,721090,855000,854990) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (920009,900021,591200,581100,602310,591300,931020,602200,591120,900011,591110,931030,182000,900030,910900,910100,939090,900091,592000,910200,920001,939030,939020,931090,931041,931042) THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (791909,561013,552000,551022,551023,551021,551010,562099,561014,561019,551090,791901,791200,791100) THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (431210,439990,432920,439100,773030,433030,429090,301100,301200,410021,410011,421000,429010,422200,431100,162201,282400,239592,432910,432990,332000,711009,711001,880000,433090,433010) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (432190) THEN 'INGENIERIAS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (691002,691001) THEN 'LEGALES/ABOGACIA'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (331290,331210,331900,960101,812090,16113,16112,813000,811000) THEN 'LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS)'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949920,812010) THEN 'LIMPIEZA Y MANTENIMIENTO DE EDFICIOS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (731001,731009) THEN 'MARKETING Y PUBLICIDAD'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (773020,351310,351320,89900,81300,62000,72910,71000,72990,89110,89120,72100,61000,271020,251300,271010,192000,466121,351130,351190,351110,351120,452910,431220,331400,331101,91000,99000,711002,353001,259200,81400,360010,360020,432200,422100) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (801090,9,239600,581200,181109,7,433040,960300,952910,952990,952920,952300,949930,812020,742000,970000,749002,749003,561012,561011,749001,863200,522091,16291,12,433020,11,181200,870920,524120) THEN 'OFICIOS Y OTROS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (639100,581300,581900,602100,601000,181101,639900) THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (110100,352020,239421,108000,242010,110420,110492,107301,239422,239410,110300,120091,107991,101030,107110,110491,239591,104020,107410,107420,102002,107999,107309,107129,120099,105090,105020,110290,105030,107121,103012,107912,110411,81200,221909,281900,201300,272000,201210,275099,267002,252000,239593,239399,259302,323001,139203,162902,170910,170990,239310,162901,309200,321020,201220,281201,273110,259992,152011,152021,152031,251101,292000,329030,170202,259309,275010,281400,202907,201140,261000,281301,202320,139400,201120,231010,259910,222010,267001,265102,329040,309900,329020,202906,203000,139201,352010,201110,275020,259301,273190,162100,281500,322001,265101,202312,321011,324000,239201,274000,329010,151200,282300,282500,282901,281600,281700,282909,201130,201409,201180,201190,210010,210020,239510,309100,310020,310010,282200,239391,321012,170201,170102,293090,170101,202200,275092,202311,239209,239100,162903,191000,210090,162909,231090,259999,259993,251102,239900,222090,242090,202908,162300,265200,201401,239202,139202,110412,310030,268000,251200,139300,259991,139100,282110,291000,275091,162202,241009,231020,302000,259100,243100,243200,439910,329090,241001,109000,204000,152040,952200) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (780000) THEN 'RECURSOS HUMANOS Y CAPACITACION'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (651310,721020,266090,266010,712000,210030,331301,863300,862110,931050,870100,862130,864000,702010,861020,861010,862120,863110,863190,863120,869010,651110,862200,869090,870990,750000,870210,870910,870220) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (641100,842400,10,841900,842100,842200,910300,843000,16111,842500,841100,842300,841300,841200) THEN 'SECTOR PUBLICO'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (652000,662090,651210,662020,651120,651220,651130) THEN 'SEGUROS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (390000,381100,381200,382010,382020,370000) THEN 'SERVICIOS DE MANEJO DE RESIDUOS Y DE REMEDIACION'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949200,949100) THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (107500,561030,562091,829200,562010,561020,561040) THEN 'SERVICIOS DE PREPARACION DE ALIMENTOS Y BEBIDAS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (772099,773040,773090,772091,772010,851010,681020,681010,524220,682099,681099,681098,682091) THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (960910,960201,960202,960990) THEN 'SERVICIOS PERSONALES'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (279000,262000,264000,263000,721010,631200,952100,951200,951100,620200,620100,620300,620900,611010,614010,801020,619000,613000,614090,611090,612000,602900,711003) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (131300,141202,141199,141130,141140,141120,141110,151100,141201,141191,139209,139204,131132,131131,131139,282600,143010,143020,139900,131202,131209,131201,960102,149000,142000) THEN 'TEXTIL'
-END sector_productivo
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas"
-WHERE (cod_actividad_afip_o_naes IS NOT NULL OR LENGTH(TRIM(TRY_CAST(cod_actividad_afip_o_naes AS VARCHAR))) <> 0)
-GROUP BY 1,2
-),
---portal_empleo_mtr_industry_sectors
-inds AS (
-SELECT
-TRY_CAST(isec.code AS INT) AS codigo_mtr,
-CASE
-    WHEN TRY_CAST(isec.code AS INT) IN (1143) THEN 'ABASTECIMIENTO Y LOGISTICA'
-    WHEN TRY_CAST(isec.code AS INT) IN (558,1773,701) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
-    WHEN TRY_CAST(isec.code AS INT) IN (2723) THEN 'ADUANA Y COMERCIO EXTERIOR'
-    WHEN TRY_CAST(isec.code AS INT) IN (1174) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
-    WHEN TRY_CAST(isec.code AS INT) IN (2888) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
-    WHEN TRY_CAST(isec.code AS INT) IN (659) THEN 'COMUNICACION, RELACIONES INSTITUCIONALES Y PUBLICAS'
-    WHEN TRY_CAST(isec.code AS INT) IN (16) THEN 'DISEÃO'
-    WHEN TRY_CAST(isec.code AS INT) IN (18) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
-    WHEN TRY_CAST(isec.code AS INT) IN (25) THEN  'GASTRONOMIA, HOTELERIA Y TURISMO'
-    WHEN TRY_CAST(isec.code AS INT) IN (4) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
-    WHEN TRY_CAST(isec.code AS INT) IN (648) THEN 'INGENIERIAS'
-    WHEN TRY_CAST(isec.code AS INT) IN (601) THEN 'LEGALES/ABOGACIA'
-    WHEN TRY_CAST(isec.code AS INT) IN (45) THEN 'MARKETING Y PUBLICIDAD'
-    WHEN TRY_CAST(isec.code AS INT) IN (19) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
-    WHEN TRY_CAST(isec.code AS INT) IN (1108) THEN 'OFICIOS Y OTROS'
-    WHEN TRY_CAST(isec.code AS INT) IN (734) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
-    WHEN TRY_CAST(isec.code AS INT) IN (590) THEN 'RECURSOS HUMANOS Y CAPACITACION'
-    WHEN TRY_CAST(isec.code AS INT) IN (48) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
-    WHEN TRY_CAST(isec.code AS INT) IN (2889,2890,2891) THEN 'SECTOR PUBLICO'
-    WHEN TRY_CAST(isec.code AS INT) IN (49) THEN 'SEGUROS'
-    WHEN TRY_CAST(isec.code AS INT) IN (32) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
-END sector_productivo
-FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_industry_sectors" isec
-),
-uf AS (
-SELECT
-clae.codigo_clae,
-inds.codigo_mtr,
-CASE
-    WHEN clae.sector_productivo IS NULL THEN inds.sector_productivo
-    ELSE clae.sector_productivo
-END sector_productivo
-FROM inds
-FULL OUTER JOIN clae ON (clae.sector_productivo = inds.sector_productivo)
-GROUP BY 1,2,3
-),
-sp AS (
-SELECT
-sector_productivo
-FROM uf
-WHERE sector_productivo IS NOT NULL
-GROUP BY sector_productivo
-ORDER BY sector_productivo
-)
-SELECT
-row_number() OVER () AS id_sector_productivo,
-sector_productivo
-FROM sp
+-- ORIGEN DE tbp_typ_tmp_actividades_afip => https: / / serviciosweb.afip.gob.ar / genericos / nomencladorActividades / index.aspx - - ORIGEN DE tbp_typ_tmp_actividades_naiib_agip_res_13_2019 => https: / / www.agip.gob.ar / filemanager / source / Normativas / 2019 / 20190201 - Resol13 - AGIP -19 - Anexo.pdf -- se realizan chequeos de que esta en ambas tablas y que esta solo de un lado o del otro
+SELECT count(1)
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip" a
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_naiib_agip_res_13_2019" r ON try_cast(a.cod_actividad_f883 AS integer) = try_cast(r.actividad_naes AS integer)
+WHERE r.actividad_naes IS NULL
+LIMIT 100;
+-- 180 registros que estan en aFip pero no en aGip
+SELECT count(1)
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip" a
+	RIGHT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_naiib_agip_res_13_2019" r ON try_cast(a.cod_actividad_f883 AS integer) = try_cast(r.actividad_naes AS integer)
+WHERE a.cod_actividad_f883 IS NULL
+LIMIT 100;
+-- 64 registros que estan en aGip pero no en aFip
+-- se crea una tabla con un full join entre las dos mediante el campo en comun
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip_2" AS
+SELECT r.*,
+	a.*
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip" a
+	FULL JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_naiib_agip_res_13_2019" r ON try_cast(a.cod_actividad_f883 AS integer) = try_cast(r.actividad_naes AS integer) -- se crea la tabla final de nomenclador de actividades economicas de afip actualizada (NO contiene codigos clanae)
+	CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas" AS
+SELECT actividad_naecba AS cod_actividad_agip_o_naecba,
+	descripcion_naecba AS desc_actividad_agip_o_naecba,
+	cod_actividad_f883 AS cod_actividad_afip_o_naes,
+	desc_actividad_f883 AS desc_actividad_afip_o_naes,
+	desc_larga_actividad_f883 AS desc_larga_actividad_afip_o_naes
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip_2"
+GROUP BY 1,	2,	3,	4,	5
 
 
 
--- Copy of 2023.04.28 step 22 - staging registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.05.12 step 22 - staging registro_laboral_formal (Vcliente).sql 
 
 
 
@@ -7003,8 +6778,22 @@ WITH aa_ab AS (
 			WHEN SUBSTRING(ab.cuil_del_empleado, 1, 2) = '23'
 			AND SUBSTRING(ab.cuil_del_empleado, 11, 1) = '4' THEN 'F' ELSE 'X'
 		END genero,
-		ab.fecha_inicio_de_relacion_laboral,
-		ab.fecha_fin_de_relacion_laboral,
+		-- se convierte la fecha a date, si las fechas de inicio o fin son inconsistentes quedan con el valor NULL
+		CASE
+			WHEN ab.fecha_fin_de_relacion_laboral IN ('9999-12-31','999-12-31','3202-03-09','7202-08-17','4202-02-23','2109-02-25')
+			OR (LENGTH(TRIM(ab.fecha_inicio_de_relacion_laboral)) > 0 AND try_cast(ab.fecha_inicio_de_relacion_laboral AS date) IS NULL)
+			OR (LENGTH(TRIM(ab.fecha_fin_de_relacion_laboral)) > 0 AND try_cast(ab.fecha_fin_de_relacion_laboral AS date) IS NULL)
+			THEN CAST(NULL AS DATE)
+			ELSE try_cast(ab.fecha_inicio_de_relacion_laboral AS date)
+		END fecha_inicio_de_relacion_laboral,
+		CASE
+			WHEN ab.fecha_fin_de_relacion_laboral IN ('9999-12-31','999-12-31','3202-03-09','7202-08-17','4202-02-23','2109-02-25')
+			OR (LENGTH(TRIM(ab.fecha_inicio_de_relacion_laboral)) > 0 AND try_cast(ab.fecha_inicio_de_relacion_laboral AS date) IS NULL)
+			OR (LENGTH(TRIM(ab.fecha_fin_de_relacion_laboral)) > 0 AND try_cast(ab.fecha_fin_de_relacion_laboral AS date) IS NULL)
+			THEN CAST(NULL AS DATE)
+			ELSE try_cast(ab.fecha_fin_de_relacion_laboral AS date)
+		END fecha_fin_de_relacion_laboral,
+
 		TRY_CAST(ab.codigo_modalidad_de_contratato AS INT) AS codigo_modalidad_contratacion,
 		--Campo descripcion_modalidad_contratacion: Existen casos con mas de una descripciÃ³n para un mismo codigo de modalidad de contrataciÃ³n. Los mismos provienen de la tabla "afip_agip_tipo_contratacion". Se optÃ³ por elegÃ­r una Ãºnica descripciÃ³n basada estrictamente en la descripciÃ³n que figura en la tabla de modalidades de contrataciÃ³n proveniente de la web de AFIP
 		CASE
@@ -7359,7 +7148,99 @@ FROM
 
 
 
--- Copy of 2023.04.28 step 23 - consume_registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.05.12 step 23 - consume sector_productivo (Vcliente).sql 
+
+
+
+-- 1.-- Crear tabla def de Sector_Productivo
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_sector_productivo`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_sector_productivo" AS
+--CLAE
+WITH clae AS (
+SELECT
+cod_actividad_afip_o_naes AS codigo_clae,
+--se crea el campo sector productivo
+CASE
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (530010,492230,492290,492221,492229,492250,492190,492170,492280,491200,502200,501200,492240,493200,493110,493120,524290,524190,523020,522099,524210,524110,522092,523090,521030,521020,521010,530090,523039,801010,524230,351201,492210,492160,492150,492180,492140,492110,492130,491120,491110,502101,501100,524130,492120,309100,301100,301200,522091,524120,309900,302000,524220) THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (649100,661131,823000,643009,661999,661910,821100,661992,829100,649910,702099,702092,702091,949990,661920,692000,649290,649220,661991,662010,643001,649999,821900,663000,641943,641941,641942,641920,641910,641930,661121,661111,949910,941100,941200,931010,942000,661930,642000,649991,829900,649210,949930,829200) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (523019,523031,523032,523011) THEN 'ADUANA Y COMERCIO EXTERIOR'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (524390,524310,303000,511000,524320,524330,512000) THEN 'AERONAUTICA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (462110,462132,461014,13,16292,14910,17010,14930,14990,14810,14300,14121,14113,14430,14440,14221,14211,14410,14420,14520,14510,11501,11111,11329,12510,11129,11119,12800,11911,12200,12320,12319,12490,12420,12410,12600,11291,11331,11341,11342,12311,11121,11299,11310,11130,11912,11509,12590,11211,11400,11321,11112,12709,12121,12110,12701,12900,11990,14920,14115,32000,21030,22010,22020,81100,89300,51000,52000,89200,16210,14114,461031,461032,31200,31110,31120,21010,14820,14710,14610,14620,13020,14720,13019,13013,13011,13012,31130,21020,522020,522010,16190,17020,31300,16299,16130,16220,16120,16230,16119,939010,16140,16150,24020,24010) THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (822000) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (281100,221901,221110,452700,452101,452800,454020,452990,221120,293011,452401,452220,452210,452600,452500,452300,452910,292000,293090,291000) THEN 'AUTOMOTRIZ'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (465500,464910,466310,466932,463153,463170,464632,464950,466330,464620,464223,466391,464149,464112,466931,464420,464999,464631,464410,466399,466360,463129,463152,463219,463212,463220,464940,463154,464130,463121,462131,463160,463300,466110,466129,465220,466350,464212,464501,464222,465930,464502,465210,465100,463112,464991,463191,464330,469010,464930,462201,464211,464113,465920,464920,462190,462209,464122,469090,466200,465690,465610,464610,465400,465910,465990,465340,465320,465360,465310,465390,465350,463151,464221,466370,453100,463130,464141,466340,464121,464129,463199,464320,466320,464310,466920,466940,466910,466939,466990,463111,464119,464340,463159,462120,464142,464114,464111,464150,463211,461092,461094,461099,461039,461011,461040,461013,461021,461022,461093,461095,461091,461019,461029,461012,463180,463140,475300,476200,475210,478010,477830,474020,476320,475440,475230,475430,477290,477420,477210,477410,477490,475490,475250,475190,477890,453220,472200,477430,472172,477230,477220,472130,475420,473000,475120,475260,453210,476120,476310,474010,472112,477440,472160,477460,475110,472140,477140,477130,477330,476400,476110,477820,475220,475290,477450,475410,477810,477480,477840,472171,476130,475270,453291,453292,472150,475240,477150,477190,472190,477320,472120,477310,472111,478090,477470,477110,472300,477120,471900,471110,471190,471130,471120,479900,479109,479101,451110,451210,454010,451190,451290,465330,771210,771290,774000,771220,773010,771110,771190,773030,773020,772091,773040,772099,773090,772010,771110) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (741000) THEN 'DISEÃO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (749009,853100,854960,854920,854950,854910,854940,851020,854930,852100,852200,853201,8,853300,721030,722020,722010,721090,855000,854990,851010) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (920009,900021,591200,591300,931020,591120,900011,591110,931030,182000,900030,910900,910100,939090,900091,592000,910200,920001,939030,939020,931090,931041,931042,900040) THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (791909,561013,552000,551022,551023,551021,551010,562099,561014,561019,551090,791901,791200,791100,561012,561011,561030,562091,562010,561020,561040) THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (432110,431210,439990,432920,439100,433030,429090,410021,410011,421000,429010,422200,431100,432910,432990,332000,711009,711001,433090,433010,422100,431220,432200,433020,439910) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (432190) THEN 'INGENIERIAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (691002,691001) THEN 'LEGALES/ABOGACIA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (331290,331210,331900,16113,16112,813000,812020,331101,331400,331301,331220,949920,812010,811000,812090) THEN 'LIMPIEZA Y MANTENIMIENTO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (732000,731001,731009) THEN 'MARKETING Y PUBLICIDAD'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (351310,351320,89900,81300,62000,72910,71000,72990,89110,89120,72100,61000,192000,466121,351130,351190,351110,351120,91000,99000,711002,353001,81400,360010,360020,352020,352010) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (801090,9,181109,7,433040,952910,952990,952920,952300,742000,749002,749003,749001,16291,12,11,181200) THEN 'OFICIOS Y OTROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (639100,581300,581900,602100,601000,181101,639900,602320,581100,602310,602200,602900,581200) THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (110100,239421,108000,242010,110420,110492,107301,239422,239410,110300,120091,107991,101030,107110,110491,239591,104020,107410,107420,102002,107999,107309,107129,120099,105090,105020,110290,107930,105030,107121,103012,107912,110411,81200,221909,281900,201300,201210,252000,239593,239399,259302,323001,162902,170910,170990,239310,162901,309200,321020,201220,281201,259992,251101,329030,170202,259309,281400,202907,201140,281301,202320,201120,231010,259910,222010,329040,329020,202906,203000,201110,162100,281500,322001,202312,321011,324000,239201,329010,282300,282500,282901,281600,281700,282909,201130,201409,201180,201190,210010,210020,239510,310020,310010,282200,239391,321012,170201,170102,170101,202200,202311,239209,239100,162903,210090,162909,231090,259999,259993,251102,239900,222090,242090,202908,162300,201401,239202,110412,310030,251200,259991,282110,162202,241009,231020,259100,243100,243200,329090,241001,109000,204000,952200,104013,104011,101040,104012,102001,103091,103099,103030,103011,105010,101020,101099,101012,101011,101040,101091,106131,106120,106110,106139,106200,107200,107930,107911,107920,107992,110211,110212,202101,282120,282130,161001,161002,103020,162201,282400,239592,259200,251300,239600,210030,107500,191000,259301,282600,120010,102003,101013) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (780000) THEN 'RECURSOS HUMANOS Y CAPACITACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (721020,712000,863300,862110,931050,870100,862130,864000,702010,861020,861010,862120,863110,863190,863120,869010,862200,869090,870990,750000,870210,870910,870220,863200,870920,880000,970000) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (641100,842400,10,841900,842100,842200,910300,843000,16111,842500,841100,842300,841300,841200) THEN 'SECTOR PUBLICO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (653000,652000,662090,651210,662020,651120,651220,651130,651320,651110,651310) THEN 'SEGUROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (390000,381100,381200,382010,382020,370000) THEN 'SERVICIOS DE MANEJO DE RESIDUOS Y DE REMEDIACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949200,949100,990000) THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (681020,681010,682099,681099,681098,682091,682010) THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (960910,960201,960202,960990,960101,960300,960102) THEN 'SERVICIOS PERSONALES (SECTOR A INCORPORAR EN TAXONOMIA DE TYP) POSICION 96 DE LA LETRA S (FUENTE: CLAE AFIP)'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (279000,262000,264000,263000,721010,631200,952100,951200,951100,620200,620100,620300,620900,611010,614010,801020,619000,613000,614090,611090,612000,711003,631190,631120,631110,271020,271010,266010,266090,265101,265200,267002,265102,268000,261000,267001,266010,266090,272000,274000,275091,275020,273110,275099,275092,273190,275010 ) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (131300,141130,141140,141120,141110,141191,139209,139204,131132,131131,131139,143010,143020,139900,131202,131209,131201,149000,142000,131120,131110,139400,139202,139203,139201,139100,139300,151100,141191,141199,141201,141202,152040,152011,152031,152021,151200) THEN 'TEXTIL'
+END sector_productivo
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas"
+WHERE (cod_actividad_afip_o_naes IS NOT NULL OR LENGTH(TRIM(TRY_CAST(cod_actividad_afip_o_naes AS VARCHAR))) <> 0)
+GROUP BY 1,2
+),
+--portal_empleo_mtr_industry_sectors
+inds AS (
+SELECT
+isec.code AS codigo_mtr,
+CASE
+    WHEN TRY_CAST(isec.code AS INT) IN (1143) THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN TRY_CAST(isec.code AS INT) IN (558,1773,701) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN TRY_CAST(isec.code AS INT) IN (2723) THEN 'ADUANA Y COMERCIO EXTERIOR'
+    WHEN TRY_CAST(isec.code AS INT) IN (1174) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
+    WHEN TRY_CAST(isec.code AS INT) IN (2888) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN TRY_CAST(isec.code AS INT) IN (16) THEN 'DISEÃO'
+    WHEN TRY_CAST(isec.code AS INT) IN (18) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN TRY_CAST(isec.code AS INT) IN (25) THEN  'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN TRY_CAST(isec.code AS INT) IN (4) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN TRY_CAST(isec.code AS INT) IN (648) THEN 'INGENIERIAS'
+    WHEN TRY_CAST(isec.code AS INT) IN (601) THEN 'LEGALES/ABOGACIA'
+    WHEN TRY_CAST(isec.code AS INT) IN (45) THEN 'MARKETING Y PUBLICIDAD'
+    WHEN TRY_CAST(isec.code AS INT) IN (19) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN TRY_CAST(isec.code AS INT) IN (1108) THEN 'OFICIOS Y OTROS'
+    WHEN TRY_CAST(isec.code AS INT) IN (734) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN TRY_CAST(isec.code AS INT) IN (590) THEN 'RECURSOS HUMANOS Y CAPACITACION'
+    WHEN TRY_CAST(isec.code AS INT) IN (48) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN TRY_CAST(isec.code AS INT) IN (2889,2890,2891) THEN 'SECTOR PUBLICO'
+    WHEN TRY_CAST(isec.code AS INT) IN (49) THEN 'SEGUROS'
+    WHEN TRY_CAST(isec.code AS INT) IN (32) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+END sector_productivo
+FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_industry_sectors" isec
+),
+sp AS (
+SELECT
+sector_productivo
+FROM clae
+WHERE sector_productivo IS NOT NULL
+GROUP BY sector_productivo
+ORDER BY sector_productivo
+)
+SELECT
+row_number() OVER () AS id_sector_productivo,
+sector_productivo
+FROM sp
+
+
+
+-- Copy of 2023.05.12 step 24 - consume_registro_laboral_formal (Vcliente).sql 
 
 
 
@@ -7406,7 +7287,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.28 step 24 - staging entrevista (Vcliente).sql 
+-- Copy of 2023.05.12 step 25 - staging entrevista (Vcliente).sql 
 
 
 
@@ -7654,7 +7535,7 @@ GROUP BY
 
 
 
--- Copy of 2023.04.28 step 25 - consume entrevista (Vcliente).sql 
+-- Copy of 2023.05.12 step 26 - consume entrevista (Vcliente).sql 
 
 
 
@@ -7674,13 +7555,13 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_entrevista"
 
 
 
--- Copy of 2023.04.28 step 26 - consume organizaciones (Vcliente).sql 
+-- Copy of 2023.05.12 step 27 - staging organizaciones (Vcliente).sql 
 
 
 
 -- 1.-- Crear tabla tmp de organizaciones
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_organizaciones`;
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones" AS
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_organizaciones`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_organizaciones" AS
 --Se obtiene el "CUIT" de las organizaciones de las fuentes de registro laboral formal y oportunidades laborales
 WITH rlf_op AS (
 SELECT
@@ -7715,7 +7596,7 @@ FROM rlf_op1
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral" ol ON (ol.organizacion_empleadora_cuit = rlf_op1.cuit_del_empleador)
 GROUP BY 1,2,3
 )
---Se agregan los campos "estado" y "ente_gubernamental"
+--Se agregan los campos "id_organizacion","estado" y "ente_gubernamental"
 SELECT
 rlf_op2.cuit_del_empleador AS cuit,
 rlf_op2.razon_social_old,
@@ -7729,7 +7610,276 @@ FROM rlf_op2
 
 
 
--- Copy of 2023.04.28 step 27 - consume sector_estrategico (Vcliente).sql 
+-- Copy of 2023.05.12 step 28 - staging experiencia_laboral (Vcliente).sql 
+
+
+
+-- Crear tabla tmp de experiencia laboral dentro del cv
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral_1`;
+
+ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral_1" AS
+	SELECT
+		'PORTALEMPLEO' base_origen,
+		CAST(j.id AS VARCHAR) AS id_old,
+		CAST(j.curriculum_id AS VARCHAR) AS id_cv_old,
+		TRY_CAST(j.start_date AS DATE) AS fecha_desde,
+		TRY_CAST(j.end_date AS DATE) AS fecha_hasta,
+		CAST(j.company AS VARCHAR) AS empresa,
+		CAST(j.task_description AS VARCHAR) AS descripcion_empleo,
+		CAST(j.position AS VARCHAR) AS posicion,
+		CASE WHEN j.end_date IS NULL THEN '0' ELSE '1' END trabajo_actual,
+		CAST(cv.candidate_id AS VARCHAR) AS id_candidato
+	FROM "caba-piba-raw-zone-db"."portal_empleo_jobs" j
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv ON (j.curriculum_id=cv.id)
+		JOIN  "caba-piba-raw-zone-db"."portal_empleo_candidates" c ON (c.id=cv.candidate_id)
+	GROUP BY
+		CAST(j.id AS VARCHAR),
+		CAST(j.curriculum_id AS VARCHAR),
+		TRY_CAST(j.start_date AS DATE),
+		TRY_CAST(j.end_date AS DATE),
+		CAST(j.company AS VARCHAR),
+		CAST(j.task_description AS VARCHAR),
+		CAST(j.position AS VARCHAR),
+		CASE WHEN j.end_date IS NULL THEN '0' ELSE '1' END,
+		CAST(cv.candidate_id AS VARCHAR)
+	UNION
+	SELECT
+		'CRMEMPLEO' base_origen,
+		CAST(el.id AS VARCHAR) AS id_old,
+		CAST(e.id AS VARCHAR) AS id_cv_old,
+		TRY_CAST(el.fecha_inicio__c AS DATE),
+		TRY_CAST(el.fecha_fin__c AS DATE),
+		CAST(el.empresa__c AS VARCHAR),
+		CAST(el.descripcion_de_tareas__c AS VARCHAR),
+		CAST(el.puesto__c AS VARCHAR),
+		CASE WHEN CAST(el.trabajo_actual__c AS VARCHAR) = 'false' THEN '0' ELSE '1' END,
+		CAST(el.postulante__c AS VARCHAR)
+	FROM "caba-piba-raw-zone-db"."crm_empleo_experiencia_laboral__c" el
+	INNER JOIN "caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e ON (
+		el.postulante__c = e.postulante__c
+		AND e.dni__c IS NOT NULL
+	)
+	GROUP BY
+		CAST(el.id AS VARCHAR),
+		CAST(e.id AS VARCHAR),
+		TRY_CAST(el.fecha_inicio__c AS DATE),
+		TRY_CAST(el.fecha_fin__c AS DATE),
+		CAST(el.empresa__c AS VARCHAR),
+		CAST(el.descripcion_de_tareas__c AS VARCHAR),
+		CAST(el.puesto__c AS VARCHAR),
+		CASE WHEN CAST(el.trabajo_actual__c AS VARCHAR) = 'false' THEN '0' ELSE '1' END,
+		CAST(el.postulante__c AS VARCHAR)
+	UNION
+	SELECT
+		'CRMSL' base_origen,
+		CAST(ecc.id AS VARCHAR) AS id_old,
+		CAST(ecc.id AS VARCHAR) AS id_cv_old,
+		TRY_CAST(ecc.fecha_inicio_trabajo AS DATE),
+		TRY_CAST(ecc.fecha_fin AS DATE),
+		CAST(ecc.nombre_empresa AS VARCHAR),
+		CAST(ecc.description AS VARCHAR),
+		CAST(ecc.puesto AS VARCHAR),
+		CASE WHEN CAST(ecc.trabaja_actualmente AS VARCHAR) = 'false' THEN '0' ELSE '1' END,
+		CAST(cc.id_c  AS VARCHAR)
+	FROM "caba-piba-raw-zone-db"."crm_sociolaboral_re_experiencia_laboral" ecc
+	JOIN  "caba-piba-raw-zone-db"."crm_sociolaboral_re_experiencia_laboral_contacts_c" c ON (c.re_experiencia_laboral_contactsre_experiencia_laboral_idb = ecc.id)
+	JOIN  "caba-piba-raw-zone-db"."crm_sociolaboral_contacts_cstm" cc ON (cc.id_c = c.re_experiencia_laboral_contactscontacts_ida)
+	GROUP BY
+		CAST(ecc.id AS VARCHAR),
+		TRY_CAST(ecc.fecha_inicio_trabajo AS DATE),
+		TRY_CAST(ecc.fecha_fin AS DATE),
+		CAST(ecc.nombre_empresa AS VARCHAR),
+		CAST(ecc.description AS VARCHAR),
+		CAST(ecc.puesto AS VARCHAR),
+		CASE WHEN CAST(ecc.trabaja_actualmente AS VARCHAR) = 'false' THEN '0' ELSE '1' END,
+				CAST(cc.id_c  AS VARCHAR)
+
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral" AS
+WITH aux AS (
+SELECT
+base_origen,
+id_old,
+id_cv_old,
+fecha_desde,
+fecha_hasta,
+empresa,
+UPPER(TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(COALESCE("empresa", 'OTRA EXPERIENCIA'), '[\\\\|_-]', ' '), ',|/', ' y '), '[^a-zA-Z0-9Ã¡Ã©Ã­Ã³ÃºÃÃÃÃÃÃ±Ã ]', ''), ' +', ' '), '\+', ' '), '1/2', 'medio '), '100\%', ''), '^ ', ''), ' $'))) empresa_limpia,
+descripcion_empleo,
+posicion,
+UPPER(TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE("posicion", '[\\\\|_-]', ' '), ',|/', ' y '), '[^a-zA-Z0-9Ã¡Ã©Ã­Ã³ÃºÃÃÃÃÃÃ±Ã ]', ''), ' +', ' '), '\+', ' '), '1/2', 'medio '), '3Âº', '3ER '), '^ ', ''), ' $'))) posicion_limpia,
+trabajo_actual,
+id_candidato
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral_1" )
+SELECT
+	base_origen,
+	id_old,
+	id_cv_old,
+	CASE
+	WHEN YEAR(fecha_desde)<1940 OR YEAR(fecha_desde)>(YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE) ELSE fecha_desde END AS fecha_desde,
+	CASE
+		WHEN YEAR(fecha_hasta)<1940 OR YEAR(fecha_hasta)>(YEAR(CURRENT_DATE)+1)  OR fecha_hasta<fecha_desde
+		THEN CAST(NULL AS DATE) ELSE fecha_hasta END AS fecha_hasta,
+	UPPER(empresa) AS empresa,
+	CASE
+		WHEN empresa_limpia IS NULL
+		OR LENGTH(REPLACE(empresa_limpia, ' ', ''))<3
+		OR empresa_limpia IN ('OTRAS EXPERIENCIAS','OTRAS TAREAS','OTRAS ÃREAS','OTRO','OTROS','OTROS OFICINISTAS','OTROS TRABAJOS ANTERIORES') THEN 'OTRA EXPERIENCIA'
+	ELSE  empresa_limpia END AS empresa_limpia,
+	UPPER(descripcion_empleo) AS descripcion_empleo,
+	UPPER(posicion) AS posicion,
+	CASE WHEN TRY_CAST(REPLACE(REPLACE(aux.posicion_limpia, ' ', ''), 'Y', '') AS BIGINT) IS NOT NULL THEN ''
+	WHEN LENGTH(REPLACE(aux.posicion_limpia, ' ', '')) < 4
+	AND REPLACE(aux.posicion_limpia, ' ', '') NOT IN ('DJ','DBA','DEV','CEO','CMO', 'BAR', 'ADM','CIO','JTP','KFC','PM','PMO','QA')
+	THEN ''
+	WHEN REPLACE(aux.posicion_limpia, ' ', '') IN ('NULL','AAAAA','AABB')  THEN ''
+	WHEN aux.posicion_limpia LIKE '0PERADOR INTERNOATENCION A CLIENTE' THEN 'OPERADOR INTERNOATENCION A CLIENTE'
+	WHEN aux.posicion_limpia LIKE '0PERARIO' THEN 'OPERARIO'
+	WHEN aux.posicion_limpia LIKE '1 ANALISTA 2 CONSULTOR' THEN 'ANALISTA Y CONSULTOR'
+	WHEN aux.posicion_limpia LIKE 'AAALISTA SR POR ANALISTA SR' THEN 'ANALISTA'
+	WHEN aux.posicion_limpia LIKE 'AAALISTA' THEN 'ANALISTA'
+	WHEN aux.posicion_limpia LIKE 'AADMINISTRACION' THEN 'ADMINISTRACION'
+	WHEN aux.posicion_limpia LIKE 'AADMINISTRATIVA SUPERIOR' THEN 'ADMINISTRATIVA SUPERIOR'
+	WHEN aux.posicion_limpia LIKE 'AALISTA COMERCIAL' THEN 'ANALISTA COMERCIAL'
+	WHEN aux.posicion_limpia LIKE 'AANLISTA CUENTAS A PAGAR' THEN 'ANALISTA CUENTAS A PAGAR'
+	WHEN aux.posicion_limpia LIKE 'AASISTENTE DE MARKETING' THEN 'ASISTENTE DE MARKETING'
+	WHEN aux.posicion_limpia LIKE 'AATENCION AL CLIENTE' THEN 'ATENCION AL CLIENTE'
+	WHEN aux.posicion_limpia LIKE 'AAUDITOR INSPECTOR' THEN 'AUDITOR INSPECTOR'
+	WHEN aux.posicion_limpia LIKE 'AAYUDANTE DE COCINA Y CAMARERA' THEN 'AYUDANTE DE COCINA Y CAMARERA'
+	WHEN aux.posicion_limpia IN ('OTROS', 'OTRAS ÃREAS', 'OTRAS EXPERIENCIAS', 'OTRAS TAREAS', 'OTROS TRABAJOS ANTERIORES')  THEN 'OTRO'
+    ELSE aux.posicion_limpia END AS posicion_limpia,
+	trabajo_actual,
+	id_candidato,
+
+	CASE
+	WHEN empresa_limpia IS NULL
+		OR LENGTH(REPLACE(empresa_limpia, ' ', ''))<3
+		OR empresa_limpia IN ('OTRAS EXPERIENCIAS','OTRAS TAREAS','OTRAS ÃREAS','OTRO','OTROS','OTROS OFICINISTAS','OTROS TRABAJOS ANTERIORES')
+		OR empresa_limpia IN ('01 Y 08 Y 2006', '01 Y 2008', '0KM', '100 BANCO', '1127811047', '16 12', '1810', '1816', '1EN1', '2 A SA', '2 AS', '2000', '20006', '2015', '2015 2019', '2019', '2080', '214', '2211', '225', '24CON', '257', '3080', '314', '365', '451', '6720', '747', 'A 1500', 'A 53', 'A COAST AUDIOVISUAL FREELANCE', 'A24', 'ABOGADA EN FORMA INDEPENDIENTE', 'ABOGADA FREE LANCE', 'ABOGADA INDEPENDIENTE', 'ABOGADA INDEPENDIENTE Y DOCENTE UBA', 'ABOGADA PARTICULAR', 'ABOGADO ASOCIADO INDEPENDIENTE', 'ABOGADO FREELANCER', 'ABOGADO INDEPENDIENTE', 'ABOGADO PARTICULAR', 'ABOGADOS INDEPENDIENTES', 'ABRIL GOMEZ FOTOGRAFÃA INDEPENDIENTE', 'ACOMPAÃAMIENTO DOMICILIARIO', 'ACOMPAÃANTE NO TERAPÃUTICO PARTICULAR', 'ACTIVIDAD EN FORMA INDEPENDIENTE', 'ACTIVIDAD FREE LANCE', 'ACTIVIDAD INDEPENDIENTE', 'ACTIVIDAD POR CUENTA PROPIA', 'ACTIVIDAD PROFESIONAL INDEPENDIENTE', 'ACTIVIDADES FREELANCE', 'ACTIVIDADES PARTICULARES DE LA PROFESION', 'ADM CEN DE BARRIOS MILITARES DE BUENOS AIRES', 'ADMINISTRATIVA FREELANCE', 'ADMINISTRATIVO FREE LANCE', 'AE PHONE INDEPENDIENTE', 'AGENCIA DOS PUNTOS DIARIO EL SOL FREELANCE', 'AGRONE SECXTOR32 FREELANCE DISEÃADOR SEMISENIOR', 'AGUSTIN HIGINIO FREELANCE', 'AKIROS FREELANCE TÃCNICO EN ELECTRÃNICA', 'ALBAÃIL', 'ALBAÃILERIA', 'ALBAÃILERÃA', 'ALEGA SOCIEDAD DE POLICÃA PARTICULAR', 'ALMACEN DE BARRIO', 'ALMACEN DE BARRIO FAMILIAR', 'ALMACEN DE BARRIO MANYULA', 'ALMACENES PARTICULARES', 'ALMACÃN DE BARRIO', 'ALMACÃN PARTICULAR', 'ALMACÃS Y KIOSCO DE BARRIO', 'AMA DE CASA Y NIÃERA', 'AMBULANCIA PARTICULAR', 'ANDERSCH INGENIERIA SRL FREELANCE', 'ANGEL PARTICULAR', 'APOYO ESCOLAR PARTICULAR', 'AQUITECTO EN PARTICULAR', 'ARBITRO INDEPENDIENTE', 'ARGENCHINO INDEPENDIENTE', 'ARGENTINIAN EMPANADAS PROYECTO INDEPENDIENTE', 'ARMADO Y REPARACIÃN DE PC INDEPENDIENTE', 'ARMD SRL INTERNACION DOMICILIARIA', 'ARQ PARTICULAR', 'ARQ UITECTO INDEPENDIENTE', 'ARQTA SILVIA NAYA FREELANCE', 'ARQTO GABRIEL OMAR BARUDI FREELANCE', 'ARQUITECTA FREELANCE', 'ARQUITECTA INDEPENDIENTE', 'ARQUITECTA JR FREELANCE', 'ARQUITECTA PARTICULAR', 'ARQUITECTA PROYECTISTA FREELANCE', 'ARQUITECTO EN INDEPENDIENTE', 'ARQUITECTO EN LIBRE EJERCICIO FREELANCE', 'ARQUITECTO FREE LANCE', 'ARQUITECTO FREELANCE', 'ARQUITECTO FREELANCER', 'ARQUITECTO INDEPENDIENTE', 'ARQUITECTO INDEPENDIENTE HOMEOFFICE', 'ARQUITECTO INDEPENDIENTE ORLANDO DÃVILA', 'ARQUITECTURA FREELANCE', 'ARQUITECTURA FREELANCER', 'ARREGLO DE PC POR CUENTA PROPIA', 'ARTEREX PROYECTO INDEPENDIENTE', 'ARTISTA INDEPENDIENTE', 'ASEGURADORA INDEPENDIENTE', 'ASESOR INDEPENDIENTE', 'ASESOR TÃCNICO CONSULTOR FREELANCE', 'ASESORA INDEPENDIENTE', 'ASESORÃA INDEPENDIENTE', 'ASISTENCIA DE CASAS PARTICULARES', 'ASISTENCIA DOMICILIARIA', 'ASISTENCIA DOMICILIARIA PARTICULAR', 'ASISTENCIA PRIVADA ODONTOLOGICA', 'ASISTENCIA PRIVADA ODONTOLÃGICA', 'ASISTENTE CONTABLE PARTICULAR', 'ASOCIADO INDEPENDIENTE DE HERBALIFE', 'AT Y PARTICULAR', 'ATENCION DOMICILIARIA', 'ATENCION DOMICILIARIO', 'ATENCION PARTICULAR', 'ATENCIÃN AL CLIENTE FREELANCE', 'ATENCIÃN DOMICILIARIA ADULTOS MAYOREA', 'ATENCIÃN MÃDICA DOMICILIARIA', 'ATENCIÃN PARTICULAR', 'AUTOCADISTA INDEPENDIENTE', 'AUTOGESTIVO Y INDEPENDIENTE', 'AUTONOMA FREELANCE', 'AUTONOMO FREE LANCE', 'AUTONOMO INDEPENDIENTE', 'AUTÃNOMA Y POR CUENTA PROPIA', 'AUTÃNOMO FREELANCE', 'AUXILIAR DE CASA PARTICULARES', 'AUXILIAR DE CASAS PARTICULARES', 'AYUDANTE DE CONTADOR FREELANCE', 'AYUDAR SALUD INTERNACIÃN DOMICILIARIA', 'BAJO CONTRATISTA E INDEPENDIENTE', 'BANKHOUSE SA Y NEGOCIOS INMOBILIARIOS FREELANCE', 'BAR INDEPENDIENTE', 'BARBERO POR MI CUENTA', 'BARMANAGER FREELANCE', 'BARRIO CERRADO', 'BARRIO CERRADO LA HERRADURA PINAMAR', 'BARRIO CERRADO SOBRE RUTA 2', 'BARRIO CHINO', 'BARRIO LA BOCA', 'BARRIO LA PODEROSA', 'BARRIO NORTE', 'BARRIO NUEVO ACOSTA', 'BARRIO NUEVO BARRIO TRICOLOR', 'BARRIO PAMI PALMIRO VALONI', 'BARRIO PAMPA AMBA', 'BARRIO PARQUE FUTBOL CLUB SA', 'BARRIO PRIVADO CANNING', 'BARRIO PRIVADO CORTIJO', 'BARRIO PRIVADO SOL LELOIR', 'BARRIO PRIVADO TERRALAGOS', 'BARRIO QUINTA FERRE Y PROV CORRIENTES', 'BARRIO SANTA MARIA NORTE', 'BARRIO SEPTIEMBRE SA', 'BARRIO UNIVRSITARIO', 'BAZAR Y REGALERÃA BARRIO CHINO', 'BIBLIOTECA PARTICULAR', 'BILINGUAL FREELANCE', 'BOLIVIA HOSPITAL Y PARTICULAR', 'BORDER CREATIVA FREELANCE', 'BRANDING Y MARKETING FREELANCE', 'CADETE EN SERVICIOS DE CADETERÃA PARTICULAR', 'CADETE FREELANCE EN CADETE CON MOTO', 'CADETE INDEPENDIENTE EN MOTO', 'CADISTA 2D FREELANCE', 'CADISTA FREE LANCE', 'CADISTA FREELANCE', 'CADISTA INDEPENDIENTE', 'CAFETERIA DE BARRIO', 'CAMPEONATO ALTO NONO', 'CAMPEONATO MUNDIAL DE MOTOCICLISMO MOTO GP', 'CAPACITACIÃN FREELANCE', 'CARNICERÃA', 'CARPINTERIA', 'CARPINTERÃA FREELANCE', 'CASA DE FAMILIA NIÃERA', 'CASA DE FAMILIA PARTICULAR', 'CASA DE PARTICULAR', 'CASA PARTICULAR', 'CASA PARTICULAR ACASUSSO SRA MARIA VIRGINIA', 'CASA PARTICULAR BARRIO SAN BENITO BENAVIDEZ', 'CASA PARTICULAR EN PARAGUAY', 'CASA PARTICULAR FAMILIAR', 'CASA PARTICULAR FLORIDA', 'CASA PARTICULAR GRAND BOURG', 'CASA PARTICULAR LOS POLVORINES', 'CASA PARTICULAR MONSEÃOR MIGUEL DE ANDREA', 'CASA PARTICULAR SAN MIGUEL Y BUENOS AIRES', 'CASA PARTICULAR TALAR DE PACHECO', 'CASA PARTICULAR TORTUGUITAS', 'CASA PARTICULAR VICTORIA SAN ISIDRO', 'CASA PARTICULAR Y LAPRIDA', 'CASA PARTICULARES', 'CASA PARTICULARES Y CLINICAS EH HOSPITALES', 'CASAS DE FAMILIA Y EDIFICIOS Y OFICINAS', 'CASAS DE FAMILIA Y OFICINA', 'CASAS DE FAMILIA Y OFICINAS', 'CASAS PARTICULAR', 'CASAS PARTICULARES', 'CASAS PARTICULARES BOSQUES', 'CASAS PARTICULARES FAMILIARES', 'CASAS PARTICULARES Y CAFÃ BAR ZURICH', 'CASAS PARTICULARES Y DEPARTAMENTOS', 'CASAS PARTICULARES Y EVENTOS', 'CASAS Y OFICINAS', 'CASES PARTICULARES', 'CASO PARTICULAR', 'CASO PARTICULAR EN DOMICILIO', 'CATERING PARTICULAR', 'CEA Y PARTICULAR', 'CENTRO DE DÃA CISAM Y CONSULTORIO PARTICULAR', 'CENTRO DE ESTUDIANTE DE INGENIERÃA', 'CENTRO DE ESTUDIANTES', 'CENTRO DE ESTUDIANTES CBC', 'CENTRO DE ESTUDIANTES DE ARTES VISUALES', 'CENTRO DE ESTUDIANTES DE CIENCIAS ECONÃMICAS', 'CENTRO DE ESTUDIANTES DE CIENCIAS MÃDICAS', 'CENTRO DE ESTUDIANTES DE CIENCIAS SOCIALES CECSO', 'CENTRO DE ESTUDIANTES DE CIENCIAS SOCIALES UBA', 'CENTRO DE ESTUDIANTES DE CS POL Y RRII UCA', 'CENTRO DE ESTUDIANTES DE EXACTAS', 'CENTRO DE ESTUDIANTES DE INGENIERIA ELECTRONICA', 'CENTRO DE ESTUDIANTES DE INGENIERÃA ELECTRÃNICA', 'CENTRO DE ESTUDIANTES DE LA UNA', 'CENTRO DE ESTUDIANTES DE LA UNQUI', 'CENTRO DE ESTUDIANTES DE PSICOLOGÃA', 'CENTRO DE ESTUDIANTES DE UNIVERSIDAD', 'CENTRO DE ESTUDIANTES DE VETERINARIA', 'CENTRO DE ESTUDIANTES EN UNQ', 'CENTRO DE ESTUDIANTES EOS27', 'CENTRO DE ESTUDIANTES FACULTAD DE INGENIERÃA', 'CENTRO DE ESTUDIANTES PSICOLOGIA CEP', 'CENTRO DE ESTUDIANTES UCA DERECHO ROSARIO', 'CENTRO DE ESTUDIANTES UNQ', 'CENTRO EDUCATIVO INDEPENDIENTE', 'CENTRO ESTUDIANTIL FADU', 'CENTRO ESTUDIANTIL NO OFICIAL', 'CENTRO PSICOPESPACIOS Y DE FORMA INDEPENDIENTE', 'CERRAJERÃA', 'CERVECERIA', 'CERVECERÃA', 'CHRISTIAN VELEZ FREELANCE', 'CHURRERÃA', 'CINE INDEPENDIENTE MON AMOUR', 'CLASE PARTICULARES', 'CLASES COMO PROFESOR PARTICULAR', 'CLASES DE APOYO INDEPENDIENTE', 'CLASES PARTICULAR DE INGLES', 'CLASES PARTICULARE DE MUSICA', 'CLASES PARTICULARES', 'CLASES PARTICULARES DE APOYO ESCOLAR', 'CLASES PARTICULARES DE INGLES', 'CLASES PARTICULARES DE INGLÃS', 'CLASES PARTICULARES DE INGLÃS FREELANCE', 'CLASES PARTICULARES DE LENGUA Y LITERATURA', 'CLASES PARTICULARES DE MANERA INDEPENDIENTE', 'CLASES PARTICULARES DE MATEMÃTICA', 'CLASES PARTICULARES DE MÃSICA', 'CLASES PARTICULARES DE PIANO', 'CLASES PARTICULARES DE PLASTICA', 'CLASES PARTICULARES DE QUÃMICA', 'CLASES PARTICULARES DIBUJO Y PINTURA', 'CLASES PARTICULARES EN MI DOMICILIO', 'CLASES PARTICULARES INDEPENDIENTE', 'CLASES PARTICULARES INGLÃS', 'CLASES PARTICULARES MATEMÃTICAS', 'CLASES PARTICULARES SECUNDARIO Y UNIVERSITARIO', 'CLASES PARTICULARES TODOS LOS NIVELES', 'CLASES PARTICULARES Y DE APOYO ESCOLAR', 'CLASES PARTICULARES Y GRUPALES', 'CLIENTE PARTICULAR', 'CLIENTES PARTICULARES', 'CLINICA MEDICA PARTICULAR', 'CLUB DE BARRIO', 'COARQ FREELANCE', 'COCINA PROPIA', 'CODESAR Y PARTICULAR', 'COLEGIO PARTICULAR MIXTO IBEMA', 'COLEGIO PARTICULAR TÃCNICO CUISSINE', 'COMERCIANTE INDEPENDIENTE', 'COMERCIO DE BARRIO', 'COMERCIO ELECTRÃNICO FREE LANCE', 'COMERCIO INDEPENDIENTE', 'COMERCIO PARTICULAR', 'COMITENTE PARTICULAR MDP', 'COMMUNITY MANAGER FREE LANCE', 'COMMUNITY MANAGER FREELANCE', 'COMO ANTES', 'COMPAÃIA 360 Y INDEPENDIENTE', 'COMPAÃÃA INDEPENDIENTE CASTADIVA', 'COMPUTACIÃN INDEPENDIENTE', 'COMUNICADORA FREELANCE', 'CONFECCIÃN DE ROPA INDEPENDIENTE', 'CONGRESOS MÃDICOS FREELANCE', 'CONSTRUCCION INDEPENDIENTE', 'CONSTRUCCIONES INDEPENDIENTES', 'CONSTRUCTOR INDEPENDIENTE', 'CONSTRUCTOR INDEPENDIENTE GERMÃN CHICO UBALDE', 'CONSTRUCTOR Y PROYECTISTA INDEPENDIENTE', 'CONSTRUCTORA DIPCA CASA PROPIA BIENES Y RAICES', 'CONSTRUCTORA INDEPENDIENTE', 'CONSULTOR ECONOMÃCO INDEPENDIENTE', 'CONSULTOR EMPRENDEDOR PROFESIONAL INDEPENDIENTE', 'CONSULTOR FREELANCE', 'CONSULTOR INDEPENDIENTE', 'CONSULTOR IT FREELANCE', 'CONSULTOR IT INDEPENDIENTE', 'CONSULTOR PARTICULAR', 'CONSULTOR PROFESIONAL INDEPENDIENTE DE SISTEMAS', 'CONSULTOR TI FREELANCE', 'CONSULTOR Y FREELANCER EN COMUNICACIONES Y MEDIOS', 'CONSULTORA DE RRHH INDEPENDIENTE', 'CONSULTORA FREELANCE', 'CONSULTORA INDEPENDIENTE', 'CONSULTORA PRIVADA', 'CONSULTORA PRIVADA DE FINANZAS', 'CONSULTORA PROPIA', 'CONSULTORAS PRIVADAS', 'CONSULTORES AMBIENTALES INDEPENDIENTES', 'CONSULTORES INDEPENDIENTES', 'CONSULTORIA FREE LANCE', 'CONSULTORIA INDEPENDIENTE', 'CONSULTORIA INDEPENDIENTE FREELANCE', 'CONSULTORIA IT INDEPENDIENTE', 'CONSULTORIO CLÃNICA PRIVADA', 'CONSULTORIO CLÃNICA PRIVADA FIBROCEMENTO', 'CONSULTORIO DE MEDICINA PRIVADA', 'CONSULTORIO MEDICO PARTICULAR', 'CONSULTORIO MÃDICA PARTICULAR', 'CONSULTORIO MÃDICO INDEPENDIENTE', 'CONSULTORIO MÃDICO PARTICULAR', 'CONSULTORIO MÃDICO PARTICULAR DR LUIS TROMBETTA', 'CONSULTORIO MÃDICO PARTICULAR DR ROMERO', 'CONSULTORIO MÃDICO PARTICULAR PAMI', 'CONSULTORIO MÃDICO TOCO GINECOLÃGICO PARTICULAR', 'CONSULTORIO ODONTOLGICO PARTICULAR', 'CONSULTORIO ODONTOLOGICO PARTICULAR', 'CONSULTORIO ODONTOLÃGICO PARTICULAR', 'CONSULTORIO PARTICULAR', 'CONSULTORIO PARTICULAR BELLA VISTA', 'CONSULTORIO PARTICULAR DE GINECOLOGÃA', 'CONSULTORIO PARTICULAR DE ODONTOLOGÃA', 'CONSULTORIO PARTICULAR DE PSIQUIATRIA', 'CONSULTORIO PARTICULAR DOCOTR PATOCCI', 'CONSULTORIO PARTICULAR DOCTOR CARRANO', 'CONSULTORIO PARTICULAR DR ARIEL RANTZ', 'CONSULTORIO PARTICULAR DR CASSAGNET ENRIQUE', 'CONSULTORIO PARTICULAR DR RUBÃN MORA', 'CONSULTORIO PARTICULAR DR TARNOVSKY', 'CONSULTORIO PARTICULAR DRA ANA GARAY', 'CONSULTORIO PARTICULAR DRA DIANA VACCA', 'CONSULTORIO PARTICULAR DRA MALDONADO', 'CONSULTORIO PARTICULAR DRA MASCARINI ANALIA', 'CONSULTORIO PARTICULAR ELDA MARTA PALACIOS', 'CONSULTORIO PARTICULAR GINECOLÃGICO', 'CONSULTORIO PARTICULAR INDEPENDIENTE', 'CONSULTORIO PARTICULAR KINESIOLOGIA', 'CONSULTORIO PARTICULAR LIC MÃNICA RUSSO', 'CONSULTORIO PARTICULAR NUTRICIÃN', 'CONSULTORIO PARTICULAR ODONTOLOGICO', 'CONSULTORIO PARTICULAR PSICOLOGICO', 'CONSULTORIO PEDIÃTRICO PARTICULAR', 'CONSULTORIO PEDRIATRICO PARTICULAR DRA UNGARO', 'CONSULTORIO PROFESIONAL INDEPENDIENTE', 'CONSULTORIO PSICOLOGICO PARTICULAR', 'CONSULTORIO Y CLÃNICA PRIVADA', 'CONSULTORIOS BARRIO NORTE', 'CONSULTORÃA FREE LANCE', 'CONSULTORÃA INDEPENDIENTE', 'CONSULTORÃA INDEPENDIENTE EN REDES SOCIALES', 'CONSULTORÃA PARTICULAR', 'CONSULTORÃA PRIVADA DE ENERGÃA', 'CONSUTORIO MÃDICO PARTICULAR', 'CONTADOR INDEPENDIENTE', 'CONTADOR INDEPENDIENTE Y MAURICIO ACOSTA', 'CONTADOR PUBLICO INDEPENDIENTE', 'CONTADOR PÃBLICO INDEPENDIENTE', 'CONTADORA INDEPENDIENTE', 'CONTADORA PARTICULAR', 'CONTADORA PUBLICA INDEPENDIENTE', 'CONTADORA PÃBLICA INDEPENDIENTE', 'CONTADORES INDEPENDIENTES', 'CONTADURÃA PRIVADA', 'CONTRATISTA INDEPENDIENTE', 'CONTRATISTA PARTICULAR', 'CONTRATISTACUENTA PROPIA', 'CONTRATO INDEPENDIENTE', 'CONVENIO ENTRE FADU Y GCBA BARRIO 31', 'CONVENIO GBA FADU Y VTV BARRIO 31', 'COOPERATIVA PROPIA', 'COORDINADA POR LIC PARTICULAR', 'CORMI CUENTA', 'CORRECTORA LITERARIA FREELANCE', 'CORREDOR DE MAT ELÃCTRICOS PARTICULAR', 'CORREDOR INMOBILIARIO INDEPENDIENTE', 'CORREDOR TEXTIL INDEPENDIENTE', 'CORRIENTE VILLERA INDEPENDIENTE', 'CORTOMETRAJE INDEPENDIENTE', 'COSULTORIO MÃDICO PARTICULAR', 'CREADOR AUDIOVISUAL INDEPENDIENTE', 'CROSS INFORMATICA FREELANCE', 'CUENTA PROPIA', 'CUENTA PROPIA CON AMIGOS', 'CUENTA PROPIA CONTADOR', 'CUENTAPROPIA', 'CUETA PROPIA', 'CUIDADO', 'CUIDADO A DOMICILIO', 'CUIDADO AL ADULTO MAYOR', 'CUIDADO DE ABUELOS', 'CUIDADO DE ADULTO MAYOR', 'CUIDADO DE ADULTOS MAYORES', 'CUIDADO DE ANCIANO', 'CUIDADO DE ANCIANOS', 'CUIDADO DE INFANTES', 'CUIDADO DE MENORES', 'CUIDADO DE NIÃO', 'CUIDADO DE NIÃOS', 'CUIDADO DE NIÃOS DE MANERA PARTICULAR', 'CUIDADO DE NIÃOS INDEPENDIENTE', 'CUIDADO DE NIÃOS NIÃERA PEDAGOGICA', 'CUIDADO DE NIÃOS VARRIAL', 'CUIDADO DE NIÃOS Y LIMPIEZA GENERAL DEL HOGAR', 'CUIDADO DE NIÃXS', 'CUIDADO DE PACIENTES A DOMICILIO', 'CUIDADO DE PERSONA', 'CUIDADO DE PERSONA MAYOR', 'CUIDADO DE PERSONA MAYOR EN HOGAR', 'CUIDADO DE PERSONAS', 'CUIDADO DE PERSONAS DE LA TERCERA EDAD', 'CUIDADO DE PERSONAS ESPECIALES', 'CUIDADO DE PERSONAS MAYORES', 'CUIDADO DE PERSONAS NIÃOS', 'CUIDADO DE PERSONAS Y LIMPIEZA', 'CUIDADO DEL ADULTO Y EL ANCIANO PRACTICAS', 'CUIDADO DOMICILIARIO', 'CUIDADO DOMICILIARIOS', 'CUIDADO EN CASA PARTICULAR', 'CUIDADO EN DOMICILIO', 'CUIDADO EN DOMICILIO PARTICULAR', 'CUIDADO INFANTIL', 'CUIDADO TERAPEUTICO', 'CUIDADO Y ACOMPAÃAMIENTO', 'CUIDADO Y ACOMPAÃAMIENTO DE ADULTOS MAYORES', 'CUIDADO Y ACOMPAÃANTE DE ADULTO MAYOR', 'CUIDADO Y ASISTENCIA DE PERSONAS', 'CUIDADO Y ATENCION DE PERSONA MAYOR DE EDAD', 'CUIDADO Y CADETERIA PARA PERSONA MAYOR', 'CUIDADODEADULTOMAYOR', 'CUIDADOR', 'CUIDADOR DE PERSONAS NIÃERA', 'CUIDADOR DOMICILIARIO', 'CUIDADOR DOMICILIARIO POR CUENTA PROPIA', 'CUIDADOR PARTICULAR DOMICIIARIO', 'CUIDADOR TRABAJO AUTÃNOMO', 'CUIDADOR Y A DE NIÃOS', 'CUIDADORA', 'CUIDADORA A DOMICILIO', 'CUIDADORA ADULTOS MAYORES PARTICULAR', 'CUIDADORA ASISTENCIAL', 'CUIDADORA DE ADULTO MAYOR', 'CUIDADORA DE ADULTO MAYOR Y MENORES DE EDAD', 'CUIDADORA DE ADULTOS', 'CUIDADORA DE CHICOS', 'CUIDADORA DE MAYORES DE EDAD', 'CUIDADORA DE NENES Y ADULTOS', 'CUIDADORA DE NIÃA ESPECIAL AUTISTA', 'CUIDADORA DE NIÃOS', 'CUIDADORA DE PACIENTES A DOMICILIO', 'CUIDADORA DE PERROS', 'CUIDADORA DE PERSOMA MAYORES', 'CUIDADORA DE PERSONA', 'CUIDADORA DE PERSONA MAYOR', 'CUIDADORA DE PERSONAS', 'CUIDADORA DOMICILIARIA', 'CUIDADORA DOMICILIO', 'CUIDADORA ELIAS BUCAY JORGE BUCAY HIJO', 'CUIDADORA GERIATRICA PARTICULAR', 'CUIDADORA INDEPENDIENTE', 'CUIDADORA PARTICULAR', 'CUIDADORA PERSONAL CASA DE FAMILIA', 'CUIDADORAS', 'CUIDADORES DE ADULTO MAYOR', 'CUIDADORES Y AUXILIARES', 'CUIDADOS A DOMICILIO', 'CUIDADOS DE ADULTOS MAYOR', 'CUIDADOS DE ADULTOS MAYORES', 'CUIDADOS DE MENORES', 'CUIDADOS DE NIÃOS', 'CUIDADOS DE SALUD DOMICILIARIOS', 'CUIDADOS DEL ADULTO MAYOR', 'CUIDADOS DOMICILIARIO', 'CUIDADOS DOMICILIARIOS', 'CUIDADOS DOMICILIARIOS BETA', 'CUIDADOS DOMICILIARIOS PALIATIVOS', 'CUIDADOS DOMICILIARIOS SRL', 'CUIDADOS DOMICILIRIARIOS', 'CUIDADOS DOMICIRIARIOS', 'CUIDADOS PARTICULARES A PERSONAS ADULTAS', 'CUIDAR A UNA PERSONA MAYOR', 'CUIDAR PERSONAS MAYORES', 'CUPERTINO FREELANCE', 'CURSO INDEPENDIENTE DE FOTOGRAFÃA', 'CURSOS PARTICULARES', 'CÃTEDRA SAGGESE PARTICULAR UNA VISUALES', 'CÃNSULTORIO PARTICULAR', 'DAVK EMPRENDIMIENTO INDEPENDIENTE', 'DE CASAS Y OFICINAS', 'DE FORMA INDEPENDIENTE', 'DE FORMA PARTICULAR', 'DE MANERA INDEPENDIENTE', 'DE TODO UN POCO', 'DEE DEE DESIGN PROYECTO INDEPENDIENTE', 'DEISUR DUEÃO Y PERSONA QUE LACREO EMPRESA', 'DEL ESTADO', 'DEPARTAMENTO PARTICULAR', 'DEPENDENCIA PROPIA', 'DESARROLLADOR FREELANCE', 'DESARROLLADOR FREELANCER', 'DESARROLLADOR INDEPENDIENTE', 'DESARROLLO FREELANCE', 'DESARROLLO INDEPENDIENTE', 'DESARROLLO PERSONAL', 'DESARROLLO PERSONAL CONSULTORES DP Y CA', 'DESCONOCIDA Y PROPIA', 'DESDE 1981 A 2010', 'DESEMPEÃO INDEPENDIENTE', 'DESPENSA INDEPENDIENTE', 'DESPENSA Y FIAMBRERIA', 'DESPENSA Y FIAMBRERÃA', 'DESPENSA Y JUGUETERIA', 'DEVELOPER FREE LANCER', 'DG DISEÃO MARCA PERSONAL', 'DI ROSSA INDUMENTARIA FEMENINA MARCA PROPIA', 'DIBUJANTE FREE LANCE', 'DIBUJANTE FREELANCE', 'DIBUJANTE PARTICULAR', 'DIBUJANTE Y RENDERISTA FREELANCE', 'DIBUJANTE Y RENDERISTA INDEPENDIENTE', 'DIBUJO TECNICO FREELANCER', 'DICTADO DE CLASES PARTICULARES DE INGLÃS', 'DIRECCIÃN DE PERSONAL EJECUTIVO REGIONAL VZLA', 'DISEÃADOR DE INTERIORES FREELANCE', 'DISEÃADOR FREELANCE', 'DISEÃADOR GRAFICO FREELANCE', 'DISEÃADOR GRÃFICO FREELANCE', 'DISEÃADOR GRÃFICO FREELANCER', 'DISEÃADOR GRÃFICO INDEPENDIENTE', 'DISEÃADOR GRÃFICO SR INDEPENDIENTE', 'DISEÃADOR INDEPENDIENTE', 'DISEÃADOR MULTIMEDIAL FREELANCE', 'DISEÃADOR WEB FREELANCE', 'DISEÃADORA DE INTERIORES INDEPENDIENTE', 'DISEÃADORA FREELANCE', 'DISEÃADORA GRAFICA INDEPENDIENTE', 'DISEÃADORA GRÃFICA EN DISEÃO FREELANCE', 'DISEÃADORA GRÃFICA FREELANCE', 'DISEÃADORA INDEPENDIENTE', 'DISEÃADORA Y Y DIR DE ARTE FREELANCE', 'DISEÃO DE INTERIORES INDEPENDIENTE', 'DISEÃO DE VIVIENDA PARTICULAR', 'DISEÃO FREE LANCE', 'DISEÃO FREELANCE', 'DISEÃO GRAFICO FREELANCE', 'DISEÃO GRÃFICO E ILUSTRACIÃN FREELANCE', 'DISEÃO GRÃFICO FREELANCE', 'DISEÃO INDEPENDIENTE', 'DISEÃO INTERIOR FREELANCE', 'DISEÃO WEB FREELANCE', 'DISEÃORA GRÃFICA FREELANCE', 'DISEÃOS GRÃFICOS INDEPENDIENTES FREELANCE', 'DISTINTAS EMPRESAS DOMICILIARIAS', 'DISTRIBUIDORA INDEPENDIENTE', 'DIVERSAS EMPRESAS TEXTILES Y UNIPERSONAL', 'DOCENCIA EN OFICINA DE EMPLEOS', 'DOCENTE PARTICULAR', 'DOCUMENTACIÃN DE OBRA FREE LANCE', 'DOMICILIARIA', 'DOMICILIARIO', 'DOMICILIARIO Y INSTITUCIONAL', 'DOMICILIO PARTICULAR', 'DOMICILIO PERSONAL', 'DOMICILIO PERSONAL Y', 'DOÃA ÃRSULA SELECCIÃN DE PERSONAL DOMÃSTICO', 'DP PERSONAL DE EVENTOS', 'DSIEÃADORA FREELANCE', 'DURANTE', 'EDICIÃN FREELANCE', 'EDIFICIO PARTICULAR', 'EDUCACIÃN PARTICULAR', 'EJERCICIO INDEPENDIENTE', 'EJERCICIO INDEPENDIENTE DE LA PROFESION', 'EJERCICIO INDEPENDIENTE DE LA PROFESIÃN', 'EJERCICIO INDEPENDIENTEMENTE DE LA PROFESIÃN', 'EJERCICIO PARTICULAR', 'EJERCICIO PROFESIONAL INDEPENDIENTE', 'EKSPRESA FREELANCE', 'EL MERCADO EN TU BARRIO', 'ELECTRICISTA DOMICILIARIO', 'ELECTRICISTA INDEPENDIENTE', 'ELECTRICISTA OFICIAL CUENTA PROPIA', 'ELECTRICISTA PARTICULAR', 'ELECTRICISTA POR CUENTA PROPIA', 'ELECTRISISTA PARTICULAR', 'ELENCO DE TEATRO INDEPENDIENTE', 'ELLA', 'ELLA Y YO', 'ELÃCTRICISTA PARTICULAR', 'EMERGENCIAS DOMICILIARIAS', 'EMMESOL SERVICIOS DOMICILIARIOS', 'EMPLEADA DE CASAS PARTICULARES', 'EMPLEADA DE LIMPIEZA Y NIÃERA', 'EMPLEADA DOMESTICA PARTICULAR', 'EMPLEADA DOMESTICA Y NIÃERA', 'EMPLEADA DOMESTICADOMICILIO PARTICULAR', 'EMPLEADA DOMÃSTICA DE CASAS PARTICULARES', 'EMPLEADA PARTICULAR', 'EMPLEADA POR CUENTA PROPIA EN PARTICULAR', 'EMPLEADO DE MENSAJERIA', 'EMPLEADO EN CUENTA PROPIA', 'EMPLEADO INDEPENDIENTE', 'EMPLEADOR INDEPENDIENTE', 'EMPLEADOR PARTICULAR', 'EMPLEADORA PARTICULAR', 'EMPLEDA PARTICULAR', 'EMPLEO DE FORMA INDEPENDIENTE', 'EMPLEO EN CUENTA PROPIA', 'EMPLEO FREE LANCE', 'EMPLEO FREELANCE', 'EMPLEO INDEPENDIENTE', 'EMPREDIMIENTO DE LENCERIA PROPIO', 'EMPREDIMIENTO PERSONAL', 'EMPRENDEDOR INDEPENDIENTE', 'EMPRENDEDOR PARTICULAR', 'EMPRENDIEMINTO PERSONAL', 'EMPRENDIENDO DE INDUMENTARIA FEMENIA', 'EMPRENDIMIENTO BARRIAL', 'EMPRENDIMIENTO DE ESTAMPERÃA Y EN BORDADO', 'EMPRENDIMIENTO DE INDUMENTARIA', 'EMPRENDIMIENTO DE INDUMENTARIA LOLA JUNCO', 'EMPRENDIMIENTO DE LENCERIA', 'EMPRENDIMIENTO DE MARROQUINERÃA', 'EMPRENDIMIENTO DE PASTELERIA', 'EMPRENDIMIENTO DE PASTELERÃA', 'EMPRENDIMIENTO DE REPOSTERÃA', 'EMPRENDIMIENTO DE VENTA DE INDUMENTARIA', 'EMPRENDIMIENTO EN FORMA INDEPENDIENTE', 'EMPRENDIMIENTO FAMILIAR DE INDUMENTARIA', 'EMPRENDIMIENTO FREELANCE', 'EMPRENDIMIENTO INDEPENDIENTE', 'EMPRENDIMIENTO INDEPENDIENTE DE COSMÃTICA NATURAL', 'EMPRENDIMIENTO INDEPENDIENTE ECOMERCE', 'EMPRENDIMIENTO INDUMENTARIA', 'EMPRENDIMIENTO INDUMENTARIA MULTIMARCAS FEMENINA', 'EMPRENDIMIENTO PARTICULAR', 'EMPRENDIMIENTO PASTELERIA', 'EMPRENDIMIENTO PERSONAL', 'EMPRENDIMIENTO PERSONAL BELS DESIGN', 'EMPRENDIMIENTO PERSONAL BENEDITA ACCESORIOS', 'EMPRENDIMIENTO PERSONAL CARNICERÃA Y FIAMBRERIA', 'EMPRENDIMIENTO PERSONAL COMERCIO', 'EMPRENDIMIENTO PERSONAL CULINARIO', 'EMPRENDIMIENTO PERSONAL DE ASESORÃA DE IMAGEN', 'EMPRENDIMIENTO PERSONAL DE COMIDA', 'EMPRENDIMIENTO PERSONAL DE DISEÃO GRÃFICO', 'EMPRENDIMIENTO PERSONAL ECOMMERCE', 'EMPRENDIMIENTO PERSONAL EL MUNDO DE NANANAN', 'EMPRENDIMIENTO PERSONAL GESTORÃA DEL AUTOMOTOR', 'EMPRENDIMIENTO PERSONAL HANA MÃNDEZ', 'EMPRENDIMIENTO PERSONAL ROTISERÃA', 'EMPRENDIMIENTO PERSONAL RUBRO TELEFONÃA MÃVIL', 'EMPRENDIMIENTO PERSONAL TIA FLOR INDUMENTARIA', 'EMPRENDIMIENTOS PERSONAL', 'EMPRESA DE INTERNACION DOMICILIARIA', 'EMPRESA DE INTERNACIÃN DOMICILIARIA', 'EMPRESA DE SEGURIDAD PRIVADA', 'EMPRESA INDEPENDIENTE', 'EMPRESA INDEPENDIENTE VENTA DE PRODUCTOS NATURALES', 'EMPRESA PARTICULAR', 'EMPRESA PERSONAL', 'EMPRESA PRIVADA', 'EMPRESA PRIVADA DE INTERNACIÃN DOMICILIARIA', 'EMPRESA PRIVADA DE PASAJEROS', 'EMPRESA PROPIA', 'EMPRESA PROPIA AUTONOMA', 'EMPRESA PROPIA DE PASTELERÃA', 'EMPRESA UNIPERSONAL', 'EMPRESAPROPIA', 'EMPRESAS DE CUIDADOS DOMICILIARIOS', 'EMPRESAS DE ENFERMERÃA DOMICILIARIA', 'EMPRESAS DE INTERNACION DOMICILIARIA', 'EMPRESAS DOMICILIARIA EN INTERNACIÃN', 'EMPRESAS VARIAS', 'EMPRESAS Y OFICINAS EN CABA', 'EN CASA SERVICIO DE ASISTENCIA DOMICILIARIA', 'EN CASAS PARTICULARES', 'EN FORMA INDEPENDIENTE', 'EN FORMA PARTICULAR', 'EN HOGARES PARTICULARES', 'EN LOCAL DE RECUERDOS EN EL BARRIO LA BOCA', 'EN UN CALL CENTER DEL BARRIO', 'EN UN LOCAL DE CAFETERÃA DE SUS PADRES', 'ENCASA CUIDADOS DOMICILIARIOS', 'ENENFERMERA DOMICILIARIA AUTÃNOMA', 'ENFERMERA DOMICILIARIA', 'ENFERMERA PARTICULAR', 'ENFERMERIA', 'ENFERMERIA AUTONOMA', 'ENFERMERIA DOMICILIARIA', 'ENFERMERIA MODERNA', 'ENFERMERIA MOFERNA', 'ENFERMERÃA', 'ENFERMERÃA DOMICILIARIA', 'ENFERMERÃA Y CUIDADOR', 'ENNEASTUDIO INDEPENDIENTE', 'ENPERSONA', 'ENSEÃANZA PARTICULAR', 'ENSEÃANZA PARTICULAR DE INGLÃS', 'ENSEÃANZA PERSONALIZADA', 'ENTREGAS PERSONALES SRL CORREO PRIVADO', 'ENTRENADOR PERSONAL', 'ENTRENAMIENTO PERSONALIZADOS', 'ENTRENAMIENTOS PERSONALIZADOS', 'ENTRENAMIENTOS PERSONALIZADOS ARRETTINO', 'EQUIPO DE ABOGADOS INDEPENDIENTE', 'ERAS', 'ES 22 DE 19', 'ES24', 'ESCRITORA FREELANCE', 'ESCUELA PARTICULAR INCORPORADA N 1115 SAN JOSE', 'ESCUELA PARTICULAR JOSÃ MARÃA LUIS MORA', 'ESCUELA PRIVADA', 'ESPACIO INDIGO Y EMPRENDIMIENTO PERSONAL', 'ESTADO', 'ESTAMPERIA', 'ESTUDIO ARQUITECTURA INDEPENDIENTE', 'ESTUDIO CONTABLE INDEPENDIENTE', 'ESTUDIO CONTABLE PARTICULAR', 'ESTUDIO DE ARQUITECTURA INDEPENDIENTE', 'ESTUDIO DE DISEÃO FREE LANCE', 'ESTUDIO DE INGENIERIA', 'ESTUDIO DE INGENIERÃA', 'ESTUDIO DFE ARQUITECTURA PERSONAL', 'ESTUDIO EDGARDO VILLAFAÃE FREE LANCE', 'ESTUDIO INDEPENDIENTE', 'ESTUDIO JURIDICO INDEPENDIENTE', 'ESTUDIO JURIDICO PARTICULAR', 'ESTUDIO JURÃDICO PARTICULAR', 'ESTUDIO PARTICULAR', 'ESTUDIO PARTICULAR DRALUCERO', 'ESTUDIOS JURIDICOS PARTICULARES', 'EU PRODUCTORA INDEPENDIENTE', 'EVENTOS PARTICULARES', 'FABRICA DE TEXTIL INDEPENDIENTE', 'FACTURACION MEDICA PARTICULAR', 'FAENA PROPIA', 'FAENA PROPIA SAS', 'FAMILIA PARTICULAR', 'FAMILIAR INDEPENDIENTE', 'FAMILIAS PARTICULAR', 'FAMILIAS PARTICULARES', 'FEDERACIÃN DE ESTUDIANTES DE CIENCIAS POLÃTICAS', 'FEDERACIÃN DE ESTUDIANTES DE DERECHO DE VENEZUELA', 'FEDERACIÃN DE ESTUDIANTES UCA', 'FEDERAL CERVECERIA INDEPENDIENTE', 'FEFYM COMITÃ INDEPENDIENTE DE ÃTICA', 'FERIANTE', 'FERIANTE TODO BLANCO', 'FERIAS', 'FERIAS AMERICANAS', 'FERIAS ARTESANALES', 'FERIAS COMERCIALES', 'FERIAS DE LA CIUDAD', 'FERIAS DE LA CUIDAD', 'FERRETERIA', 'FERRETERIA PROPIA', 'FERRETERÃA', 'FESTIVAL DE CINE INDEPENDIENTE DE EL PALOMAR', 'FESTIVAL DE CINE LIMA INDEPENDIENTE', 'FIAMBRERIA', 'FIAMBRERRIA', 'FIAMBRERÃA', 'FIVERR FREELANCE PAGE WWWFIVERRCOM', 'FLETE POR CUENTA PROPIA', 'FLETES PARTICULARES', 'FLORENCIA SAPUCCAI PARTICULAR', 'FM INDEPENDIENTE', 'FORMA INDEPENDIENTE', 'FOTOCOPIADORA CENTRO DE ESTUDIANTES DE DERECHO', 'FOTOCOPIADORA COLEGIO NORMAL 1', 'FOTOCOPIADORA DE LA FACULTAD DE CS MÃDICAS UNLP', 'FOTOCOPIADORA DE LA UNIVERSIDAD DE BUENOS AIRES', 'FOTOCOPIADORA EN ESCUELAS PRIMARIAS Y SECUNDARIAS', 'FOTOCOPIADORA FACULTAD DE DERECHO', 'FOTOCOPIADORA FULL TIME', 'FOTOCOPIADORA FYL UBA', 'FOTOCOPIADORA UBA', 'FOTOCOPIADORA UNIVERSIDAD UMET', 'FOTOCOPIADORA UNLP', 'FOTOCOPIADORA Y LIBRERIA EL ESTUDIANTE', 'FOTOGRAFA FREELANCE', 'FOTOGRAFA INDEPENDIENTE', 'FOTOGRAFIA FREELANCE', 'FOTOGRAFIA INDEPENDIENTE', 'FOTOGRAFO FREELANCE', 'FOTOGRAFO INDEPENDIENTE', 'FOTOGRAFO Y DISEÃADOR MULTIMEDIA FREELANCE', 'FOTOGRAFÃA FREE LANCE', 'FOTOGRAFÃA FREELANCE', 'FOTOGRAFÃA INDEPENDIENTE', 'FOTOGRAFÃA PROFESIONAL FREELANCE', 'FOTÃGRAFA FREELANCE', 'FOTÃGRAFA FREELANCER', 'FOTÃGRAFA INDEPENDIENTE', 'FOTÃGRAFIA INDEPENDIENTE', 'FOTÃGRAFO FREE LANCE', 'FOTÃGRAFO FREELANCE', 'FOTÃGRAFO FREELANCER', 'FOTÃGRAFO INDEPENDIENTE', 'FOTÃGRAFO Y REALIZADOR AUDIOVISUAL FREELANCE', 'FREE LANCE', 'FREE LANCE CONGRESOS', 'FREE LANCE ESTUDIO3PORCIENTO', 'FREE LANCE INDEPENDIENTE', 'FREE LANCE PLANOS EN AUTOCAD', 'FREE LANCE PROYECTO SOCIAL', 'FREE LANCE SECTOR DISEÃO GRÃFICO', 'FREE LANCE TIENDA PROPIA', 'FREE LANCE TRABAJADORA POR CUENTA PROPIA', 'FREE LANCER', 'FREE LANCER WEB', 'FREELANCE', 'FREELANCE A PEDIDO', 'FREELANCE ARQUITECTO INDEPENDIENTE', 'FREELANCE ARQUITECTURA', 'FREELANCE COMUNICACIONES CORPORATIVAS', 'FREELANCE CONSULTOR', 'FREELANCE DESIGNER', 'FREELANCE DEVELOPER', 'FREELANCE DISEÃO', 'FREELANCE DISEÃO GRÃFICO', 'FREELANCE DISEÃO Y COMUNICACIÃN', 'FREELANCE EMPRENDEDOR DISEÃO', 'FREELANCE EN MERCADOLIBRE', 'FREELANCE EN PUBLICIDAD Y DISEÃO', 'FREELANCE ESTILIST ROX', 'FREELANCE ESTUDIO PROPIO', 'FREELANCE ESTUDIOS ARQ TAVOLARO', 'FREELANCE INDEPENDIENTE', 'FREELANCE JUNIOR EN DISEÃO Y COMUNICACIN', 'FREELANCE LACICLA', 'FREELANCE PARA CARTELLONE', 'FREELANCE PARA DIVERSAS PRODUCTORAS AUDIOVISUALES', 'FREELANCE PARA ESTUDIOS GOTIKA', 'FREELANCE PARA UTE ILUBAIRES APCO LIHUE', 'FREELANCE PARTICULARES Y FABRICAS Y COMERCIOS', 'FREELANCE PHOTOGRAPHER', 'FREELANCE PROPIO', 'FREELANCE PROYECTO RETOR', 'FREELANCE PUBLICIDAD', 'FREELANCE PUERTO RICO', 'FREELANCE RRHH Y RRLL', 'FREELANCE TELETRABAJO', 'FREELANCE Y ALCALDÃA DE JAMUNDI', 'FREELANCE Y EMPRENDEDORA', 'FREELANCE Y INDEPENDIENTE', 'FREELANCE Y REMOTO', 'FREELANCE Y SECTOR PRIVADO', 'FREELANCE Y SELF EMPLOYED', 'FREELANCER', 'FREELANCER DOCENTE UNIVERSITARIO VENEZUELA', 'FREELANCER EN MARKETING DIGITAL', 'FREELANCER PÃGINAS WEB', 'FREELANCER Y INDEPENDIENTE', 'FREELANCERCOM', 'FREELANCERS', 'FRESH MARKETING EMPRENDIMIENTO INDEPENDIENTE', 'FRUTERIA Y VERDULERIA', 'FULL PR FREELANCE', 'GABINETE PARTICULAR', 'GALERIA DE ARTE', 'GALERIA DE ROPA', 'GALERÃA', 'GAME SERVERS ARGENTINA FREELANCE', 'GENESIS FREELANCE', 'GESTIONES ADUANERAS FREE LANCE', 'GESTIÃN INDEPENDIENTE', 'GESTOR FREELANCE', 'GESTOR PARTICULAR', 'GESTORA INDEPENDIENTE', 'GESTORIA FREELANCE', 'GESTORIA INDEPENDIENTE', 'GESTORIA PARTICULAR', 'GESTORIA Y CONSULTORIA INDEPENDIENTE', 'GESTORÃA', 'GESTORÃA DEL AUTOMOTOR OFICINA PROPIA', 'GESTORÃA INDEPENDIENTE', 'GESTORÃA MUNICIPAL FREELANCE', 'GMG CLASES PARTICULARES', 'GOMERIA', 'GRUPO ESE ARQTA LUISA ENTENZA FREELANCE', 'GUIA DE TURISMO FREE LANCE', 'GUÃA DE TURISMO FREE LANCE', 'HAMBURGUESERÃA', 'HAMBURGUSERIA', 'HAS', 'HELADERIAS', 'HELADERÃA', 'HELADERÃA ARTESANAL', 'HELADERÃA Y CAFETERIA', 'HELADERÃA Y CAFETERÃA', 'HERNÃNDEZ CARLOS CONTRATO PARTICULAR', 'HERRERÃA INDEPENDIENTE', 'HOGAR GERIATRICO', 'HOGAR PARTICULAR', 'HOGAR VILLALOBOSCASA PARTICULAR', 'HOGARES PARTICULARES', 'HOLY RAINBOW MARCA PROPIA', 'HONORABLE CONCEJO DELIBERANTE FREELANCE', 'HOSPITAL FIORITO Y CONSULTORIO PARTICULAR', 'HOSPITAL Y CASAS PARTICULARES', 'HOSPITALES Y HOGARES Y PARTICULARES Y OTROS', 'ILUSTRADORA FREELANCE', 'IMPRENTA INDEPENDIENTE', 'IMPRESIÃN 3D INDEPENDIENTE', 'INDEPENDIENTE', 'INDEPENDIENTE ARQ MARLY TORRES', 'INDEPENDIENTE AUTÃNOMO', 'INDEPENDIENTE BIRNA', 'INDEPENDIENTE CA', 'INDEPENDIENTE CENTRO DE MANICURIA', 'INDEPENDIENTE DE MERLO', 'INDEPENDIENTE EMPRENDEDOR', 'INDEPENDIENTE EMPRENDIMIENTO GASTRONÃMICO', 'INDEPENDIENTE EN TALLERES DE CHAPA Y PINTURA', 'INDEPENDIENTE EN TIENDA DE MODA', 'INDEPENDIENTE FREE LANCE', 'INDEPENDIENTE FREELANCE', 'INDEPENDIENTE KATERSTUDIO', 'INDEPENDIENTE LIBRE EJERCICIO', 'INDEPENDIENTE MMO', 'INDEPENDIENTE MONOTRIBUTISTA', 'INDEPENDIENTE MONOTRIBUTO ACTIVO', 'INDEPENDIENTE MYSTERY SHOPPER', 'INDEPENDIENTE PELUQUERIA CENTRO SPA', 'INDEPENDIENTE VENEZUELA', 'INDEPENDIENTE X2', 'INDEPENDIENTE Y CENTROS CULTURALES', 'INDEPENDIENTE Y EMPRESAS', 'INDEPENDIENTE Y EMPRESAS Y CONTINUA', 'INDEPENDIENTE Y FREE LACNCE', 'INDEPENDIENTE Y FREE LANCE', 'INDEPENDIENTE Y FREE LANCER', 'INDEPENDIENTE Y FREELANCE', 'INDEPENDIENTE Y FREELANCER', 'INDEPENDIENTE Y HOLOS CAPITAL', 'INDEPENDIENTE Y VENEZUELA', 'INDEPENDIENTEANTEPROYECTO PLAZA SECA', 'INDEPENDIENTEFREELANCE', 'INDEPENDIENTEMENTE', 'INDEPENDIENTEOFICINAS DE AEROTERRA', 'INDEPENDIENTEREMODELACIÃNPALERMO', 'INDEPENDIENTES', 'INDEPENDIENTEVIVIENDA UNIFAMILIAR', 'INDUMENTARIA', 'INDUMENTARIA INDEPENDIENTE', 'INDUMENTARIA PROPIA FEMENINA', 'INDUMENTARIAS', 'INDUSTRIAL', 'INFORMATICA VARIAS', 'INGENIERO CIVIL INDEPENDIENTE', 'INGENIERO FREELANCE CARACAS VENEZUELA', 'INGENIERO INDEPENDIENTE', 'INGLÃS PARTICULAR', 'INMIBILIARIA', 'INMOBILIARIA', 'INMOBILIARIA INDEPENDIENTE', 'INMOBILIARIAS Y OFICINAS', 'INMOBILIRIAS', 'INMOVILIARIA', 'INSTALACION DE MATERIAL PUBLICITARIO', 'INSTALADOR INDEPENDIENTE DE CCTV', 'INSTITO ZABALA PARTICULAR', 'INSTITUTO DE CLASES PARTICULARES', 'INSTITUTO EDITORIAL', 'INSTITUTO PARTICULAR', 'INSTITUTO PARTICULAR DE INGLÃS', 'INSTITUTO PARTICULAR DE INGLÃS PATRICIA CODUTTI', 'INSTITUTO PRIVADO DE INGLÃS PARTICULAR', 'INSTITUTOS DE ENSEÃANZA Y FREELANCE', 'INSTITUTOS PRIVADOS Y POR CUENTA PROPIA', 'INSTRUCTOR DE INGLÃS PARTICULAR', 'INTERNACION DOMICILARIA', 'INTERNACION DOMICILIARIA', 'INTERNACIONES DOMICILIARIAS', 'INTERNACIÃN DOMICILIARIA', 'INTERNACIÃN DOMICILIARIA Y GOBIERNO DE LA CIUDAD', 'INTERNACIÃN DOMIXILIARIA', 'INTERPRETE FREELANCER', 'JARDINERIA EN CASAS PARTICULARES', 'JARDINERIA INDEPENDIENTE', 'JARDINERÃA POR CUENTA PROPIA', 'JOYERIA', 'JOYERÃA', 'JUEGUETERÃA', 'JUGETERIA', 'JUGUETERIA', 'KALINKA FREELANCE', 'KARINA MILEWICZ FREELANCE', 'KINESIOLOGA PARTICULAR', 'KIOSCO BARRIAL', 'KIOSCO CAFETERIA', 'KIOSCO LIBRERIA', 'KIOSCO Y FERIA', 'KIOSCO Y LIBRERIA', 'KIOSCO Y VERDULERIA EN CASA PARTICULAR', 'KIOSKO FLORISTERÃA', 'KIOSKO JUGUETERÃA', 'KIOSKO LIBRERIA', 'KIOSKO LIBRERÃA', 'KRIF CONSULTORIO PARTICULAR', 'LA 100', 'LA PARTICULAR DE VIRGINIO', 'LA PROPIA', 'LABOR INDEPENDIENTE', 'LAS 4 A', 'LAVANDERIA', 'LAVANDERÃA', 'LENCERIA', 'LENCERÃA', 'LIBRE EJERCICIO PROFESIONAL FREELANCE', 'LIBRERÃA', 'LIBRERÃA Y JUGUETERÃA', 'LIBRERÃA Y KIOSCO', 'LIC EN NUTRICION PARTICULAR', 'LIMPIEZA CASA PARTICULAR', 'LIMPIEZA DE CASA PARTICULAR', 'LIMPIEZA DE CASAS PARTICULAR', 'LIMPIEZA DE CASAS PARTICULARES', 'LIMPIEZA DE OFICINA', 'LIMPIEZA DE OFICINAS', 'LIMPIEZA DE OFICINAS TUCUMÃN 540', 'LIMPIEZA DOMICILIARIA', 'LIMPIEZA DOMICILIARIA Y DAMA DE COMPAÃÃA', 'LIMPIEZA EN CASA PARTICULARES', 'LIMPIEZA EN CASA PARTICULARES DIFERENTES LUGARES', 'LIMPIEZA EN CASAS DE FAMILIA Y OFICINAS', 'LIMPIEZA EN CASAS PARTICULARES', 'LIMPIEZA EN LOCALES Y OFICINA', 'LIMPIEZA EN OFICINA', 'LIMPIEZA EN OFICINAS', 'LIMPIEZA EN OFICINAS Y EDIFICIOS', 'LIMPIEZA PARTICULAR', 'LIMPIEZA POR CUENTA PROPIA', 'LIMPIEZA Y CASA PARTICULAR', 'LIMPIEZA Y NIÃERA', 'LIMPIEZAS DE OFICINAS', 'LISTA ROJA CLUB ATLÃTICO INDEPENDIENTE', 'LITIGO EN FORMA INDEPENDIENTE', 'LOCAL DE BARRIO', 'LOCAL DE INDUMENTARIA', 'LOCAL DE INDUMENTARIA DE MUJER', 'LOCAL DE INDUMENTARIA FAMILIAR', 'LOCAL DE INDUMENTARIA FEMENINA', 'LOCAL DE INDUMENTARIA GENERAL', 'LOCAL DE INDUMENTARIA INFANTIL', 'LOCAL DE INDUMENTARIA MASCULINA', 'LOCAL DE INDUMENTARIA UNISEX', 'LOCAL DE INDUMENTARIA Y TEXTIL', 'LOCAL DE INDUMMENTARIA', 'LOCAL DE LENCERIA', 'LOCAL DE LENCERIA CORDOBA CPAITAL', 'LOCAL DE LENCERIA EMPRENDIMIENTO PROPIO', 'LOCAL DE LENCERÃA', 'LOCAL DE PIZZERÃA Y ROTICERÃA', 'LOCAL DE PRODUCCIÃN DE INDUMENTARIA', 'LOCAL DE REGALERIA E INDUMENTARIA FEMENINA', 'LOCAL DE ROPA EN GALERÃA TRES ELEFANTES', 'LOCAL DE ROPA INDEPENDIENTE', 'LOCAL DE ROPA INDUMENTARIA FEMENINA', 'LOCAL DE ROPA Y JUGUETERÃA Y BAZAR', 'LOCAL DE VENTA DE LENCERÃA', 'LOCAL ELSA DE ROPA Y ARREGLOS DE INDUMENTARIA', 'LOCAL EN GALERIA', 'LOCAL INDUMENTARIA', 'LOCAL INDUMENTARIA FEMENINA', 'LOCAL LENCERÃA', 'LOCAL MARIA', 'LOCAL PARTICULAR', 'LOCAL PARTICULAR DE INDUMENTARIA FEMENINA', 'LOCAL PERFUMERIA Y LIMPIEZA', 'LOCALES COMERIALES', 'LOS TESOROS DE LUDIVINA PROYECTO INDEPENDIENTE', 'LOTERIA', 'LOTERÃA', 'LÃDICA MENTE FREE LANCE', 'MAESTRA DE APOYO ESCOLAR INDEPENDIENTE SENIOR', 'MAESTRA PARTICULAR', 'MAESTRO DE CLASES PARTICULARES AUTÃNOMO', 'MAESTRO MAYOR DE OBRA INDEPENDIENTE', 'MAESTRO MAYOR DE OBRAS INDEPENDIENTE', 'MANDATARIO FREELANCE', 'MANERA INDEPENDIENTE', 'MANTENIMIENTO EN CASAS PARTICULARES Y EDIFICIOS', 'MANTENIMIENTO INDEPENDIENTE', 'MAQUILLADORA INDEPENDIENTE', 'MAQUILLADORA PROFESIONAL FREELANCE', 'MARCA PROPIA', 'MARCAS INDEPENDIENTES', 'MARIA', 'MARIANISTA', 'MARIANO', 'MARIAS', 'MARROQUINERIA', 'MARROQUINERÃA', 'MARTINA FIERRO PROYECTO INDEPENDIENTE', 'MARÃA S', 'MARÃAS', 'MASAJISTA INDEPENDIENTE', 'MASAJISTA PARTICULAR', 'MASAJISTA PARTICULAR FREELANCE', 'MASSALIN PARTICULARES', 'MASSALIN PARTICULARES SA', 'MASSALIN PARTICULARES SRL', 'MATERIA', 'MATERIAL', 'MATERIALES DE LA CONSTRUCCIÃN', 'MATERIALES PARA LA CONSTRUCCIÃN', 'MATRICERIA', 'MAXI FRUIT VERDULERÃA', 'MAXI KIOSCO LIBRERÃA DANIEL', 'MAXI QUIOSCO Y LIBRERÃA', 'MAXIKIOSCO HELADERÃA', 'MAXIKIOSCO LA HISTORIA', 'MAXIKIOSCO LIBRERIA', 'MAXIKIOSCO LIBRERÃA', 'MAXIKIOSCO MARIANI', 'MAXIKIOSCO MIRIAM', 'MAXIKIOSCO Y CAFETERIA', 'MAXIKIOSCO Y LIBRERIA', 'MAXIKIOSCO Y LIBRERIA LA VIA', 'MAXIKIOSCO Y PERFUMERIA', 'MAXIKIOSCO Y TABAQUERIA PRIMERA JUNTA', 'MAXIKIOSKO MARIANA', 'MAXIKIOSKO Y LIBRERIA', 'MAXIQUIOSCO ADRIAN', 'MAXIQUIOSCO LIBRERIA', 'MAYORISTA DE ARTÃCULOS DE FERRETERÃA LUQUE', 'MAYORISTA DE ARTÃCULOS DE LIBRERÃA Y ARTÃSTICA', 'MAYORISTA DE INDUMENTARIA FABRICANTES ARGENTINOS', 'MAYORISTA LAS MARIAS', 'MAYORISTA MARIANA', 'MAYORISTA MARIANITA', 'MEDICA LEGISTA PRIVADA', 'MEDICA PRIVADA', 'MEDICINA DOMICILIARIA', 'MEDICINA ESTETICA LASER', 'MEDICINA ESTÃTICA', 'MEDICINA ESTÃTICA LÃSER', 'MEDICINA ESTÃTICA MATISSE DE TANIA SILVA', 'MEDICO INDEPENDIENTE', 'MEDICO PARTICULAR', 'MEDICOS PARTICULARES', 'MENAJERIA', 'MENSAJERIA EMPRESARIAL', 'MENSAJERIA EN MOTO', 'MENSAJERÃA DE MOTOS', 'MENSAJERÃA ENCOMIENDAS EN CORREO PRIVADO', 'MERCADO PARTICULAR', 'MERCERIA', 'MERCERIA Y BAZAR', 'MERCERÃA', 'MI PROPIA EMPRESA', 'MICRO EMPRENDIMIENTO DE REPOSTERÃA Y PANADERÃA', 'MICRO EMPRENDIMIENTO FREELANCE', 'MICRO EMPRENDIMIENTO INDEPENDIENTE', 'MICROEMPRENDIMIENTO DE INDUMENTARIA', 'MICROEMPRENDIMIENTO DE JOYERÃA', 'MICROEMPRENDIMIENTO PROPIO INDUMENTARIA', 'MINERIA', 'MODALIDAD FREELANCE', 'MODALIDAD INDEPENDIENTE', 'MODALIDAD PARTICULAR', 'MODELO FREELANCE', 'MONICA B SNYDERS CONTADORA INDEPENDIENTE', 'MONOTRIBUTISTA INDEPENDIENTE EN POR CUENTA PROPIA', 'MOTO MENSAJERIA', 'MOTOMENSAJERIA', 'MOTOMENSAJERIA EV', 'MOTOMENSAJERIA INDEPENDIENTE', 'MOTOMENSAJERÃA', 'MOTOVINTRABAJO POR CUENTA PROPIA', 'MSM EMPRESA INDEPENDIENTE', 'MUEBLERIA', 'MUEBLERIA PARTICULAR', 'MUEBLERÃA', 'MÃDICA GIMÃNEZ', 'MÃDICA PARTICULAR', 'MÃDICAL HOUSE', 'MÃDICO DR CLAUDIO ALE', 'MÃDICO NUTRICIONISTA DR NORBERTO PEDEVILLA', 'MÃDICO PARTICULAR', 'NADA', 'NEGOCIO BARRIAL', 'NEGOCIO COMERCIAL FAMILIAR', 'NEGOCIO DE AGROINSUMOS', 'NEGOCIO DE ARTESANÃAS', 'NEGOCIO DE BARRIO', 'NEGOCIO DE BEBIDAS', 'NEGOCIO DE CAMISAS', 'NEGOCIO DE COLECCIONISMO', 'NEGOCIO DE COMIDAS LA FAMILIA', 'NEGOCIO DE COMPONENTES ELECTRONICOS', 'NEGOCIO DE COMPUTACION', 'NEGOCIO DE COMPUTACIÃN', 'NEGOCIO DE DECORACION', 'NEGOCIO DE DIARIOS Y REVISTAS', 'NEGOCIO DE ELECTRICIDAD', 'NEGOCIO DE EMPRENDIMIENTO FAMILIAR', 'NEGOCIO DE ESTETICA', 'NEGOCIO DE FAMILIA', 'NEGOCIO DE INDUMENTARIA FEMENINA', 'NEGOCIO DE PRODUCTOS REGIONALES Y NATURALES', 'NEGOCIO DE ROPA', 'NEGOCIO DE ROPA DE DAMA Y NIÃOS', 'NEGOCIO DE ROPA DE HOMBRE CASA BIRMIGAN', 'NEGOCIO DE ROPA DEL ORIENTE', 'NEGOCIO DE ROPA INFANTIL', 'NEGOCIO DE ROPA LUISANA', 'NEGOCIO DE VENTA DE CALZADO DE DAMA', 'NEGOCIO DE VENTA MAYORISTA', 'NEGOCIO DEL BARRIO', 'NEGOCIO DESPENSA', 'NEGOCIO EMPRENDEDOR', 'NEGOCIO EN AVELLANEDA', 'NEGOCIO EN FLORES', 'NEGOCIO EN LA AV AVELLANEDA', 'NEGOCIO ESCOLAR', 'NEGOCIO FAMILIAR', 'NEGOCIO FAMILIAR ALMACEN', 'NEGOCIO FAMILIAR ALMACÃN', 'NEGOCIO FAMILIAR CIBER LOCUTORIO', 'NEGOCIO FAMILIAR DE ENTRETENIMIENTO', 'NEGOCIO FAMILIAR DE INDUMENTARIA', 'NEGOCIO FAMILIAR DE PANIFICADOS', 'NEGOCIO FAMILIAR DE POLIRUBRO', 'NEGOCIO FAMILIAR INDEPENDIENTE', 'NEGOCIO FAMILIAR KIOSCO JUAREZ', 'NEGOCIO FAMILIAR MARÃA', 'NEGOCIO FAMILIAR MINI SUPER', 'NEGOCIO FAMILIAR MÃXICO', 'NEGOCIO FAMILIAR Y TIENDA', 'NEGOCIO FAMILIAR Y VENTA DE AUTOPARTES', 'NEGOCIO FRUTAS VERDURAS Y LIMPIEZA', 'NEGOCIO INDEPENDIENTE', 'NEGOCIO LA NELLY', 'NEGOCIO LOCAL', 'NEGOCIO MACKA', 'NEGOCIO PARTICULAR', 'NEGOCIO PARTICULAR 2013 2015', 'NEGOCIO PEQUEÃO', 'NEGOCIO PERSONAL', 'NEGOCIO POLI RUBRO', 'NEGOCIO POLIRRUBRO', 'NEGOCIO PROPIO', 'NEGOCIO PROPIO KIOSCO MONOTRIBUTO', 'NEGOCIO PROPIO PERSONAL', 'NEGOCIO VENTA DE PRODUCTOS CONGELADOS', 'NEGOCIOPYME', 'NEGOCIOS', 'NEGOCIOS DE ROPA', 'NEGOCIOS FAMILIARES', 'NEGOCIOS FAMILIARES COMERCIOS', 'NEGOCIOS FRIGORÃFICOS DEL NORTE', 'NEGOCIOS PUNTA DEL ESTE URUGUAY', 'NEGOCIOS Y CASAS DE FAMILIAS', 'NINGUNA PARTICULAR', 'NINGUNA TRABAJO INDEPENDIENTE', 'NIÃERA', 'NIÃERA A DOMICILIO', 'NIÃERA BABY SITTER', 'NIÃERA DE BAUTISTA', 'NIÃERA DE FORMA INDEPENDIENTE', 'NIÃERA DE JOAQUÃN', 'NIÃERA DE LOURDES', 'NIÃERA DE NIÃAS MENORES DE 10 AÃOS', 'NIÃERA DE NIÃOS Y AS', 'NIÃERA DOMESTICA', 'NIÃERA EN CASA DE FAMILIA', 'NIÃERA EN EL BARRIO', 'NIÃERA EN NIÃOS DE 4 Y 10 AÃOS', 'NIÃERA EN VARIAS OCASIONES', 'NIÃERA FRANQUERA', 'NIÃERA INDEPENDIENTE', 'NIÃERA MEDIO TIEMPO', 'NIÃERA PARA MÃLTIPLES CLIENTES', 'NIÃERA PARTICULAR', 'NIÃERA PARTICULAR SITLY', 'NIÃERA PEDAGÃGICA', 'NIÃERA PERSONAL', 'NIÃERA Y AMA DE CASA', 'NIÃERA Y APOYO ESCOLAR', 'NIÃERA Y CUIDADO DE PERSONAS DE LA TERCERA EDAD', 'NIÃERA Y CUIDADORA', 'NIÃERA Y EMPLEADA DOMESTICA', 'NIÃERA Y EMPLEADA DOMÃSTICA', 'NIÃERA Y LIMPIEZA', 'NIÃERA Y PLANILLERA Y CURSO DE PELUQUERÃA', 'NIÃERAS DULCE NANA', 'NO HAY 2 SIN 3', 'NO TENGO', 'NO TIENE', 'NO TUVE', 'NOSOTRAS', 'NOTARIA 37', 'NOTARIA 42', 'NOTARIA PUBLICA CUARTA DE MARACAY', 'NOTARIA PUBLICA TERCERA', 'NOTARIA PÃBLICA SAIME VENEZUELA', 'NOTARÃA PÃBLICA DE ANACO', 'NOTARÃA PÃBLICA DE SAN DIEGO DEL ESTADO CARABOBO', 'NUESTRO', 'OBRAS PARTICULARES', 'OCUPACIONES VARIAS', 'ODONTOLOGIA PRIVADA', 'OFIC DE INGENIERÃA STAMBUL', 'OFICER LIBRERIAS COMERCIAL Y ESCOLAR', 'OFICIAL HERRERIA Y CARPINTERIA', 'OFICIAL LEGAL PROPIA', 'OFICINA', 'OFICINA 1 GALERÃA DE ARTE', 'OFICINA CENTRAL INMOBILIARIA', 'OFICINA COMARCAL AGRARIA SIERRA MORENA', 'OFICINA COMERCIAL', 'OFICINA CONGRESO', 'OFICINA CONSULAR', 'OFICINA CONTABLE', 'OFICINA CONTABLE MARIA DANIELA YAYES', 'OFICINA CONTABLE PARTICULAR', 'OFICINA DE ABOGADOS', 'OFICINA DE ARQUITECTURA', 'OFICINA DE CONTADORA', 'OFICINA DE EMPLEO', 'OFICINA DE INGENIERÃA HELICOIDAL Y CA', 'OFICINA DE PROTECCIÃN', 'OFICINA DE RENAULT', 'OFICINA DE SEGUROS', 'OFICINA DE SEGUROS Y GESTORÃA', 'OFICINA DE TURISMO', 'OFICINA DE VENTA', 'OFICINA EN CASA', 'OFICINA PARTICULAR', 'OFICINA PARTICULAR DE SEGUROS', 'OFICINA PARTICULAR LIC RICARDO ESTEVES', 'OFICINA PRIVADA', 'OFICINA PROPIA', 'OFICINA TECNICA DE INGENIERÃA PEMEGAS', 'OFICINA TRIBUTARIA GOBIERNO DE ESPAÃA', 'OFICINA TÃCNICA', 'OFICINAS', 'ORGANIZADORA DE EVENTOS INDEPENDIENTE', 'OS5', 'OSDOP OBRA SOCIAL DE LOS DOCENTES PARTICULARES', 'OSDOPOSOCIAL DE DOCENTES PARTICULARES', 'OTRA', 'OTRAS', 'PAGOS Y TRANSF CASAS PARTICULARES', 'PAGOS Y TRANSFERENCIAS DE CASAS PARTICULARES', 'PANADERIA', 'PANADERIA FAMILIAR', 'PANADERIA INDEPENDIENTE', 'PANADERIA PROPIA', 'PANADERIAS', 'PANADERÃA', 'PANADERÃA DE BARRIO', 'PANADERÃA ERVIN PANIFICACION PROPIA', 'PANADERÃA PROPIA', 'PANADRIA', 'PANCHERIA', 'PANCHERÃA', 'PAPELERIA', 'PAPELERIAS', 'PARA ARQUITECTA INDEPENDIENTE', 'PARDO AUDIOVISUAL FREELANCE', 'PARTICULAR', 'PARTICULAR ARQ FLAVIA COTTITTO', 'PARTICULAR AYUDANTE PINTURA', 'PARTICULAR BELLEGGIA', 'PARTICULAR CARPINTERIA', 'PARTICULAR CASA DE FAMILIA', 'PARTICULAR COTILLON', 'PARTICULAR CUIDADORA', 'PARTICULAR DE CONTABILIDAD Y MATEMÃTICA', 'PARTICULAR DEPARTAMENTO DE 2 AMBIENTES', 'PARTICULAR E INDEPENDIENTE CABA Y CONURBANO', 'PARTICULAR EDELAP SA', 'PARTICULAR EN CASA DE FAMILIA', 'PARTICULAR EN DOMICILIO', 'PARTICULAR EN ESCUELA', 'PARTICULAR ES POR RECOMENDACION', 'PARTICULAR ESTUDIO JURIDICO', 'PARTICULAR FAMILIA SHMIDEL', 'PARTICULAR FAMILIAR', 'PARTICULAR FREELANCE', 'PARTICULAR GRACIELA ERBRSFELD', 'PARTICULAR INDEPENDIENTE MONOTRIBUTISTA', 'PARTICULAR INFORMÃTICA Y TECNOLOGÃA', 'PARTICULAR MARISOL', 'PARTICULAR MARROQUINERIA', 'PARTICULAR OFICINAS', 'PARTICULAR ONG', 'PARTICULAR POR UN AMIGO', 'PARTICULAR SRA ALEJANDRA', 'PARTICULAR TEXTIL', 'PARTICULAR VENTA DE INDUMENTARIA ONLINE', 'PARTICULAR VENTA POR INTERNET', 'PARTICULAR Y', 'PARTICULAR Y AGENCIA', 'PARTICULAR Y CONSORCIO DE EMPLEADOS', 'PARTICULAR Y CONTRATISTA', 'PARTICULAR Y EMPRESAS', 'PARTICULAR Y ESTUDIOS ZONALES', 'PARTICULAR Y FAMILIA BASSUEL DUNCAN', 'PARTICULAR Y INTERNACIÃN DOMICILIARIA', 'PARTICULAR Y POR HORA', 'PARTICULAR Y VENTA DE VIANDAS CONSTITUCIÃN', 'PARTICULAR ZULMA RAMIREZ', 'PARTICULARCONSTRUCCION EN SECO', 'PARTICULARES', 'PARTICULARES VARIOS', 'PARTICULARESCBH ASSIST Y SIRPLAST', 'PARTICULARMENTE', 'PASEO CANINO PARTICULAR', 'PASSEADOR DE PERROSPARTICULAR', 'PASTELERIA', 'PASTELERÃA FREELANCE', 'PCI PROYECTO DE CINE INDEPENDIENTE', 'PELUQERIA', 'PELUQUERIA', 'PELUQUERIA CANINA', 'PELUQUERIA PROPIA', 'PELUQUERIA UNISEX', 'PELUQUERIAS', 'PELUQUERÃA', 'PELUQUERÃA CANINA', 'PELUQUERÃA INDEPENDIENTE', 'PELUQUERÃA UNISEX', 'PELUQUERÃAS Y FREELANCE', 'PERFUMERIA', 'PERFUMERÃA', 'PERIODISTA INDEPENDIENTE', 'PERIÃDICO INDEPENDIENTE EL HERALDO', 'PERSONA INDEPENDIENTE', 'PERSONA PARTICULAR', 'PERSONAL DE CASAS PARTICULARES', 'PERSONAL TRAINER INDEPENDIENTE', 'PESCADERIA', 'PESCADERÃA', 'PHILIP MORRIS LATAM Y MASSALIN PARTICULARES', 'PHP Y VARIAS FREELANCE', 'PIEZZERIA', 'PINTOR INDEPENDIENTE', 'PINTURERIA', 'PINTURERIAS', 'PIZZERIA', 'PIZZERÃA', 'PIZZZERIA', 'PLATERIA', 'PLEGARIA', 'PLOMERIA', 'PLOMERIA EN GENERAL PARTICULAR', 'PLOMERÃA', 'PODOLOGA PARTICULAR', 'POLLERIA', 'POLLERÃA', 'POR CONTRATO Y CUENTA PROPIA', 'POR CUENTA PROPIA', 'POR CUENTA PROPIA AUTÃNOMO', 'POR CUENTA PROPIA RELACIÃN DE DEPENDENCIA', 'POR MI CUENTA', 'POR MI CUENTA GESTORIA', 'PORFESIONAL INDEPENDIENTE', 'PORTERIA', 'PORTERÃA', 'PORTERÃA DE UN EDIFICIO PARTICULAR', 'PRACTICA PROFECIONAL', 'PRACTICA PROFESIONAL', 'PRACTICA PROFESIONAL DE LA UBA', 'PRACTICA PROFESIONAL EN CET', 'PRACTICA PROFESIONAL FADU UBA', 'PRACTICA PROFESIONAL UBA', 'PRACTICANTE EN FUNDACIÃN PAREMAI FRACTAL', 'PRACTICAS DE ENSEÃANZA EN ESCUELAS DE UAI', 'PRACTICAS FORMATIVAS', 'PRACTICAS HOSPITALARIAS', 'PRACTICAS PROFESIONALISANTES', 'PRACTICAS PROFESIONALIZANTES', 'PRACTICAS PROFEZIONALIZANTES', 'PRESTACIONES DOMICILIARIA', 'PRESTACIONES DOMICILIARIAS', 'PRESTACIONES ELECTRICAS', 'PRESTACIONES ELÃCTRICAS', 'PRESTACIONES MÃDICAS', 'PRESTACIONES ODONTOLOGICAS', 'PRESTACIONES PARA BNA COMO MONOTRIBUTISTA', 'PRESTACIÃN DOMICILIARIA', 'PRINTSTORE PROPIA', 'PRIVADA', 'PRIVADA ACOMPAÃANTE TERAPÃUTICO', 'PRIVADA CASA', 'PRIVADA DE VENTAS', 'PRIVADO CASA PARTICULAR', 'PRIVILEGE BURZACO INDEPENDIENTE', 'PROCURACION INDEPENDIENTE', 'PRODUCTOR ASESOR INDEPENDIENTE', 'PRODUCTOR AUDIOVISUAL FREE LANCE', 'PRODUCTOR INDEPENDIENTE', 'PRODUCTORA INDEPENDIENTE', 'PRODUCTORA INDEPENDIENTE MORKAN', 'PRODUCTORA INTEGRAL FREELANCE', 'PROFESIONAL FREELANCER', 'PROFESIONAL INDEPENDIENTE', 'PROFESIONAL INDEPENDIENTE FREELANCE', 'PROFESIONAL INDEPENDIENTE GABSER SA', 'PROFESIONAL INDEPENDIENTE VENEZUELA', 'PROFESOR DE INGLÃS PARTICULAR', 'PROFESOR INDEPENDIENTE', 'PROFESOR PARTICULAR', 'PROFESOR PARTICULAR DE APOYO', 'PROFESOR PARTICULAR DE COMPUTACIÃN', 'PROFESOR PARTICULAR DE INGLES', 'PROFESOR PARTICULAR DE INGLÃS', 'PROFESOR PARTICULAR DE MATEMATICAS', 'PROFESOR Y DOCENTE PARTICULAR', 'PROFESORA DE INGLES PARTICULAR', 'PROFESORA DE INGLÃS PARTICULAR', 'PROFESORA PARTICULAR', 'PROFESORA PARTICULAR A DOMICILIO', 'PROFESORA PARTICULAR DE IDIOMA INGLÃS', 'PROFESORA PARTICULAR DE INGLES', 'PROFESORA PARTICULAR DE INGLÃS', 'PROFESORA PARTICULAR INDEPENDIENTE', 'PROFRESORA PARTICULAR DE MATEMÃTICA', 'PROGRAMADOR POR CUENTA PROPIA', 'PROMOTORA FREE LANCER', 'PROPIA', 'PROPIA AMBMASAJES TERAPIA1', 'PROPIA COMERCIO', 'PROPIA FREELANCE', 'PROPIA Y NEGOCIO PERSONAL', 'PROPIO Y FREELANCE', 'PROYECTO FREE LANCE', 'PROYECTO INDEPENDIENTE', 'PROYECTO PERSONAL INDEPENDIENTE', 'PROYECTO RADIAL INDEPENDIENTE', 'PROYECTOS CON INGENIERIA', 'PROYECTOS CON INGENIERÃA', 'PROYECTOS DE INGENIERÃA MULTIDISCIPLINARIOS', 'PROYECTOS E INGENIERÃA FERSA', 'PROYECTOS EMPRESARIALES DE SALUD ADMINISTRADOS', 'PROYECTOS FREE LANCE', 'PROYECTOS INDEPENDIENTES', 'PROYECTOS INDEPENDIENTES DE INGENIERA', 'PROYECTOS INDUSTRIALES SA', 'PRÃCTICA PRE PROFESIONAL FAUBA', 'PRÃCTICA PROFESIONAL EXTERNA EN ÃPTICA', 'PRÃCTICA UNIVERSITARIA EN PJN', 'PRÃCTICAS DE ENFERMERÃA', 'PRÃCTICAS DOCENTES', 'PRÃCTICAS HOSPITALARIAS', 'PRÃCTICAS LABORALES EMPRESA SOYUZ DE AVELLANEDA', 'PRÃCTICAS PROFESIONALES UNIVERSIDAD DE PALERMO', 'PRÃCTICAS PROFESIONALIZANTES', 'PRÃCTICAS PROFESIONALIZANTES DE IMPO Y EXPO', 'PRÃCTICAS PROFESIONAS I Y III', 'PSICOLOGA PARTICULAR', 'PSICÃLOGA PARTICULAR', 'PSICÃLOGO CLÃNICO PARTICULAR', 'PSICÃLOGO PARTICULAR', 'PUBLICIDAD FREELANCE', 'PUBLICITARIA FREELANCE', 'QUESERÃA', 'RADIOS INDEPENDIENTES', 'REALICE PRÃCTICAS EN EL FIORITO Y WILDE Y EVITA', 'REALIZADOR AUDIOVISUAL INDEPENDIENTE', 'RECEPCION FREELANCE SALON', 'RECLUTADORA FREELANCE', 'RECRUITER FREELANCE', 'REDACCIÃN FREELANCE', 'REDACTOR FREELANCE', 'REDACTORA INDEPENDIENTE', 'REENDERISTA FREELANCE', 'REFORMAS PARTICULARES', 'REFRIGERACION DIMA FREELANCE', 'REGALARÃA Y BAZAR', 'REGALERIA', 'REGALERÃA', 'REGALOS EMPRESARIALES', 'REGISTRO NOTARIAL', 'RELACIÃN DE AIRE ACONDICIONADO INDEPENDIENTE', 'RELOJERÃA', 'REMIERIA', 'REMIS PARTICULAR', 'REMISERIA', 'REMISERIA PARTICULAR', 'REMISERÃA', 'REMODELACIÃN Y AMPLIACIÃN PARTICULAR', 'RENDERISTA FREELANCE', 'RENDERISTA Y CADISTA FREELANCE', 'REPARACIÃN DE PC FREELANCE', 'REPARADOR DE PCS EN FORMA INDEPENDIENTE', 'REPRESENTANTE DE VENTAS INDEPENDIENTE', 'RESIDENCIA', 'RESIDENCIA UNIVERSITARIA', 'RESIDENCIA UNIVERSITARIA ALMA', 'RESIDENCIA UNIVERSITARIA DE EXTRANJEROS CRISTAL', 'RESIDENCIA UNIVERSITARIA ENTIS', 'RESIDENCIA UNIVERSITARIA LA CASA DEL GIRASOL', 'RESIDENCIA UNIVERSITARIA LARBEL', 'RESIDENCIA UNIVERSITARIA MY HOUSE', 'RESIDENCIA UNIVERSITARIA UADE', 'RESIDENCIA UNIVERSITARIA UNIVERSIS', 'RESIDENCIA UNIVERSITARIA VEDRUNA', 'RESPONSABLE EN VENTAS FREELANCE', 'RESTAURADORA EDILICIA INDEPENDIENTE', 'RESTAURANTE Y PANADERÃA PARTICULAR', 'REVENTA INDEPENDIENTE', 'ROTICERIA', 'ROTICERÃA', 'ROTISERIA', 'ROTISERIA PROPIA Y DESDE 2007 A 2009', 'ROTISERÃA', 'RUBEN APARICIOABOGADO PARTICULAR', 'SALON DE FIESTA LOS LEALES Y HOGAR PARTICULAR', 'SALON UNISEX', 'SANDWICHERIA', 'SANTA MARIA', 'SANTA MARÃA', 'SANTA VICTORIA', 'SANTORIA', 'SASTRERIA', 'SCS Y TECNICO PARTICULAR', 'SEC EXTENSIÃN UNIVERSITARIA FADU Y UBA', 'SECR OBRAS PARTICULARES MUN DE RIVADAVIA', 'SECRETARIA PERSONAL', 'SECRETARIA PRIVADA', 'SECRETARÃA GENERAL', 'SECUNDARIA PUBLICA', 'SECUNDARIA Y UTU', 'SEGURIDAD PRIVADA', 'SEGURO Y GESTORÃA', 'SELECTORA FREE LANCE', 'SELECTORA FREELANCE', 'SEORIGINAL INDEPENDIENTE', 'SERVICE SERGIO GOLER TRABAJO INDEPENDIENTE', 'SERVICIO DE CASAS PARTICULARES', 'SERVICIO DE CATERING INDEPENDIENTE', 'SERVICIO DE NIÃERA', 'SERVICIO JURÃDICO INDEPENDIENTE', 'SERVICIO JURÃDICO PROFESIONAL INDEPENDIENTE', 'SERVICIO PARTICULAR', 'SERVICIO TÃCNICO FREELANCE', 'SERVICIOS INDEPENDIENTE', 'SERVICIOS INFORMATICOS PARTICULARES', 'SERVICIOS PARTICULAR', 'SERVICIOS PARTICULARES', 'SERVICIOS PROFESIONALES INDEPENDIENTE', 'SEÃORIAL', 'SIEMPRE EN PARTICULARES', 'SIN EMPRESA Y Y TRABAJOS PARTICULARES', 'SINDICATO DEL HIELO Y MERCADOS PARTICULARES', 'SOMMELIER FREELANCE', 'SOPORTE IT FREELANCE', 'SOPORTE TÃCNICO FREELANCE', 'SOPORTE TÃCNICO IT INDEPENDIENTE', 'SPORTCASES CHARLAS MOTIVACIONALES FREELANCER', 'SUDIDEAS PRODUCTORA DE CINE INDEPENDIENTE', 'SUSANA COSIMI VIVIENDA PARTICULAR', 'SWISSTECH Y FREELANCE', 'TALLER DE CARTERAS PARTICULAR', 'TALLER DE ZAPATOS PARTICULAR', 'TALLER INDEPENDIENTE DE TAPICERIA', 'TALLER PARTICULAR', 'TALLER PARTICULAR DE CARPINTERIA', 'TALLERES DE COSTURA INDEPENDIENTE', 'TAREAS FREELANCE DE DISEÃO GRÃFICO', 'TAREAS PROFESIONALES EN FORMA INDEPENDIENTE', 'TARJETA PLATA PRÃCTICAS LABORALES NO RENTADAS', 'TAXISTA INDEPENDIENTE', 'TEATRO INDEPENDIENTE', 'TECNICO EN INFORMATICA INDEPENDIENTE', 'TECNICO FREE LANCE', 'TECNICO INDEPENDIENTE', 'TECNICO PARTICULAR', 'TECNICO REPARADOR DE PC INDEPENDIENTE', 'TERAPIA INDIVIDUAL EN CONSULTORIO PARTICULAR', 'TINTORERIA', 'TRABAJA POR CUENTA PROPIA', 'TRABAJADOR INDEPENDIENTE', 'TRABAJADOR INDEPENDIENTE Y FAMILIAR', 'TRABAJADORA INDEPENDIENTE', 'TRABAJE EN MODO FREELANCE CON VARIAS EMPRESAS', 'TRABAJO AUTÃNOMO INDEPENDIENTE', 'TRABAJO DE FOMRA INDEPENDIENTE', 'TRABAJO DE FORMA INDEPENDIENTE', 'TRABAJO DE FORMA INDEPENDIENTE COMO ESTILISTA', 'TRABAJO DE MANERA INDEPENDIENTE', 'TRABAJO DE URBANISMO INDEPENDIENTE', 'TRABAJO ELÃCTRICOS DOMICILIARIOS PARTICULAR', 'TRABAJO EN CASA PARTICULAR', 'TRABAJO EN FORMA INDEPENDIENTE', 'TRABAJO EVENTUAL POR CUENTA PROPIA', 'TRABAJO FREE LANCE', 'TRABAJO FREELANCE', 'TRABAJO INDEPENDIENTE', 'TRABAJO INDEPENDIENTE DE ARREGLO DE PCS', 'TRABAJO INDEPENDIENTE DE MECANICA EN GENERAL', 'TRABAJO INDEPENDIENTE EN MAXIQUIOSCO', 'TRABAJO INDEPENDIENTE EN PARAGUAY', 'TRABAJO INDEPENDIENTE EN SALON DE BELLEZA', 'TRABAJO INDEPENDIENTE GESTION', 'TRABAJO INDEPENDIENTE Y INTERNACIONAL', 'TRABAJO INDEPENDIENTE Y PROYECTISTA', 'TRABAJO INFORMAL DE MANERA PARTICULAR', 'TRABAJO PARTICULAR', 'TRABAJO PARTICULAR DISCONTINUO', 'TRABAJO PARTICULAR EN EVENTOS', 'TRABAJO PARTICULAR FREELANCE', 'TRABAJO POR CUENTA PROPIA', 'TRABAJO POR CUENTA PROPIA EN VENTAS', 'TRABAJO POR CUENTA PROPIA Y SELF EMPLOYED', 'TRABAJO POR CUYENTRA PROPIA', 'TRABAJO POR MI CUENTA', 'TRABAJO POR MI CUENTA MONOTRIBUTISTA', 'TRABAJO PROFESIONAL INDEPENDIENTE', 'TRABAJOS EN CASAS PARTICULARES', 'TRABAJOS EN GENERAL INDEPENDIENTE', 'TRABAJOS EVENTUALES INDEPENDIENTES', 'TRABAJOS FREE LANCE', 'TRABAJOS FREELANCE', 'TRABAJOS INDEPENDIENTE ELETRICIDAD DOMICILIARIA', 'TRABAJOS INDEPENDIENTES', 'TRABAJOS INDEPENDIENTES DE ELEC', 'TRABAJOS INDEPENDIENTES OBRA NUEVA Y REFACCION', 'TRABAJOS PARTICULARES', 'TRABAJOS PARTICULARES DE PLOMERIA', 'TRABAJOS POR MI CUENTA', 'TRADER FREELANCE', 'TRADUCCION FREELANCE', 'TRADUCCIONES EN FORMA FREELANCE', 'TRADUCCIÃNES PARTICULARES DE INGLÃS', 'TRADUCTOR INDEPENDIENTE', 'TRADUCTOR INDEPENDIENTE FREELANCE', 'TRANSPORTE ESCOLAR INDEPENDIENTE', 'TRANSPORTE INDEPENDIENTE', 'TRANSPORTISTA PARTICULAR PARA FROSINONE FRIO SA', 'TRÃMITES DEL AUTOMOTOR SC NEGOCIO FAMILIAR', 'TUS CLASES PARTICULARES', 'TUTOR PARTICULAR DE INGLÃS', 'TUTORIAS PARTICULARES', 'TÃCNICO FREELANCE', 'TÃCNICO INDEPENDIENTE', 'TÃCNICO INFORMÃTICO FREE LANCER', 'TÃCNICO INFORMÃTICO POR CUENTA PROPIA', 'TÃCNICO POR CUENTA PROPIA', 'UNIFINANZAS EMPRESA DE NEGOCIOS INMOBILIARIOS', 'UPWORK FREELANCE COMPANY', 'VENDEDOR INDEPENDIENTE INDUMENTARIA TEXTIL', 'VENDEDORA INDEPENDIENTE', 'VENTA AMBULANTE INDEPENDIENTE', 'VENTA DE ARTICULOS DE PERFUMERIA', 'VENTA DE CALZADO GALERIA ONCE', 'VENTA DE COMIDA INDEPENDIENTE', 'VENTA DE EQUIPOS ELECTRÃNICOS FREELANCE', 'VENTA DE FORMA INDEPENDIENTE', 'VENTA DE INDUMENTARIA', 'VENTA DE INDUMENTARIA EN TRAPITO ABSORBENTE', 'VENTA DE INDUMENTARIA FEMENINA', 'VENTA DE INDUMENTARIA FEMENINA Y ACCESORIOS', 'VENTA DE INDUMENTARIA FEMENINA Y MASCULINA', 'VENTA DE INDUMENTARIA MILITAR', 'VENTA DE INDUMENTARIA ONA GO', 'VENTA DE INDUMENTARIA Y NEGOCIO FAMILIAR', 'VENTA DE LENCERÃA POR INTERNET 2019 PRESENTE', 'VENTA DE MARROQUINERIA', 'VENTA DE NDUMENTARIA FEMENINA', 'VENTA DE PASAJES INDEPENDIENTES', 'VENTA DE PRENDAS INDEPENDIENTE', 'VENTA DE ROPA VARRIAL', 'VENTA EN FERIAS', 'VENTA FREELANCE', 'VENTA INDEPENDIENTE', 'VENTA INDEPENDIENTE DE COSMETICOS POR CATALOGO', 'VENTAS ACEITE COMESTIBLE INDUMENTARIA INFORMAL', 'VENTAS DE INDUMENTARIAS', 'VENTAS INDEPENDIENTE', 'VENTAS INDEPENDIENTES', 'VENTAS PARTICULAR', 'VERDULERIA', 'VERDULERIA NEGOCIO PROPIO', 'VERDULERÃA', 'VERDULERÃA NEGOCIO FAMILIAR', 'VERDULERÃA PROPIA', 'VERLUDERIA', 'VESTUARISTA FREELANCE', 'VETERINARIA', 'VEYERINARIA', 'VIDRIERIA', 'VISUALIZACIÃN ARQUITECTÃNICA FREE LANCE', 'YOLANDA TERESA PERONACE', 'ZAPATARIA', 'ZAPATERIA', 'ZONA DOMICILIARIA', 'ZURKOWSKA MARCA PROPIA')
+	THEN 0
+	ELSE 1 END AS empresa_valida
+FROM aux
+-- se numera el group by en lugar de nombrarlo para reducir el tamaÃ±o del script
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
+
+-- Se crea tabla de similitud entre empresas de experiencia laboral y empresas de organizaciones
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral_organizacion`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral_organizacion" AS
+WITH empresas_validas AS (
+	SELECT UPPER(empresa_limpia) AS empresa,
+		ARRAY_JOIN(ARRAY_SORT(SPLIT(UPPER(empresa_limpia), ' ')), ' ') AS empresa_ordenada,
+		length(empresa_limpia) longitud
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral"
+	WHERE empresa_valida = 1
+	GROUP BY empresa_limpia
+),
+organizaciones AS (
+	SELECT cuit,
+		UPPER(COALESCE(razon_social_new, razon_social_old)) AS razon_social,
+		ARRAY_JOIN(ARRAY_SORT(SPLIT(UPPER(COALESCE(razon_social_new, razon_social_old)), ' ')), ' ') AS razon_social_ordenada,
+		length(COALESCE(razon_social_new, razon_social_old)) longitud
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_organizaciones"
+),
+uf AS (
+SELECT el.empresa,
+    --el.empresa_ordenada,
+	org.razon_social,
+	--org.razon_social_ordenada,
+	org.cuit,
+	ROW_NUMBER() OVER(
+		PARTITION BY el.empresa_ordenada,
+		org.razon_social_ordenada
+		ORDER BY (
+				(
+					CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+						levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
+					)
+				) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+			) DESC
+	) AS "orden_duplicado"
+FROM empresas_validas el
+	JOIN organizaciones org ON (
+		(
+			(
+				CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+					levenshtein_distance(el.empresa, org.razon_social) AS DOUBLE
+				)
+			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+		) >= 0.99
+	)
+UNION DISTINCT
+SELECT el.empresa,
+    --el.empresa_ordenada,
+	org.razon_social,
+	--org.razon_social_ordenada,
+	org.cuit,
+	ROW_NUMBER() OVER(
+		PARTITION BY el.empresa_ordenada,
+		org.razon_social_ordenada
+		ORDER BY (
+				(
+					CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+						levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
+					)
+				) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+			) DESC
+	) AS "orden_duplicado"
+FROM empresas_validas el
+	JOIN organizaciones org ON (
+		(
+			(
+				CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+					levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
+				)
+			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+		) >= 0.99
+	)
+)
+SELECT *
+FROM uf
+
+
+
+-- Copy of 2023.05.12 step 29 - consume organizaciones (Vcliente).sql 
+
+
+
+-- 1.-- Crear tabla def de organizaciones
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_organizaciones`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones" AS
+WITH org AS (
+SELECT
+cuit,
+razon_social_old,
+razon_social_new,
+estado,
+ente_gubernamental
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_organizaciones"
+UNION
+SELECT
+CAST(NULL AS VARCHAR) AS cuit,
+empresa_limpia,
+CAST(NULL AS VARCHAR) AS razon_social_new,
+CAST(NULL AS VARCHAR) AS estado,
+CASE
+    WHEN regexp_like(empresa_limpia ,'MINISTERIO|GOBIERNO|SUBSECRETARÃA|TSJ|GOB|AFIP|RENAPER|INTA|AGIP|PODER JUDICIAL|BANCO CENTRAL|ARBA') THEN 1
+    ELSE 0
+END ente_gubernamental
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral"
+WHERE empresa_limpia NOT IN (SELECT empresa FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral_organizacion")
+OR  empresa_limpia NOT IN (SELECT razon_social FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral_organizacion" )
+GROUP BY 1,2,3,4,5
+ORDER BY 1
+)
+SELECT
+row_number() OVER () AS id_organizacion,
+org.*
+FROM org
+
+
+
+-- Copy of 2023.05.12 step 30 - consume sector_estrategico (Vcliente).sql 
 
 
 
@@ -7753,7 +7903,7 @@ ORDER BY 2
 
 
 
--- Copy of 2023.04.28 step 28 - consume match_sector_estrategico_sector_productivo(Vcliente).sql 
+-- Copy of 2023.05.12 step 31 - consume match_sector_estrategico_sector_productivo (Vcliente).sql 
 
 
 
@@ -7768,39 +7918,37 @@ cod_actividad_afip_o_naes_string AS codigo_clae_string,
 SUBSTRING(cod_actividad_afip_o_naes_string,1,2) AS codigo_corto_clae,
 --se crea el campo sector productivo
 CASE
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (771210,432110,530010,492230,492290,492221,492229,492250,492190,492170,492280,512000,491200,502200,501200,492240,493200,493110,493120,524290,524190,523020,522099,524210,524110,522092,523090,521030,521020,521010,530090,523039,801010,524230,351201,492210,771290,492160,492150,492180,492140,492110,492130,491120,491110,502101,501100,524130,492120,649210) THEN 'ABASTECIMIENTO Y LOGISTICA'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (653000,649100,774000,643009,661999,661910,821100,682010,661992,829100,649910,702099,702092,702091,949990,651320,661920,692000,649290,649220,661991,662010,643001,649999,821900,663000,641943,641941,641942,641920,641910,641930,661121,661111,949910,941100,941200,931010,942000,661930,642000,649991,829900) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (530010,492230,492290,492221,492229,492250,492190,492170,492280,491200,502200,501200,492240,493200,493110,493120,524290,524190,523020,522099,524210,524110,522092,523090,521030,521020,521010,530090,523039,801010,524230,351201,492210,492160,492150,492180,492140,492110,492130,491120,491110,502101,501100,524130,492120,309100,301100,301200,522091,524120,309900,302000,524220) THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (649100,661131,823000,643009,661999,661910,821100,661992,829100,649910,702099,702092,702091,949990,661920,692000,649290,649220,661991,662010,643001,649999,821900,663000,641943,641941,641942,641920,641910,641930,661121,661111,949910,941100,941200,931010,942000,661930,642000,649991,829900,649210,949930,829200) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (523019,523031,523032,523011) THEN 'ADUANA Y COMERCIO EXTERIOR'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (524390,524310,771220,303000,511000,524320,524330) THEN 'AERONAUTICA'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (462110,462132,461014,13,16292,773010,14910,161001,161002,17010,14930,14990,14810,14300,14121,14113,14430,14440,14221,14211,14410,14420,14520,14510,11501,11111,11329,12510,11129,11119,12800,11911,12200,12320,12319,12490,12420,12410,12600,11291,11331,11341,11342,12311,11121,11299,11310,11130,11912,11509,12590,11211,11400,11321,11112,12709,12121,12110,12701,12900,11990,14920,104012,104011,104013,106131,106200,107200,103099,103030,103091,103020,105010,110211,107992,110212,14115,32000,21030,22010,22020,81100,89300,51000,52000,89200,101091,102003,16210,14114,101099,101011,101040,106110,461031,461032,31200,31110,31120,21010,106120,103011,131120,131110,120010,107920,106139,101012,14820,14710,14610,14620,13020,14720,602320,13019,13013,13011,13012,101020,31130,331220,21020,101013,522020,522010,16190,17020,31300,16299,16130,16220,16120,16230,16119,990000,939010,16140,16150,24020,24010,107911,282130,202101,282120,107930,102001) THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (631190,631120,631110,822000) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (771110,771190,281100,221901,221110,452700,452101,452800,454020,452990,221120,293011,452401,452220,452210,452600,452500,452300) THEN 'AUTOMOTRIZ'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (732000,900040,661131,823000,465500,464910,466310,466932,463153,463170,464632,464950,466330,464620,464223,466391,464149,464112,466931,464420,464999,464631,464410,466399,466360,463129,463152,463219,463212,463220,464940,463154,464130,463121,462131,463160,463300,466110,466129,465220,466350,464212,464501,464222,465930,464502,465210,465100,463112,464991,463191,464330,469010,464930,462201,464211,464113,465920,464920,462190,462209,464122,469090,466200,465690,465610,464610,465400,465910,465990,465340,465320,465360,465310,465390,465350,463151,464221,466370,453100,463130,464141,466340,464121,464129,463199,464320,466320,464310,466920,466940,466910,466939,466990,463111,464119,464340,463159,462120,464142,464114,464111,464150,463211,461092,461094,461099,461039,461011,461040,461013,461021,461022,461093,461095,461091,461019,461029,461012,463180,463140,475300,476200,475210,478010,477830,474020,476320,475440,475230,475430,477290,477420,477210,477410,477490,475490,475250,475190,477890,453220,472200,477430,472172,477230,477220,472130,475420,473000,475120,475260,453210,476120,476310,474010,472112,477440,472160,477460,475110,472140,477140,477130,477330,476400,476110,477820,475220,475290,477450,475410,477810,477480,477840,472171,476130,475270,453291,453292,472150,475240,477150,477190,472190,477320,472120,477310,472111,478090,477470,477110,472300,477120,471900,471110,471190,471130,471120,479900,479109,479101,451110,451210,454010,451190,451290,465330) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (524390,524310,303000,511000,524320,524330,512000) THEN 'AERONAUTICA'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (462110,462132,461014,13,16292,14910,17010,14930,14990,14810,14300,14121,14113,14430,14440,14221,14211,14410,14420,14520,14510,11501,11111,11329,12510,11129,11119,12800,11911,12200,12320,12319,12490,12420,12410,12600,11291,11331,11341,11342,12311,11121,11299,11310,11130,11912,11509,12590,11211,11400,11321,11112,12709,12121,12110,12701,12900,11990,14920,14115,32000,21030,22010,22020,81100,89300,51000,52000,89200,16210,14114,461031,461032,31200,31110,31120,21010,14820,14710,14610,14620,13020,14720,13019,13013,13011,13012,31130,21020,522020,522010,16190,17020,31300,16299,16130,16220,16120,16230,16119,939010,16140,16150,24020,24010) THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (822000) THEN 'ATENCION AL CLIENTE, CALL CENTER Y TELEMARKETING'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (281100,221901,221110,452700,452101,452800,454020,452990,221120,293011,452401,452220,452210,452600,452500,452300,452910,292000,293090,291000) THEN 'AUTOMOTRIZ'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (465500,464910,466310,466932,463153,463170,464632,464950,466330,464620,464223,466391,464149,464112,466931,464420,464999,464631,464410,466399,466360,463129,463152,463219,463212,463220,464940,463154,464130,463121,462131,463160,463300,466110,466129,465220,466350,464212,464501,464222,465930,464502,465210,465100,463112,464991,463191,464330,469010,464930,462201,464211,464113,465920,464920,462190,462209,464122,469090,466200,465690,465610,464610,465400,465910,465990,465340,465320,465360,465310,465390,465350,463151,464221,466370,453100,463130,464141,466340,464121,464129,463199,464320,466320,464310,466920,466940,466910,466939,466990,463111,464119,464340,463159,462120,464142,464114,464111,464150,463211,461092,461094,461099,461039,461011,461040,461013,461021,461022,461093,461095,461091,461019,461029,461012,463180,463140,475300,476200,475210,478010,477830,474020,476320,475440,475230,475430,477290,477420,477210,477410,477490,475490,475250,475190,477890,453220,472200,477430,472172,477230,477220,472130,475420,473000,475120,475260,453210,476120,476310,474010,472112,477440,472160,477460,475110,472140,477140,477130,477330,476400,476110,477820,475220,475290,477450,475410,477810,477480,477840,472171,476130,475270,453291,453292,472150,475240,477150,477190,472190,477320,472120,477310,472111,478090,477470,477110,472300,477120,471900,471110,471190,471130,471120,479900,479109,479101,451110,451210,454010,451190,451290,465330,771210,771290,774000,771220,773010,771110,771190,773030,773020,772091,773040,772099,773090,772010,771110) THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (741000) THEN 'DISEÃO'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (749009,853100,854960,854920,854950,854910,854940,851020,854930,852100,852200,853201,8,853300,721030,722020,722010,721090,855000,854990) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (920009,900021,591200,581100,602310,591300,931020,602200,591120,900011,591110,931030,182000,900030,910900,910100,939090,900091,592000,910200,920001,939030,939020,931090,931041,931042) THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (791909,561013,552000,551022,551023,551021,551010,562099,561014,561019,551090,791901,791200,791100) THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (431210,439990,432920,439100,773030,433030,429090,301100,301200,410021,410011,421000,429010,422200,431100,162201,282400,239592,432910,432990,332000,711009,711001,880000,433090,433010) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (749009,853100,854960,854920,854950,854910,854940,851020,854930,852100,852200,853201,8,853300,721030,722020,722010,721090,855000,854990,851010) THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (920009,900021,591200,591300,931020,591120,900011,591110,931030,182000,900030,910900,910100,939090,900091,592000,910200,920001,939030,939020,931090,931041,931042,900040) THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (791909,561013,552000,551022,551023,551021,551010,562099,561014,561019,551090,791901,791200,791100,561012,561011,561030,562091,562010,561020,561040) THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (432110,431210,439990,432920,439100,433030,429090,410021,410011,421000,429010,422200,431100,432910,432990,332000,711009,711001,433090,433010,422100,431220,432200,433020,439910) THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (432190) THEN 'INGENIERIAS'
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (691002,691001) THEN 'LEGALES/ABOGACIA'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (331290,331210,331900,960101,812090,16113,16112,813000,811000) THEN 'LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS)'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949920,812010) THEN 'LIMPIEZA Y MANTENIMIENTO DE EDFICIOS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (731001,731009) THEN 'MARKETING Y PUBLICIDAD'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (773020,351310,351320,89900,81300,62000,72910,71000,72990,89110,89120,72100,61000,271020,251300,271010,192000,466121,351130,351190,351110,351120,452910,431220,331400,331101,91000,99000,711002,353001,259200,81400,360010,360020,432200,422100) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (801090,9,239600,581200,181109,7,433040,960300,952910,952990,952920,952300,949930,812020,742000,970000,749002,749003,561012,561011,749001,863200,522091,16291,12,433020,11,181200,870920,524120) THEN 'OFICIOS Y OTROS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (639100,581300,581900,602100,601000,181101,639900) THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (110100,352020,239421,108000,242010,110420,110492,107301,239422,239410,110300,120091,107991,101030,107110,110491,239591,104020,107410,107420,102002,107999,107309,107129,120099,105090,105020,110290,107930,105030,107121,103012,107912,110411,81200,221909,281900,201300,272000,201210,275099,267002,252000,239593,239399,259302,323001,139203,162902,170910,170990,239310,162901,309200,321020,201220,281201,273110,259992,152011,152021,152031,251101,292000,329030,170202,259309,275010,281400,202907,201140,261000,281301,202320,139400,201120,231010,259910,222010,267001,265102,329040,309900,329020,202906,203000,139201,352010,201110,275020,259301,273190,162100,281500,322001,265101,202312,321011,324000,239201,274000,329010,151200,282300,282500,282901,281600,281700,282909,201130,201409,201180,201190,210010,210020,239510,309100,310020,310010,282200,239391,321012,170201,170102,293090,170101,202200,275092,202311,239209,239100,162903,191000,210090,162909,231090,259999,259993,251102,239900,222090,242090,202908,162300,265200,201401,239202,139202,110412,310030,268000,251200,139300,259991,139100,282110,291000,275091,162202,241009,231020,302000,259100,243100,243200,439910,329090,241001,109000,204000,152040,952200) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (331290,331210,331900,16113,16112,813000,812020,331101,331400,331301,331220,949920,812010,811000,812090) THEN 'LIMPIEZA Y MANTENIMIENTO'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (732000,731001,731009) THEN 'MARKETING Y PUBLICIDAD'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (351310,351320,89900,81300,62000,72910,71000,72990,89110,89120,72100,61000,192000,466121,351130,351190,351110,351120,91000,99000,711002,353001,81400,360010,360020,352020,352010) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (801090,9,181109,7,433040,952910,952990,952920,952300,742000,749002,749003,749001,16291,12,11,181200) THEN 'OFICIOS Y OTROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (639100,581300,581900,602100,601000,181101,639900,602320,581100,602310,602200,602900,581200) THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (110100,239421,108000,242010,110420,110492,107301,239422,239410,110300,120091,107991,101030,107110,110491,239591,104020,107410,107420,102002,107999,107309,107129,120099,105090,105020,110290,107930,105030,107121,103012,107912,110411,81200,221909,281900,201300,201210,252000,239593,239399,259302,323001,162902,170910,170990,239310,162901,309200,321020,201220,281201,259992,251101,329030,170202,259309,281400,202907,201140,281301,202320,201120,231010,259910,222010,329040,329020,202906,203000,201110,162100,281500,322001,202312,321011,324000,239201,329010,282300,282500,282901,281600,281700,282909,201130,201409,201180,201190,210010,210020,239510,310020,310010,282200,239391,321012,170201,170102,170101,202200,202311,239209,239100,162903,210090,162909,231090,259999,259993,251102,239900,222090,242090,202908,162300,201401,239202,110412,310030,251200,259991,282110,162202,241009,231020,259100,243100,243200,329090,241001,109000,204000,952200,104013,104011,101040,104012,102001,103091,103099,103030,103011,105010,101020,101099,101012,101011,101040,101091,106131,106120,106110,106139,106200,107200,107930,107911,107920,107992,110211,110212,202101,282120,282130,161001,161002,103020,162201,282400,239592,259200,251300,239600,210030,107500,191000,259301,282600,120010,102003,101013) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (780000) THEN 'RECURSOS HUMANOS Y CAPACITACION'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (651310,721020,266090,266010,712000,210030,331301,863300,862110,931050,870100,862130,864000,702010,861020,861010,862120,863110,863190,863120,869010,651110,862200,869090,870990,750000,870210,870910,870220) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (721020,712000,863300,862110,931050,870100,862130,864000,702010,861020,861010,862120,863110,863190,863120,869010,862200,869090,870990,750000,870210,870910,870220,863200,870920,880000,970000) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (641100,842400,10,841900,842100,842200,910300,843000,16111,842500,841100,842300,841300,841200) THEN 'SECTOR PUBLICO'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (652000,662090,651210,662020,651120,651220,651130) THEN 'SEGUROS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (653000,652000,662090,651210,662020,651120,651220,651130,651320,651110,651310) THEN 'SEGUROS'
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (390000,381100,381200,382010,382020,370000) THEN 'SERVICIOS DE MANEJO DE RESIDUOS Y DE REMEDIACION'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949200,949100) THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (107500,561030,562091,829200,562010,561020,561040) THEN 'SERVICIOS DE PREPARACION DE ALIMENTOS Y BEBIDAS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (772099,773040,773090,772091,772010,851010,681020,681010,524220,682099,681099,681098,682091) THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (960910,960201,960202,960990) THEN 'SERVICIOS PERSONALES'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (279000,262000,264000,263000,721010,631200,952100,951200,951100,620200,620100,620300,620900,611010,614010,801020,619000,613000,614090,611090,612000,602900,711003) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (131300,141202,141199,141130,141140,141120,141110,151100,141201,141191,139209,139204,131132,131131,131139,282600,143010,143020,139900,131202,131209,131201,960102,149000,142000) THEN 'TEXTIL'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (949200,949100,990000) THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (681020,681010,682099,681099,681098,682091,682010) THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (960910,960201,960202,960990,960101,960300,960102) THEN 'SERVICIOS PERSONALES (SECTOR A INCORPORAR EN TAXONOMIA DE TYP) POSICION 96 DE LA LETRA S (FUENTE: CLAE AFIP)'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (279000,262000,264000,263000,721010,631200,952100,951200,951100,620200,620100,620300,620900,611010,614010,801020,619000,613000,614090,611090,612000,711003,631190,631120,631110,271020,271010,266010,266090,265101,265200,267002,265102,268000,261000,267001,266010,266090,272000,274000,275091,275020,273110,275099,275092,273190,275010 ) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (131300,141130,141140,141120,141110,141191,139209,139204,131132,131131,131139,143010,143020,139900,131202,131209,131201,149000,142000,131120,131110,139400,139202,139203,139201,139100,139300,151100,141191,141199,141201,141202,152040,152011,152031,152021,151200) THEN 'TEXTIL'
 END sector_productivo,
 --se crea el campo sector estrategico
 CASE
@@ -7820,7 +7968,7 @@ CASE
     WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('86') THEN 'SALUD (SIN CUIDADOS DE PERSONAS)'
     WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('69','70','71','74','78','82') THEN 'SERVICIOS EMPRESARIALES'
     WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('64','65','66') THEN 'SERVICIOS FINANCIEROS'
-    WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (960910,960201,960202,960990) THEN 'SERVICIOS PERSONALES'
+    WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2) IN ('96') THEN 'SERVICIOS PERSONALES (SECTOR A INCORPORAR EN TAXONOMIA DE TYP) POSICION 96 DE LA LETRA S (FUENTE: CLAE AFIP)'
     WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('13','14','15') THEN 'TEXTIL'
     WHEN SUBSTRING(cod_actividad_afip_o_naes_string,1,2)  IN ('79','91') THEN 'TURISMO (SIN HOTELERIA Y GASTRONOMIA)'
 END sector_estrategico
@@ -7851,7 +7999,7 @@ CASE
     WHEN asi.codigo_sector_estrategico IN (5) THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
     WHEN asi.codigo_sector_estrategico IN (1) THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
     WHEN asi.codigo_sector_estrategico IN (17,18) THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
-    WHEN asi.codigo_sector_estrategico IN (19) THEN 'SERVICIOS PERSONALES'
+    WHEN asi.codigo_sector_estrategico IN (19) THEN 'SERVICIOS PERSONALES (SECTOR A INCORPORAR EN TAXONOMIA DE TYP) POSICION 96 DE LA LETRA S (FUENTE: CLAE AFIP)'
     WHEN asi.codigo_sector_estrategico IN (3,14)  THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
     WHEN asi.codigo_sector_estrategico IN (2) THEN 'TEXTIL'
 END sector_productivo,
@@ -7868,54 +8016,54 @@ cln.codigo_4_digitos_clanae,
 cln.sector_productivo AS sp_clanae,
 --se crea el campo sector productivo
 CASE
-    WHEN cln.sector_productivo IN ('FABRICACION DE EQUIPO DE TRANSPORTE N.C.P.','SERVICIOS DE MANIPULACION Y DE ALMACENAMIENTO; SERVICIOS DE APOYO AL TRANSPORTE','SERVICIO DE CORREOS Y MENSAJERIAS','SERVICIO DE TRANSPORTE POR VIA ACUATICA','SERVICIO DE TRANSPORTE TERRESTRE') THEN 'ABASTECIMIENTO Y LOGISTICA'
-    WHEN cln.sector_productivo IN ('SERVICIOS AUXILIARES A LA ACTIVIDAD FINANCIERA','OFICINAS CENTRALES Y SERVICIOS DE ASESORAMIENTO EMPRESARIAL','INTERMEDIACION FINANCIERA Y OTROS SERVICIOS FINANCIEROS','SERVICIOS DE ASOCIACIONES','SERVICIOS EMPRESARIALES N.C.P.','SERVICIOS JURIDICOS, DE CONTABILIDAD Y AUDITORIA; ASESORAMIENTO EMPRESARIAL Y EN MATERIA DE GESTION') THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
-    WHEN cln.sector_productivo IN ('SERVICIO DE TRANSPORTE AEREO') THEN 'AERONAUTICA'
-    WHEN cln.sector_productivo IN ('AGRICULTURA, GANADERIA, CAZA Y SERVICIOS DE APOYO','SILVICULTURA, EXTRACCIÃN DE PRODUCTOS FORESTALES Y SERVICIOS DE APOYO','ELABORACION DE PRODUCTOS DE TABACO','PESCA, ACUICULTURA Y SERVICIOS DE APOYO') THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
-    WHEN cln.sector_productivo IN ('FABRICACION DE VEHICULOS AUTOMOTORES, REMOLQUES Y SEMIRREMOLQUES') THEN 'AUTOMOTRIZ'
-    WHEN cln.sector_productivo IN ('VENTA, MANTENIMIENTO Y REPARACION DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS','COMERCIO AL POR MAYOR Y/O EN COMISION O CONSIGNACION, EXCEPTO EL COMERCIO DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS','COMERCIO AL POR MENOR, EXCEPTO EL COMERCIO DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS') THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
-    WHEN cln.sector_productivo IN ('ENSEÃANZA','ACTIVIDADES PROFESIONALES, CIENTIFICAS Y TECNICAS N.C.P.') THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE BIBLIOTECAS, ARCHIVOS, MUSEOS Y SERVICIOS CULTURALES N.C.P.','SERVICIOS PARA LA PRACTICA DEPORTIVA Y DE ENTRETENIMIENTO','IMPRESIÃN Y REPRODUCCIÃN DE GRABACIONES','SERVICIOS DE CINEMATOGRAFIA','SERVICIOS RELACIONADOS CON JUEGOS DE AZAR Y APUESTAS','SERVICIOS ARTISTICOS Y DE ESPECTÃCULOS') THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE ALOJAMIENTO','SERVICIOS DE AGENCIAS DE VIAJE Y OTRAS ACTIVIDADES COMPLEMENTARIAS DE APOYO TURISTICO') THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
-    WHEN cln.sector_productivo IN ('CONSTRUCCION DE EDIFICIOS Y SUS PARTES','OBRAS DE INGENIERÃA CIVIL','ACTIVIDADES ESPECIALIZADAS DE CONSTRUCCION','SERVICIOS DE ARQUITECTURA E INGENIERIA Y SERVICIOS CONEXOS DE ASESORAMIENTO TECNICO') THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
-    WHEN cln.sector_productivo IN ('REPARACION, MANTENIMIENTO E INSTALACION DE MAQUINAS Y EQUIPOS','SERVICIOS DE LIMPIEZA Y MANTENIMIENTO DE EDIFICIOS Y ESPACIOS VERDES') THEN 'LIMPIEZA Y MANTENIMIENTO (SIN EDIFICIOS)'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE PUBLICIDAD E INVESTIGACION DE MERCADO') THEN 'MARKETING Y PUBLICIDAD'
-    WHEN cln.sector_productivo IN ('EXTRACCION DE CARBON Y LIGNITO','EXTRACCION DE MINERALES METALIFEROS','EXPLOTACION DE MINAS Y CANTERAS N.C.P.','FABRICACION DE PRODUCTOS MINERALES NO METALICOS','SUMINISTRO DE ELECTRICIDAD, GAS; VAPOR Y AIRE ACONDICIONADO','SERVICIOS DE APOYO PARA LA MINERÃA','FABRICACIÃN DE COQUE Y PRODUCTOS DE LA REFINACIÃN DEL PETROLEO','CAPTACION, DEPURACION Y DISTRIBUCION DE AGUA','EXTRACCION DE PETROLEO CRUDO Y GAS NATURAL') THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
-    WHEN cln.sector_productivo IN ('SERVICIOS SEGURIDAD E INVESTIGACION') THEN 'OFICIOS Y OTROS'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE EDICION','ACTIVIDADES DE PRESTACIÃN DE SERVICIOS DE INFORMACION','SERVICIOS DE RADIO Y TELEVISION') THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
-    WHEN cln.sector_productivo IN ('ELABORACION DE PRODUCTOS ALIMENTICIOS','CURTIDO Y TERMINACION DE CUEROS; FABRICACION DE ARTICULOS DE MARROQUINERIA, TALABARTERIA Y CALZADO Y DE SUS PARTES','PRODUCCION DE MADERA Y FABRICACION DE PRODUCTOS DE MADERA Y CORCHO, EXCEPTO MUEBLES; FABRICACION DE ARTICULOS DE PAJA Y DE MATERIALES TRENZABLES','FABRICACION DE PAPEL Y DE PRODUCTOS DE PAPEL','FABRICACION DE SUSTANCIAS Y PRODUCTOS QUIMICOS','FABRICACION DE METALES COMUNES','FABRICACION DE PRODUCTOS ELABORADOS DE METAL, EXCEPTO MAQUINARIA Y EQUIPO','FABRICACION DE MAQUINARIA Y EQUIPO N.C.P.','INDUSTRIAS MANUFACTURERAS N.C.P.','ELABORACION DE BEBIDAS','FABRICACION DE PRODUCTOS DE CAUCHO Y PLASTICO','FABRICACION DE MUEBLES Y COLCHONES') THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
-    WHEN cln.sector_productivo IN ('OBTENCIÃN Y DOTACION DE PERSONAL') THEN 'RECURSOS HUMANOS Y CAPACITACION'
-    WHEN cln.sector_productivo IN ('SERVICIOS VETERINARIOS','SERVICIOS DE ATENCION A LA SALUD HUMANA','SERVICIOS SOCIALES CON ALOJAMIENTO','SERVICIOS DE HOGARES PRIVADOS QUE CONTRATAN SERVICIO DOMESTICO','FABRICACION DE PRODUCTOS FARMACEUTICOS, SUSTANCIAS QUIMICAS MEDICINALES Y PRODUCTOS BOTANICOS DE USO FARMACEUTICO','SERVICIOS SOCIALES SIN ALOJAMIENTO') THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
-    WHEN cln.sector_productivo IN ('ADMINISTRACION PUBLICA, DEFENSA Y SEGURIDAD SOCIAL OBLIGATORIA') THEN 'SECTOR PUBLICO'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE SEGUROS') THEN 'SEGUROS'
-    WHEN cln.sector_productivo IN ('RECOLECCIÃN, TRANSPORTE, TRATAMIENTO Y DISPOSICIÃN FINAL DE RESIDUOS. RECUPERACION DE MATERIALES Y DESECHOS','DESCONTAMINACIÃN Y OTROS SERVICIOS DE GESTIÃN DE RESIDUOS','SERVICIO DE DEPURACION DE AGUAS RESIDUALES, ALCANTARILLADO Y CLOACAS') THEN 'SERVICIOS DE MANEJO DE RESIDUOS Y DE REMEDIACION'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE ORGANIZACIONES Y ORGANOS EXTRATERRITORIALES') THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE COMIDAS Y BEBIDAS') THEN 'SERVICIOS DE PREPARACION DE ALIMENTOS Y BEBIDAS'
-    WHEN cln.sector_productivo IN ('SERVICIOS INMOBILIARIOS','ACTIVIDADES DE ALQUILER Y ARRENDAMIENTO, EXCEPTO LAS ACTIVIDADES INMOBILIARIAS') THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
-    WHEN cln.sector_productivo IN ('SERVICIOS PERSONALES N.C.P.') THEN 'SERVICIOS PERSONALES'
-    WHEN cln.sector_productivo IN ('FABRICACION DE PRODUCTOS INFORMATICOS, ELECTRONICOS Y OPTICOS','FABRICACION DE MAQUINARIA Y EQUIPOS ELECTRICOS N.C.P.','SERVICIOS DE TELECOMUNICACIONES','SERVICIOS DE PROGRAMACIÃN Y CONSULTORÃA INFORMÃTICA Y ACTIVIDADES CONEXAS','INVESTIGACION Y DESARROLLO','REPARACION Y MANTENIMIENTO DE EQUIPOS INFORMATICOS Y DE COMUNICACIÃN; EFECTOS PERSONALES Y ENSERES DOMESTICOS') THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
-    WHEN cln.sector_productivo IN ('FABRICACION DE PRODUCTOS TEXTILES','CONFECCION DE PRENDAS DE VESTIR; TERMINACION Y TEÃIDO DE PIELES') THEN 'TEXTIL'
+    WHEN cln.codigo_4_digitos_clanae IN ('52.42','52.41','52.30','52.10','52.20','52.43','50.22','50.12','50.11','50.21','49.32','49.21','49.31','49.12','49.22','49.11','30.92','30.99','30.91','30.30','30.11','30.12','30.20','53.00') THEN 'ABASTECIMIENTO Y LOGISTICA'
+    WHEN cln.codigo_4_digitos_clanae IN ('64.11','64.92','64.20','64.99','64.30','64.19','64.91','66.19','66.30','66.20','66.11','70.10','70.20','69.10','69.20','82.91','82.92','82.20','82.99','82.11','82.19','82.30','94.92','94.20','94.99','94.11','94.91','94.12') THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
+    WHEN cln.codigo_4_digitos_clanae IN ('51.10','51.20') THEN 'AERONAUTICA'
+    WHEN cln.codigo_4_digitos_clanae IN ('01.27','01.48','01.47','01.14','01.26','01.13','01.29','01.12','01.23','01.62','01.45','01.21','01.61','01.42','01.28','01.41','01.11','01.22','01.70','01.30','01.15','01.44','01.43','01.46','01.24','01.49','01.19','01.25','03.20','03.12','03.11','03.13','02.10','02.20','02.40') THEN 'AGRICULTURA, GANADERIA, CAZA Y SERVICIOS CONEXOS'
+    WHEN cln.codigo_4_digitos_clanae IN ('29.10','29.20','29.30') THEN 'AUTOMOTRIZ'
+    WHEN cln.codigo_4_digitos_clanae IN ('45.26','45.29','45.25','45.32','45.27','45.21','45.24','45.12','45.28','45.31','45.22','45.23','45.11','45.40','46.53','46.31','46.54','46.42','46.49','46.55','46.59','46.90','46.22','46.52','46.69','46.33','46.56','46.44','46.45','46.32','46.43','46.21','46.63','46.46','46.51','46.61','46.62','46.41','47.21','47.51','47.62','47.78','47.52','47.72','47.22','47.23','47.73','47.74','47.91','47.63','47.19','47.11','47.54','47.64','47.30','47.40','47.61','47.71','47.53','47.80','47.99','77.11','77.20','77.30','77.12','77.40') THEN 'COMERCIAL, VENTAS Y NEGOCIOS'
+    WHEN cln.codigo_4_digitos_clanae IN ('85.21','85.33','85.50','85.32','85.49','85.22','85.31','85.10','74.20','74.10','74.90') THEN 'EDUCACION, DOCENCIA E INVESTIGACION'
+    WHEN cln.codigo_4_digitos_clanae IN ('59.11','59.13','59.12','59.20','91.03','91.02','91.01','91.09','92.00','90.00','93.10','93.90','18.20') THEN 'ENTRETENIMIENTO, ESPECTACULOS Y ACTIVIDADES CULTURALES'
+    WHEN cln.codigo_4_digitos_clanae IN ('79.11','79.12','79.19','55.20','55.10','56.10','56.20') THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN cln.codigo_4_digitos_clanae IN ('42.22','42.21','42.10','42.90','43.30','43.91','43.29','43.11','43.99','43.12','43.22','43.21','71.20','71.10','41.00') THEN 'INGENIERIA CIVIL, ARQUITECTURA Y CONSTRUCCION'
+    WHEN cln.codigo_4_digitos_clanae IN ('33.12','33.20','33.14','33.19','33.13','33.11','81.30','81.10','81.20') THEN 'LIMPIEZA Y MANTENIMIENTO'
+    WHEN cln.codigo_4_digitos_clanae IN ('73.10','73.20') THEN 'MARKETING Y PUBLICIDAD'
+    WHEN cln.codigo_4_digitos_clanae IN ('08.13','08.92','08.14','08.11','08.93','08.99','08.91','08.12','06.20','06.10','07.21','07.29','07.10','35.13','35.12','35.30','35.20','35.11','05.20','05.10','09.10','09.90','36.00') THEN 'MINERIA, ENERGIA, PETROLEO, AGUA Y GAS'
+    WHEN cln.codigo_4_digitos_clanae IN ('80.10','18.11','18.12') THEN 'OFICIOS Y OTROS'
+    WHEN cln.codigo_4_digitos_clanae IN ('58.13','58.12','58.11','58.19','63.12','63.91','63.11','63.99','60.29','60.10','60.22','60.23','60.21') THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
+    WHEN cln.codigo_4_digitos_clanae IN ('10.71','10.50','10.90','10.75','10.10','10.30','10.74','10.72','10.62','10.40','10.80','10.79','10.73','10.61','10.20','28.15','28.29','28.17','28.19','28.14','28.26','28.11','28.21','28.22','28.16','28.13','28.12','28.23','28.24','28.25','20.29','20.21','20.11','20.23','20.12','20.22','20.40','20.30','20.14','20.13','32.20','32.90','32.10','32.30','32.40','22.20','22.11','22.19','16.23','16.21','16.10','16.22','16.29','11.04','11.01','11.02','11.03','25.11','25.99','25.92','25.20','25.93','25.91','25.13','25.12','17.01','17.09','17.02','24.10','24.31','24.32','24.20','31.00','23.94','23.99','23.91','23.92','23.95','23.10','23.93','23.96','21.00','19.20','19.10','12.00') THEN 'PRODUCCION Y MANUFACTURA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN cln.codigo_4_digitos_clanae IN ('78.00') THEN 'RECURSOS HUMANOS Y CAPACITACION'
+    WHEN cln.codigo_4_digitos_clanae IN ('75.00','86.22','86.40','86.21','86.32','86.31','86.33','86.90','86.10','88.01','88.09','97.00','87.02','87.09','87.01') THEN 'SALUD, MEDICINA, FARMACIA Y ASISTENCIA SOCIAL'
+    WHEN cln.codigo_4_digitos_clanae IN ('84.22','84.19','84.25','84.12','84.21','84.11','84.23','84.30','84.13','84.24') THEN 'SECTOR PUBLICO'
+    WHEN cln.codigo_4_digitos_clanae IN ('65.11','65.13','65.30','65.12','65.20') THEN 'SEGUROS'
+    WHEN cln.codigo_4_digitos_clanae IN ('38.11','38.12','38.20','37.00','39.00') THEN 'SERVICIOS DE MANEJO DE RESIDUOS Y DE REMEDIACION'
+    WHEN cln.codigo_4_digitos_clanae IN ('99.00') THEN 'SERVICIOS DE ORGANIZACIONES POLITICAS Y RELIGIOSAS'
+    WHEN cln.codigo_4_digitos_clanae IN ('68.10','68.20') THEN 'SERVICIOS INMOBILIARIOS Y ALQUILER DE BIENES MUEBLES E INTANGIBLES'
+    WHEN cln.codigo_4_digitos_clanae IN ('96.01','96.02','96.03','96.09') THEN 'SERVICIOS PERSONALES (SECTOR A INCORPORAR EN TAXONOMIA DE TYP) POSICION 96 DE LA LETRA S (FUENTE: CLAE AFIP)'
+    WHEN cln.codigo_4_digitos_clanae IN ('61.10','61.90','61.20','61.40','61.30','72.20','72.10','95.11','95.29','95.12','95.23','95.22','95.21','27.90','27.50','27.40','27.31','27.10','27.20','62.03','62.02','62.09','62.01','26.80','26.51','26.30','26.70','26.60','26.20','26.40','26.10','26.52') THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+    WHEN cln.codigo_4_digitos_clanae IN ('13.11','13.94','13.91','13.92','13.13','13.99','13.12','13.93','14.90','14.11','14.30','14.12','14.20','15.11','15.20','15.12') THEN 'TEXTIL'
 END sector_productivo,
 --se crea el campo sector estrategico
 CASE
-    WHEN cln.sector_productivo IN ('FABRICACION DE VEHICULOS AUTOMOTORES, REMOLQUES Y SEMIRREMOLQUES') THEN 'AUTOMOTRIZ'
-    WHEN cln.sector_productivo IN ('VENTA, MANTENIMIENTO Y REPARACION DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS','COMERCIO AL POR MAYOR Y/O EN COMISION O CONSIGNACION, EXCEPTO EL COMERCIO DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS','COMERCIO AL POR MENOR, EXCEPTO EL COMERCIO DE VEHICULOS AUTOMOTORES Y MOTOCICLETAS') THEN 'COMERCIO'
-    WHEN cln.sector_productivo IN ('CONSTRUCCION DE EDIFICIOS Y SUS PARTES','OBRAS DE INGENIERÃA CIVIL','ACTIVIDADES ESPECIALIZADAS DE CONSTRUCCION') THEN 'CONSTRUCCION'
-    WHEN cln.sector_productivo IN ('SERVICIOS SOCIALES CON ALOJAMIENTO','SERVICIOS DE HOGARES PRIVADOS QUE CONTRATAN SERVICIO DOMESTICO','SERVICIOS SOCIALES SIN ALOJAMIENTO') THEN 'CUIDADOS DE PERSONA'
-    WHEN cln.sector_productivo IN ('EXTRACCION DE CARBON Y LIGNITO','EXTRACCION DE MINERALES METALIFEROS','EXPLOTACION DE MINAS Y CANTERAS N.C.P.','SUMINISTRO DE ELECTRICIDAD, GAS; VAPOR Y AIRE ACONDICIONADO','SERVICIOS DE APOYO PARA LA MINERÃA','FABRICACIÃN DE COQUE Y PRODUCTOS DE LA REFINACIÃN DEL PETROLEO','CAPTACION, DEPURACION Y DISTRIBUCION DE AGUA','EXTRACCION DE PETROLEO CRUDO Y GAS NATURAL') THEN 'ENERGIA'
-    WHEN cln.sector_productivo IN ('ENSEÃANZA','INVESTIGACION Y DESARROLLO') THEN 'ENSEÃANZA'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE COMIDAS Y BEBIDAS') THEN 'GASTRONOMIA'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE ALOJAMIENTO') THEN 'HOTELERIA'
-    WHEN cln.sector_productivo IN ('IMPRESIÃN Y REPRODUCCIÃN DE GRABACIONES','SERVICIOS DE CINEMATOGRAFIA','SERVICIOS ARTISTICOS Y DE ESPECTÃCULOS','SERVICIOS DE PUBLICIDAD E INVESTIGACION DE MERCADO','SERVICIOS DE EDICION','SERVICIOS DE RADIO Y TELEVISION') THEN 'INDUSTRIAS CREATIVAS'
-    WHEN cln.sector_productivo IN ('ELABORACION DE PRODUCTOS ALIMENTICIOS','CURTIDO Y TERMINACION DE CUEROS; FABRICACION DE ARTICULOS DE MARROQUINERIA, TALABARTERIA Y CALZADO Y DE SUS PARTES','PRODUCCION DE MADERA Y FABRICACION DE PRODUCTOS DE MADERA Y CORCHO, EXCEPTO MUEBLES; FABRICACION DE ARTICULOS DE PAJA Y DE MATERIALES TRENZABLES','FABRICACION DE PAPEL Y DE PRODUCTOS DE PAPEL','FABRICACION DE SUSTANCIAS Y PRODUCTOS QUIMICOS','FABRICACION DE METALES COMUNES','FABRICACION DE PRODUCTOS ELABORADOS DE METAL, EXCEPTO MAQUINARIA Y EQUIPO','FABRICACION DE MAQUINARIA Y EQUIPO N.C.P.','INDUSTRIAS MANUFACTURERAS N.C.P.','ELABORACION DE BEBIDAS','FABRICACION DE PRODUCTOS DE CAUCHO Y PLASTICO','FABRICACION DE MUEBLES Y COLCHONES','REPARACION, MANTENIMIENTO E INSTALACION DE MAQUINAS Y EQUIPOS','FABRICACION DE PRODUCTOS FARMACEUTICOS, SUSTANCIAS QUIMICAS MEDICINALES Y PRODUCTOS BOTANICOS DE USO FARMACEUTICO','FABRICACION DE PRODUCTOS MINERALES NO METALICOS','ELABORACION DE PRODUCTOS DE TABACO') THEN 'INDUSTRIA MANUFACTURERA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
-    WHEN cln.sector_productivo IN ('FABRICACION DE EQUIPO DE TRANSPORTE N.C.P.','SERVICIOS DE MANIPULACION Y DE ALMACENAMIENTO; SERVICIOS DE APOYO AL TRANSPORTE','SERVICIO DE CORREOS Y MENSAJERIAS','SERVICIO DE TRANSPORTE POR VIA ACUATICA','SERVICIO DE TRANSPORTE TERRESTRE','SERVICIO DE TRANSPORTE AEREO') THEN 'LOGISTICA'
-    WHEN cln.sector_productivo IN ('OFICINAS CENTRALES Y SERVICIOS DE ASESORAMIENTO EMPRESARIAL','SERVICIOS DE ASOCIACIONES','SERVICIOS EMPRESARIALES N.C.P.','SERVICIOS JURIDICOS, DE CONTABILIDAD Y AUDITORIA; ASESORAMIENTO EMPRESARIAL Y EN MATERIA DE GESTION','SERVICIOS DE ARQUITECTURA E INGENIERIA Y SERVICIOS CONEXOS DE ASESORAMIENTO TECNICO','ACTIVIDADES PROFESIONALES, CIENTIFICAS Y TECNICAS N.C.P.','OBTENCIÃN Y DOTACION DE PERSONAL') THEN 'SERVICIOS EMPRESARIALES'
-    WHEN cln.sector_productivo IN ('SERVICIOS AUXILIARES A LA ACTIVIDAD FINANCIERA','INTERMEDIACION FINANCIERA Y OTROS SERVICIOS FINANCIEROS','SERVICIOS DE SEGUROS') THEN 'SERVICIOS FINANCIEROS'
-    WHEN cln.sector_productivo IN ('SERVICIOS VETERINARIOS','SERVICIOS DE ATENCION A LA SALUD HUMANA') THEN 'SALUD (SIN CUIDADOS DE PERSONAS)'
-    WHEN cln.sector_productivo IN ('SERVICIOS PERSONALES N.C.P.') THEN 'SERVICIOS PERSONALES'
-    WHEN cln.sector_productivo IN ('FABRICACION DE PRODUCTOS INFORMATICOS, ELECTRONICOS Y OPTICOS','FABRICACION DE MAQUINARIA Y EQUIPOS ELECTRICOS N.C.P.','SERVICIOS DE TELECOMUNICACIONES','SERVICIOS DE PROGRAMACIÃN Y CONSULTORÃA INFORMÃTICA Y ACTIVIDADES CONEXAS','REPARACION Y MANTENIMIENTO DE EQUIPOS INFORMATICOS Y DE COMUNICACIÃN; EFECTOS PERSONALES Y ENSERES DOMESTICOS') THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
-    WHEN cln.sector_productivo IN ('FABRICACION DE PRODUCTOS TEXTILES','CONFECCION DE PRENDAS DE VESTIR; TERMINACION Y TEÃIDO DE PIELES') THEN 'TEXTIL'
-    WHEN cln.sector_productivo IN ('SERVICIOS DE AGENCIAS DE VIAJE Y OTRAS ACTIVIDADES COMPLEMENTARIAS DE APOYO TURISTICO','SERVICIOS DE BIBLIOTECAS, ARCHIVOS, MUSEOS Y SERVICIOS CULTURALES N.C.P.') THEN 'TURISMO (SIN HOTELERIA Y GASTRONOMIA)'
+    WHEN cln.codigo_4_digitos_clanae IN ('29.10','29.20','29.30') THEN 'AUTOMOTRIZ'
+    WHEN cln.codigo_4_digitos_clanae IN ('45.11','45.12','45.21','45.22','45.23','45.24','45.25','45.26','45.27','45.28','45.29','45.31','45.32','45.40','46.21','46.22','46.31','46.32','46.33','46.41','46.42','46.43','46.44','46.45','46.46','46.49','46.51','46.52','46.53','46.54','46.55','46.56','46.59','46.61','46.62','46.63','46.69','46.90') THEN 'COMERCIO'
+    WHEN cln.codigo_4_digitos_clanae IN ('41.00','42.10','42.21','42.22','42.90','43.11','43.12','43.21','43.22','43.29','43.30','43.91','43.99') THEN 'CONSTRUCCION'
+    WHEN cln.codigo_4_digitos_clanae IN ('87.01','87.02','87.09','88.01','88.09') THEN 'CUIDADOS DE PERSONA'
+    WHEN cln.codigo_4_digitos_clanae IN ('72.10','72.20','85.31','85.32','85.33','85.49','85.50') THEN 'ENSEÃANZA'
+    WHEN cln.codigo_4_digitos_clanae IN ('26.10','26.20','26.30','26.40','26.51','26.52','26.60','26.70','26.80') THEN 'ELECTRONICA'
+    WHEN cln.codigo_4_digitos_clanae IN ('35.13','35.12','35.30','35.20','35.11') THEN 'ENERGIA'
+    WHEN cln.codigo_4_digitos_clanae IN ('56.10','56.20')  THEN 'GASTRONOMIA'
+    WHEN cln.codigo_4_digitos_clanae IN ('55.10','55.20') THEN 'HOTELERIA'
+    WHEN cln.codigo_4_digitos_clanae IN ('62.01','62.02','62.03','62.09','63.11','63.12','63.91','63.99') THEN 'INFORMATICA'
+    WHEN cln.codigo_4_digitos_clanae IN ('58.11','58.12','58.13','58.19','59.11','59.12','59.13','59.20','73.10','73.20','90.00') THEN 'INDUSTRIAS CREATIVAS'
+    WHEN cln.codigo_4_digitos_clanae IN ('10.10','10.20','10.30','10.40','10.50','10.61','10.62','10.71','10.72','10.73','10.74','10.75','10.79','10.80','10.90','11.01','11.02','11.03','11.04','17.01','17.02','17.09','18.11','18.12','18.20','19.10','19.20','20.11','20.12','20.13','20.14','20.21','20.22','20.23','20.29','20.30','20.40','21.00','22.11','22.19','22.20','23.10','23.91','23.92','23.93','23.94','23.95','23.96','23.99','24.10','24.20','24.31','24.32','25.11','25.12','25.13','25.20','25.91','25.92','25.93','25.99','27.10','27.20','27.31','27.40','27.50','27.90','28.11','28.12','28.13','28.14','28.15','28.16','28.17','28.19','28.21','28.22','28.23','28.24','28.25','28.26','28.29','30.11','30.12','30.20','30.30','30.91','30.92','30.99','31.00','32.10','32.20','32.30','32.40','32.90','33.11','33.12','33.13','33.14','33.19','33.20','12.00') THEN 'INDUSTRIA MANUFACTURERA (SIN TEXTIL, ELECTRONICA Y AUTOMOTRIZ)'
+    WHEN cln.codigo_4_digitos_clanae IN ('52.10','52.20','52.30','52.41','52.42','52.43','53.00') THEN 'LOGISTICA'
+    WHEN cln.codigo_4_digitos_clanae IN ('69.10','69.20','70.10','70.20','71.10','71.20','74.10','74.20','74.90','78.00','82.11','82.19','82.20','82.30','82.91','82.92','82.99') THEN 'SERVICIOS EMPRESARIALES'
+    WHEN cln.codigo_4_digitos_clanae IN ('64.11','64.19','64.20','64.30','64.91','64.92','64.99','65.11','65.12','65.13','65.20','65.30','66.11','66.19','66.20','66.30') THEN 'SERVICIOS FINANCIEROS'
+    WHEN cln.codigo_4_digitos_clanae IN ('86.10','86.21','86.22','86.31','86.32','86.33','86.40','86.90') THEN 'SALUD (SIN CUIDADOS DE PERSONAS)'
+	WHEN cln.codigo_4_digitos_clanae IN ('96.01','96.02','96.03','96.09') THEN 'SERVICIOS PERSONALES (SECTOR A INCORPORAR EN TAXONOMIA DE TYP) POSICION 96 DE LA LETRA S (FUENTE: CLAE AFIP)'
+    WHEN cln.codigo_4_digitos_clanae IN ('13.11','13.12','13.13','13.91','13.92','13.93','13.94','13.99','14.11','14.12','14.20','14.30','14.90','15.11','15.12','15.20') THEN 'TEXTIL'
+    WHEN cln.codigo_4_digitos_clanae IN ('79.11','79.12','79.19','91.01','91.02','91.03','91.09') THEN 'TURISMO (SIN HOTELERIA Y GASTRONOMIA)'
 END sector_estrategico
 FROM (SELECT
 	codigo_4_digitos AS codigo_4_digitos_clanae,
@@ -7940,6 +8088,7 @@ WHERE codigo_4_digitos IS NOT NULL
 GROUP BY 1,2) cln
 ),
 --Se unifican los sectores productivos y estrategicos (en caso de corresponder) provenientes de CLAE, CLANAE y la tabla de sectores estrategicos definidos por GCBA
+--acÃ¡ se rompe!
 uf AS (
 SELECT
 clae.codigo_clae_string AS codigo_clae,
@@ -7961,11 +8110,12 @@ NULL AS codigo_clae,
 asi.codigo_sector_estrategico,
 clanae.codigo_4_digitos_clanae,
 CASE
-    WHEN asi.sector_productivo IS NOT NULL THEN clanae.sector_productivo
-    ELSE asi.sector_productivo
+    WHEN clanae.sector_productivo IS NULL THEN asi.sector_productivo
+    ELSE clanae.sector_productivo
 END sector_productivo,
 CASE
-    WHEN asi.sector_estrategico IS NOT NULL THEN clanae.sector_estrategico
+    --WHEN asi.sector_estrategico IS NULL THEN clanae.sector_estrategico
+    WHEN clanae.sector_estrategico IS NULL THEN asi.sector_estrategico
     ELSE clanae.sector_estrategico
 END sector_estrategico
 FROM clanae
@@ -7991,13 +8141,27 @@ CASE WHEN LENGTH(TRIM(uf.codigo_4_digitos_clanae))=0 THEN NULL ELSE uf.codigo_4_
 sp.id_sector_productivo,
 uf.sector_productivo,
 uf.sector_estrategico
+),
+spf AS (
+SELECT
+sp.codigo_clae,
+codigo_4_digitos_clanae,
+CASE
+    WHEN sp.codigo_sector_estrategico IS NULL THEN se.codigo_sector_estrategico
+    ELSE sp.codigo_sector_estrategico
+END codigo_sector_estrategico,
+sp.codigo_sector_productivo,
+sp.sector_productivo,
+sp.sector_estrategico
+FROM sp
+LEFT JOIN "caba-piba-staging-zone-db".tbp_typ_def_sector_estrategico se ON (sp.sector_estrategico = se.sector_estrategico)
 )
 SELECT *
-FROM sp
+FROM spf
 
 
 
--- Copy of 2023.04.28 step 29 - staging organizacion_actividad (Vcliente).sql 
+-- Copy of 2023.05.12 step 32 - staging organizacion_actividad (Vcliente).sql 
 
 
 
@@ -8021,7 +8185,7 @@ FROM c
 
 
 
--- Copy of 2023.04.28 step 30 - consume actividad_area_de_interes (Vcliente).sql 
+-- Copy of 2023.05.12 step 33 - consume actividad_area_de_interes (Vcliente).sql 
 
 
 
@@ -8064,10 +8228,427 @@ m1.codigo_sector_productivo
 FROM c3
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_match_sector_estrategico_sector_productivo" m1 ON (c3.codigo_clae_clean = TRY_CAST(m1.codigo_clae AS INT))
 GROUP BY 1,2,3
-)
-SELECT *
+),
+c5 AS (
+SELECT
+c4.codigo_de_actividad,
+c4.descripcion_actividad,
+CASE
+    WHEN c4.codigo_sector_productivo IS NULL THEN m1.codigo_sector_productivo
+    ELSE c4.codigo_sector_productivo
+END codigo_sector_productivo,
+m1.sector_productivo
 FROM c4
-WHERE c4.codigo_sector_productivo IS NOT NULL
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_match_sector_estrategico_sector_productivo" m1 ON (SUBSTRING(CAST(c4.codigo_de_actividad AS VARCHAR),1,4) = REPLACE(m1.codigo_4_digitos_clanae,'.',''))
+)
+SELECT
+c5.codigo_de_actividad,
+c5.descripcion_actividad,
+c5.codigo_sector_productivo
+FROM c5
+WHERE c5.codigo_sector_productivo IS NOT NULL
+GROUP BY 1,2,3
+
+
+
+-- Copy of 2023.05.12 step 34 - consume cargos (Vcliente).sql 
+
+
+
+-- 39.-- Crear tabla def de cargos
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cargos`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cargos" AS
+SELECT
+	codigo_de_puesto_desempeniado AS codigo,
+	UPPER(descripcion_de_puesto_desempeniado) AS cargo
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal"
+WHERE
+	descripcion_de_puesto_desempeniado IS NOT NULL
+	AND LENGTH(TRIM(descripcion_de_puesto_desempeniado))>0
+GROUP BY
+	descripcion_de_puesto_desempeniado,
+	codigo_de_puesto_desempeniado
+ORDER BY
+	descripcion_de_puesto_desempeniado
+
+
+
+-- Copy of 2023.05.12 step 35 - staging curriculum (Vcliente).sql 
+
+
+
+-- Crear tabla tmp de curriculum
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_curriculum`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum" AS
+WITH datos_broker AS (
+	SELECT bg.*
+	FROM "caba-piba-raw-zone-db"."crm_empleo_experiencia_laboral__c" el
+		INNER JOIN "caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e ON (
+			el.postulante__c = e.postulante__c
+			AND e.dni__c IS NOT NULL
+		)
+		INNER JOIN "caba-piba-staging-zone-db"."tbp_broker_def_broker_general" bg ON (bg.documento_broker = CAST(e.dni__c AS INT))
+	WHERE 1 = (
+			SELECT COUNT(1)
+			FROM "caba-piba-staging-zone-db"."tbp_broker_def_broker_general" bg1
+			WHERE bg1.documento_broker = bg.documento_broker
+			GROUP BY bg1.documento_broker
+		)
+),
+datos_broker_1 AS (
+	SELECT bg.*
+	FROM "caba-piba-raw-zone-db"."crm_sociolaboral_contacts_cstm"  cc
+		INNER JOIN "caba-piba-staging-zone-db"."tbp_broker_def_broker_general" bg ON (bg.documento_broker = cc.numero_documento_c)
+	WHERE 1 = (
+			SELECT COUNT(1)
+			FROM "caba-piba-staging-zone-db"."tbp_broker_def_broker_general" bg1
+			WHERE bg1.documento_broker = bg.documento_broker
+			GROUP BY bg1.documento_broker
+		)
+),
+nivel_educativo AS (
+	SELECT cc.id_c,
+		ee.document_name,
+		CASE
+			WHEN UPPER(TRIM(ee.document_name)) IN (
+				'SECUNDARIO FINALIZADO',
+				'SECUNDARIO',
+				UPPER('Secundario TÃ©cnico')
+			) THEN 'Secundario'
+			WHEN UPPER(TRIM(ee.document_name)) IN (
+				'TERCIARIO COMPLETO',
+				'TERCIARIO FINALIZADO',
+				'TERCIARIO'
+			) THEN 'Terciario'
+			WHEN UPPER(TRIM(ee.document_name)) IN (
+				'UNIVERSITARIO COMPLETO',
+				'UNIVERSITARIO FINALIZADO',
+				'UNIVERSITARIO',
+				UPPER('ingienieria en sistema')
+			) THEN 'Universitario'
+			WHEN UPPER(TRIM(ee.document_name)) LIKE 'BACHILLER%' THEN 'Secundario'
+			WHEN UPPER(TRIM(ee.document_name)) LIKE 'SECUNDARI%COMPLE%' THEN 'Secundario'
+			WHEN UPPER(TRIM(ee.document_name)) LIKE 'LICENCIATURA%' THEN 'Universitario'
+			WHEN UPPER(TRIM(ee.document_name)) LIKE '%EN%CURSO%' THEN 'En curso' ELSE 'Otros'
+		END nivel_educativo
+	FROM "caba-piba-raw-zone-db"."crm_sociolaboral_es_estudios" ee
+		INNER JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_es_estudios_contacts_c" ecc ON (ecc.es_estudios_contactses_estudios_idb = ee.id)
+		INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" cc ON (cc.id_c = ecc.es_estudios_contactscontacts_ida)
+	WHERE ee.active_date = (
+			SELECT MAX(ee1.active_date)
+			FROM "caba-piba-raw-zone-db"."crm_sociolaboral_es_estudios" ee1
+				INNER JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_es_estudios_contacts_c" ecc1 ON (
+					ecc1.es_estudios_contactses_estudios_idb = ee1.id
+				)
+			WHERE cc.id_c = ecc1.es_estudios_contactscontacts_ida
+		)
+	GROUP BY cc.id_c,
+		ee.document_name
+)
+SELECT CAST(cv.id AS VARCHAR) cod_origen,
+	'PORTALEMPLEO' base_origen,
+	COALESCE(MAX(application_date), CURRENT_DATE) fecha_publicacion,
+	-- assumption ultima fecha de postulacion es la ultima fecha de publicacion del cv
+	UPPER(ct.name) capacidades_diferentes,
+	cv.presentation presentacion,
+	cv.goals metas,
+	CASE
+		WHEN cv.disabled = 0 THEN 'NO VIGENTE' ELSE 'VIGENTE'
+	END estado,
+	c.nationality nacionalidad,
+	CASE
+		WHEN (
+			c.doc_type IN ('DNI', 'LC', 'CI', 'LE', 'CUIL')
+		) THEN c.doc_type
+		WHEN (c.doc_type = 'PAS') THEN 'PE'
+		WHEN (c.doc_type = 'DE') THEN 'CE'
+		WHEN (c.doc_type = 'CRP') THEN 'OTRO' ELSE 'NN'
+	END tipo_doc_broker,
+	c.doc_number  documento_broker,
+	CASE
+		WHEN (c.gender NOT IN ('F', 'M')) THEN 'X' ELSE c.gender
+	END genero_broker,
+	CAST(c.miba_id AS VARCHAR) login2_id,
+	CASE
+		WHEN UPPER(SUBSTR(c.document_nationality, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN'
+	END nacionalidad_broker,
+	ta.name disponibilidad,
+	m.name modalidad,
+	eds.value nivel_educativo,
+	CONCAT(
+		(
+			CASE
+				WHEN (
+					c.doc_type IN ('DNI', 'LC', 'CI', 'LE', 'CUIL')
+				) THEN c.doc_type ELSE 'NN'
+			END
+		),
+		CAST(c.doc_number AS varchar),
+		(
+			CASE
+				WHEN (c.gender = 'M') THEN 'M'
+				WHEN (c.gender = 'F') THEN 'F' ELSE 'X'
+			END
+		),
+		(
+			CASE
+				WHEN UPPER(SUBSTR(c.document_nationality, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN'
+			END
+		)
+	) broker_id
+FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_education_level_status" eds ON (eds.id = af.education_level_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_candidates" c ON (c.id = cv.candidate_id)
+	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_condition_types" ct ON (ct.id = cv.condition_type_id)
+	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_time_availability" ta ON (ta.id = cv.availability_id)
+	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_working_modalities" m ON (m.id = modality_id)
+	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_job_applications" ja ON (ja.candidate_id = cv.candidate_id)
+GROUP BY cv.id,
+	UPPER(ct.name),
+	cv.presentation,
+	cv.goals,
+	cv.disabled,
+	c.nationality,
+	CASE
+		WHEN (
+			c.doc_type IN ('DNI', 'LC', 'CI', 'LE', 'CUIL')
+		) THEN c.doc_type
+		WHEN (c.doc_type = 'PAS') THEN 'PE'
+		WHEN (c.doc_type = 'DE') THEN 'CE'
+		WHEN (c.doc_type = 'CRP') THEN 'OTRO' ELSE 'NN'
+	END,
+	c.doc_number,
+	CASE
+		WHEN (c.gender NOT IN ('F', 'M')) THEN 'X' ELSE c.gender
+	END,
+	c.miba_id,
+	CASE
+		WHEN UPPER(SUBSTR(c.document_nationality, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN'
+	END,
+	ta.name,
+	m.name,
+	eds.value,
+	CONCAT(
+		(
+			CASE
+				WHEN (
+					c.doc_type IN ('DNI', 'LC', 'CI', 'LE', 'CUIL')
+				) THEN c.doc_type ELSE 'NN'
+			END
+		),
+		CAST(c.doc_number AS varchar),
+		(
+			CASE
+				WHEN (c.gender = 'M') THEN 'M'
+				WHEN (c.gender = 'F') THEN 'F' ELSE 'X'
+			END
+		),
+		(
+			CASE
+				WHEN UPPER(SUBSTR(c.document_nationality, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN'
+			END
+		)
+	)
+UNION
+SELECT e.id,
+	'CRMEMPLEO',
+	COALESCE(MAX(e.fecha_de_entrevista__c), CURRENT_DATE) fecha_publicacion,
+	-- assumption ultima fecha de entrevista es la ultima fecha de publicacion del cv
+	NULL capacidades_diferentes,
+	NULL presentacion,
+	e.resumen_de_la_entrevista__c metas,
+	CASE
+		WHEN el.isdeleted = 'true' THEN 'VIGENTE' ELSE 'NO VIGENTE'
+	END estado,
+	NULL nacionalidad,
+	'DNI' tipo_doc_broker,
+	CAST(e.dni__c AS INT) documento_broker,
+	b.genero genero_broker,
+	CAST(b.login2_id AS VARCHAR) login2_id,
+	NULL nacionalidad_broker,
+	NULL disponibilidad,
+	NULL modalidad,
+	e.nivel_de_instruccion__c nivel_educativo,
+	b.id
+FROM "caba-piba-raw-zone-db"."crm_empleo_experiencia_laboral__c" el
+	INNER JOIN "caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e ON (
+		el.postulante__c = e.postulante__c
+		AND e.dni__c IS NOT NULL
+	)
+	LEFT JOIN datos_broker b ON (b.documento_broker = CAST(e.dni__c AS INT))
+GROUP BY e.id,
+	e.resumen_de_la_entrevista__c,
+	e.estado__c,
+	CAST(e.dni__c AS INT),
+	e.nivel_de_instruccion__c,
+	b.id,
+	b.genero,
+	CAST(b.login2_id AS VARCHAR),
+	el.isdeleted
+UNION
+SELECT COALESCE(ecc.id, NULL),
+	'CRMSL',
+	COALESCE(MAX(ecc.active_date), MAX(NULL), CURRENT_DATE) fecha_publicacion,
+	-- assumption ultima fecha de entrevista es la ultima fecha de publicacion del cv
+	CASE
+		WHEN cc.tipo_discapacidad_c = 'Motriz' THEN 'MOTOR'
+		WHEN cc.tipo_discapacidad_c = 'Nada' THEN NULL
+		WHEN UPPER(cc.tipo_discapacidad_c) IN ('VISUAL', 'AUDITIVA', 'MENTAL', 'VISCERAL') THEN UPPER(cc.tipo_discapacidad_c) ELSE NULL
+	END capacidades_diferentes,
+	ecc.description presentacion,
+	NULL metas,
+	CASE
+		WHEN ecc.status_id = 'Active' THEN 'VIGENTE' ELSE 'NO VIGENTE'
+	END estado,
+	cc.nacionalidad_c nacionalidad,
+
+	CASE
+			WHEN UPPER(cc.tipo_documento_c) IN ('DNI','LC','LE','CI','CUIT','CUIL') THEN UPPER(cc.tipo_documento_c)
+			WHEN cc.tipo_documento_c = 'PAS' THEN 'PE' ELSE 'NN'
+		END tipo_doc_broker,
+
+
+	CAST(
+		COALESCE(
+				CAST(cc.numero_documento_c AS VARCHAR),
+				SUBSTR(CAST(cc.cuil2_c AS VARCHAR),	3,LENGTH(CAST(cc.cuil2_c AS VARCHAR)) -3)
+				)
+		AS DECIMAL) documento_broker,
+
+	CASE
+		WHEN cc.genero_c LIKE 'masculino' OR SUBSTRING(CAST(cc.cuil2_c AS VARCHAR),1,2) = '20' THEN 'M'
+		WHEN cc.genero_c LIKE 'femenino' OR SUBSTRING(CAST(cc.cuil2_c AS VARCHAR),1,2) = '27' THEN 'F'
+		ELSE 'X'
+	END genero_broker,
+
+
+	CAST(b.login2_id AS VARCHAR) login2_id,
+	CASE
+		WHEN UPPER(SUBSTR(cc.nacionalidad_c, 1, 3)) = 'ARG' THEN 'ARG' ELSE 'NN'
+	END nacionalidad_broker,
+
+	NULL disponibilidad,
+	NULL modalidad,
+	ne.nivel_educativo nivel_educativo,
+	b.id
+FROM "caba-piba-raw-zone-db"."crm_sociolaboral_re_experiencia_laboral" ecc
+	INNER JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_re_experiencia_laboral_contacts_c" c ON (
+		c.re_experiencia_laboral_contactsre_experiencia_laboral_idb = ecc.id
+	)
+	INNER JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_contacts_cstm" cc ON (
+		cc.id_c = c.re_experiencia_laboral_contactscontacts_ida
+	)
+	LEFT JOIN datos_broker_1 b ON (b.documento_broker = cc.numero_documento_c)
+	LEFT JOIN nivel_educativo ne ON (ne.id_c = cc.id_c)
+WHERE cc.numero_documento_c IS NULL
+GROUP BY ecc.id,
+	cc.discapacidad_c,
+	ecc.description,
+	ecc.status_id,
+	cc.nacionalidad_c,
+	cc.tipo_documento_c,
+	cc.numero_documento_c,
+	cc.genero_c,
+	b.login2_id,
+	UPPER(SUBSTR(cc.nacionalidad_c, 1, 3)),
+	cc.trabaja_actualmente_c,
+	b.id,
+	ne.nivel_educativo,
+	cc.tipo_discapacidad_c,
+	cc.cuil2_c
+
+
+
+-- Copy of 2023.05.12 step 36 - consume curriculum (Vcliente).sql 
+
+
+
+-- Crear tabla def de curriculum
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_curriculum`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" AS
+SELECT cv.base_origen || cv.cod_origen AS id,
+	cv.cod_origen id_old,
+	cv.base_origen,
+	vec.vecino_id,
+	cv.modalidad,
+	TRY_CAST(cv.fecha_publicacion AS DATE) fecha_publicacion,
+	cv.disponibilidad,
+	cv.presentacion,
+	cv.estado,
+	cv.metas,
+	cv.nivel_educativo,
+	cv.capacidades_diferentes tipo_discapacidad
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum" cv
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
+		cv.base_origen = vec.base_origen
+		AND cv.tipo_doc_broker = vec.tipo_doc_broker
+		AND CAST(cv.documento_broker AS VARCHAR) = vec.documento_broker
+	)
+GROUP BY
+	cv.base_origen || cv.cod_origen,
+	cv.cod_origen,
+	cv.base_origen,
+	vec.vecino_id,
+	cv.modalidad,
+	TRY_CAST(cv.fecha_publicacion AS DATE),
+	cv.disponibilidad,
+	cv.presentacion,
+	cv.estado,
+	cv.metas,
+	cv.nivel_educativo,
+	cv.capacidades_diferentes
+
+
+
+-- Copy of 2023.05.12 step 37 - consume experiencia_laboral (Vcliente).sql 
+
+
+
+-- Crear tabla def de experiencia laboral dentro del cv
+-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cv_experiencia_laboral`;
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cv_experiencia_laboral" AS
+WITH el AS (
+SELECT
+	cv.id AS curriculum_id,
+	e.id_old,
+	e.base_origen,
+	e.fecha_desde AS fecha_inicio,
+	e.fecha_hasta AS fecha_fin,
+	e.empresa_limpia AS empresa,
+	e.posicion_limpia AS puesto
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral" e
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (e.id_cv_old=cv.id_old)
+GROUP BY
+	cv.id,
+	e.id_old,
+	e.base_origen,
+	e.fecha_desde,
+	e.fecha_hasta,
+	e.empresa_limpia,
+	e.posicion_limpia
+)
+SELECT
+	el.base_origen||el.id_old AS id,
+	el.curriculum_id,
+	el.id_old,
+	el.base_origen,
+	el.fecha_inicio,
+	el.fecha_fin,
+	org.id_organizacion,
+	el.puesto
+FROM el
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones" org
+ON (el.empresa = org.razon_social_old OR el.empresa = org.razon_social_new)
+GROUP BY
+	el.base_origen||el.id_old,
+	el.curriculum_id,
+	el.id_old,
+	el.base_origen,
+	el.fecha_inicio,
+	el.fecha_fin,
+	org.id_organizacion,
+	el.puesto
 
 
 

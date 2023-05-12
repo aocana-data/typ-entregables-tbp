@@ -1,3 +1,40 @@
+2023-05-12:
+Se modifica dentro del archivo "creacion de vistas.sql" la vista "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" cambiando las condiciones del WHERE para obtener dni a partir de cuil
+Se modifica el archivo "staging vecinos.sql" cambiando parte de la logica de la tabla "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino_1" para las bases origenes SIU, CRMSL y PORTALEMPLEO
+Se modifica el archivo "staging registro_laboral_formal.sql" validando las fechas de inicio y fin, si cualquiera de ellas es inconsistente en algun registro se las deja en null a ambas
+Se modifica el archivo "consume sector_productivo.sql" agregando/cambiando sectores y actividades incluidas en los mismos
+Se modifica el archivo "consume match_sector_estrategico_sector_productivo.sql" agregando/cambiando sectores y actividades incluidas en los mismos
+Se modifica el archivo "staging organizaciones.sql
+
+Se agrega el archivo "staging nomenclador_actividades_economicas.sql" (step 21)
+Se agrega el archivo "staging organizaciones.sql" (step 27)
+Se agrega el archivo "staging experiencia_laboral.sql" (step 28)
+Se agrega el archivo "consume cargos.sql" (step 34)
+Se agrega el archivo "staging curriculum.sql" (step 35)
+Se agrega el archivo "consume curriculum.sql" (step 36)
+Se agrega el archivo "consume experiencia_laboral.sql" (step 37)
+
+Se reordenaron los steps:
+"consume sector_productivo.sql" de step 21 a 23
+"consume_registro_laboral_formal.sql" de step 23 a 24
+"staging entrevista.sql" de step 24 a 25
+"consume entrevista.sql" de step 25 a 26
+"consume organizaciones .sql" de step 26 a 29
+"consume sector_estrategico.sql" de step 27 a 30
+"consume match_sector_estrategico_sector_productivo.sql" de step 28 a 31
+"staging organizacion_actividad .sql" de step 29 a 32
+"consume actividad_area_de_interes.sql" de step 30 a 33
+
+2023-04-28:
+Se cambian los sectores productivos en los archivo "staging oportunidad_laboral.sql" (step 19) y "consume oportunidad_laboral.sql" (step 20)
+Se agrega el archivo nuevo "consume sector_productivo.sql" (step 21)
+Se reordenan los steps de la entrega del 2023-04-14 agregando el paso mencionado anterioriormente, por lo que el script 21 es el 22, el 22 es el 23 y asi sucesivamente.
+Se agrega el archivo "consume organizaciones.sql" (step 26)
+Se agrega el archivo "consume sector_estrategico.sql" (step 27)
+Se agrega el archivo "consume match_sector_estrategico_sector_productivo.sql" (step 28)
+Se agrega el archivo "staging organizacion_actividad.sql" (step 29)
+Se agrega el archivo "consume actividad_area_de_interes.sql" (step 29)
+
 2023-04-14:
 Se agregó la vista "goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto" en el archivo "creacion_de_vistas.sql" (step 00)
 
