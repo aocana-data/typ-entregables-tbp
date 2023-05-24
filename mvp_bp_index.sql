@@ -1,8 +1,9 @@
--- Copy of 2023.05.12 step 00 - creacion de vistas (Vcliente).sql 
+-- Copy of 2023.05.24 step 00 - creacion de vistas.sql 
 
 
 
 --1. RENAPER sin duplicados
+--<sql>--
 CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."tbp_typ_tmp_view_ciudadanos_renaper_no_duplicates" AS
 
 SELECT
@@ -23,8 +24,9 @@ ROW_NUMBER() OVER(
 
  ) a
  WHERE a.orden_duplicado=1
-
+ --</sql>--
 --2. usuarios CRSML sin duplicados
+--<sql>--
   CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" AS
 SELECT
 a.id_c,
@@ -109,8 +111,9 @@ SELECT c.*,
  FROM "caba-piba-raw-zone-db"."crm_sociolaboral_contacts_cstm" c
  ) a
  WHERE a.orden_duplicado=1
-
+ --</sql>--
 --3. usuarios GOET sin duplicados
+--<sql>--
  CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."tbp_typ_tmp_view_goet_usuarios_no_duplicates" AS
 SELECT
 a.idusuario,
@@ -166,8 +169,9 @@ FROM "caba-piba-raw-zone-db"."goet_usuarios" u
 
  ) a
  WHERE a.orden_duplicado=1
-
+ --</sql>--
 --4. usuarios SIU sin duplicados
+--<sql>--
  CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."tbp_typ_tmp_view_siu_toba_3_3_negocio_mdp_personas_no_duplicates" AS
   SELECT
 a.persona,
@@ -209,8 +213,9 @@ ROW_NUMBER() OVER(
  JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_mdp_personas_documentos" d ON d.documento = p.documento_principal
  ) a
  WHERE a.orden_duplicado=1
-
+ --</sql>--
 --5. SIENFO FICHAS sin duplicados
+--<sql>--
  CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_vw_sienfo_fichas" AS
 SELECT f1.id_fichas,
 	f1.apenom_ord,
@@ -282,8 +287,9 @@ FROM (
 			AND nrodoc != ''
 	) f1
 WHERE DUP = 1
-
+--</sql>--
 --6. SIENFO FICHAS PREINSCRIPCION sin duplicados
+--<sql>--
 CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_vw_sienfo_fichas_preinscripcion" AS
 SELECT
     t.id_ficha_pre,
@@ -341,8 +347,9 @@ FROM
     "caba-piba-raw-zone-db"."sienfo_fichas_preinscripcion" p
 ) t
 WHERE dup = 1
-
+--</sql>--
 --7. VISTA DE SIU QUE SE UTILIZA PARA CALCULO DE ESTADO DE BENEFICIARIO
+--<sql>--
 CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_tmp_siu_cantidad_materias_plan" AS
 SELECT
   PLAN
@@ -353,8 +360,9 @@ SELECT
 , version_actual
 FROM
   "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes"
-
+--</sql>--
 --8. VISTA NECESARIA PARA CALCULO DE ESTADO DE BENEFICIARIO DE SIENFO
+--<sql>--
 CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto" AS
 WITH carrera_29 AS (
 SELECT
@@ -486,16 +494,18 @@ SELECT
 FROM
     todas
 LEFT JOIN carrera_1_old ON carrera_1_old.carrera = todas.carrera
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 01 - consume programa (Vcliente).sql 
+-- Copy of 2023.05.24 step 01 - consume programa.sql 
 
 
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_programa`;
+-- --<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_programa`; --</sql>--
 
 -- 19 programas
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_programa" AS
 SELECT p.id programa_id,
        p.ministerio_id ministerio_id,
@@ -515,15 +525,17 @@ SELECT p.id programa_id,
 FROM "caba-piba-raw-zone-db"."api_asi_programa" p
 INNER JOIN "caba-piba-raw-zone-db"."api_asi_ministerio" m ON (m.id = p.ministerio_id)
 LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = r.ministerio_id AND p.reparticion_id = r.id)
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 02 - staging establecimiento (Vcliente).sql 
+-- Copy of 2023.05.24 step 02 - staging establecimiento.sql 
 
 
 
 -- 1.-- Se crea tabla tbp_typ_tmp_establecimientos_1 desde los origenes GOET, MOODLE, SIENFO, CRMSL Y SIU
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_establecimientos_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_establecimientos_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_1" AS
 SELECT
 	'SIU' base_origen,
@@ -660,9 +672,10 @@ CAST('' AS VARCHAR) numero,
 'Ciudad de Buenos Aires' localidad,
 '1107' codigo_postal,
 'Comuna 1' comuna
-
+--</sql>--
 -- 2.-- Se crea tabla con domicilios estandarizados
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.tbp_typ_tmp_establecimientos_domicilios_estandarizados;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.tbp_typ_tmp_establecimientos_domicilios_estandarizados;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db".tbp_typ_tmp_establecimientos_domicilios_estandarizados AS
 WITH ECN1 AS (
 SELECT
@@ -941,14 +954,15 @@ ECN8.comuna
 )
 SELECT ECNF.*
 FROM ECNF;
-
+--</sql>--
 -- 3.-- Se crea tabla tbp_typ_tmp_establecimientos cruzando tabla de domicilios estandarizados con
 -- informacion proveniente de:
 -- # https://www.argentina.gob.ar/educacion/evaluacion-e-informacion-educativa/padron-oficial-de-establecimientos-educativos
 -- # https://data.educacion.gob.ar/
 -- # https://data.buenosaires.gob.ar/dataset/establecimientos-educativos
 -- esta tabla serÃ¡ la ultima tabla tmp antes de crear la tabla consume
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_establecimientos`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_establecimientos`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos" AS
 SELECT e.base_origen,
 	e.codigo,
@@ -1005,7 +1019,7 @@ SELECT e.base_origen,
 	) AS "orden_duplicado"
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estandarizados" e
 	-- SE HACE JOIN POR SIMILITUD DE DIRECCIONES >= 80%
-	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_data_efectores" te ON (
+	LEFT JOIN "caba-piba-raw-zone-db"."tbp_typ_tmp_data_efectores" te ON (
 		(
 			(
 				Cast(
@@ -1049,16 +1063,18 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estand
 			)
 		) >= 0.8
 	)
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 03 - consume establecimiento (Vcliente).sql 
+-- Copy of 2023.05.24 step 03 - consume establecimiento.sql 
 
 
 
 -- ESTABLECIMIENTO GOET, MOODLE, SIENFO, CRMSL Y SIU
 -- 1.- Crear tabla establecimientos definitiva
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_establecimientos`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_establecimientos`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" AS
 SELECT
 	row_number() OVER () AS id,
@@ -1091,15 +1107,17 @@ FROM (
 	GROUP BY 1,2,3,4,5,7,8,9,10,11,12
 	) tmp
 ORDER BY tmp.base_origen, tmp.nombre
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 04 - staging capacitacion asi (Vcliente).sql 
+-- Copy of 2023.05.24 step 04 - staging capacitacion asi.sql 
 
 
 
 -- 1.- Crear tabla capacitacion
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_capacitacion_asi`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_capacitacion_asi`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" AS
 SELECT c.id capacitacion_id,
        c.codigo codigo_capacitacion,
@@ -1139,9 +1157,10 @@ LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_programa" p ON (p.programa_id
 LEFT JOIN "caba-piba-raw-zone-db"."api_asi_categoria_back" cb ON (cb.id = c.categoria_back_id)
 LEFT JOIN "caba-piba-raw-zone-db"."api_asi_categoria_front" cf ON (cf.id = c.categoria_front_id)
 LEFT JOIN "caba-piba-raw-zone-db"."api_asi_modalidad" m ON (m.id = c.modalidad_id)
-
+--</sql>--
 -- 2.-  Crear tabla aptitudes para cada capacitacion
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_aptitudes_asi`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_aptitudes_asi`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_aptitudes_asi" AS
 SELECT c.id capacitacion_id,
        c.codigo codigo_capacitacion,
@@ -1152,16 +1171,18 @@ INNER JOIN "caba-piba-raw-zone-db"."api_asi_aptitud_capacitacion" ac
 ON (ac.capacitacion_id = c.id)
 INNER JOIN "caba-piba-raw-zone-db"."api_asi_aptitud" a
 ON (ac.aptitud_id = a.id)
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 05 - staging capacitacion (Vcliente).sql 
+-- Copy of 2023.05.24 step 05 - staging capacitacion.sql 
 
 
 
 -- CRM SOCIOLABORAL - CRMSL
 --1.-- Crear tabla capacitaciones socio laboral
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_crmsl_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_crmsl_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_1" AS
 
 SELECT 'CRMSL' AS base_origen,
@@ -1191,6 +1212,7 @@ SELECT 'CRMSL' AS base_origen,
 		END AS estado,
 	TRIM(UPPER(OF.area)) AS categoria
 FROM "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_formacion" OF;
+--</sql>--
 
 --2.-- Crear tabla maestro capacitaciones socio laboral
 -- A) Si hay alguna capacitacion activa:
@@ -1201,7 +1223,8 @@ FROM "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_formacion" OF;
 -- fecha fin => min(fecha de fin de capacitaciones)
 -- Si no hay valor para fecha_inicio o fecha_fin quedan en NULL
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_crmsl_capacitaciones`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_crmsl_capacitaciones`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_capacitaciones" AS
 
 SELECT ROW_NUMBER() OVER () AS id,
@@ -1234,9 +1257,11 @@ FROM (
 	HAVING SUM(s1.estado) = 0
 	) c_crmsl
 ORDER BY c_crmsl.descrip_normalizada;
+--</sql>--
 
 --3.-- Crear tabla match capacitaciones socio laboral
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_crmsl_match`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_crmsl_match`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_match" AS
 
 SELECT sc.base_origen,
@@ -1248,10 +1273,12 @@ INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_capacitaciones" sc ON 
 		sc.tipo_capacitacion = s1.tipo_capacitacion
 		AND sc.descrip_normalizada = s1.descrip_normalizada
 		);
+--</sql>--
 
 -- SIENFO
 --4.-- Crear tabla capacitaciones sienfo
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_sienfo_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_sienfo_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_1" AS
 
 SELECT 'SIENFO' AS base_origen,
@@ -1324,6 +1351,7 @@ WHERE COALESCE(t.id_carrera, 0) = 0
 GROUP BY CAST(COALESCE(t.id_carrera, 0) AS VARCHAR) || '-' || CAST(cu.id_curso AS VARCHAR),
 	cu.nom_curso,
 	UPPER(tc.nom_categoria);
+--</sql>--
 
 --5.-- Crear tabla maestro capacitaciones sienfo
 -- A) Si hay alguna capacitacion activa:
@@ -1334,7 +1362,8 @@ GROUP BY CAST(COALESCE(t.id_carrera, 0) AS VARCHAR) || '-' || CAST(cu.id_curso A
 -- fecha fin => max(fecha de fin de capacitaciones)
 -- Si no hay valor para fecha_inicio o fecha_fin quedan en NULL
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_sienfo_capacitaciones`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_sienfo_capacitaciones`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_capacitaciones" AS
 
 SELECT ROW_NUMBER() OVER () AS id,
@@ -1367,9 +1396,11 @@ FROM (
 	HAVING SUM(s1.estado) = 0
 	) c_sienfo
 ORDER BY c_sienfo.descrip_normalizada
+--</sql>--
 
 --6.-- Crear tabla match capacitaciones sienfo
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_sienfo_match`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_sienfo_match`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_match" AS
 
 SELECT sc.base_origen,
@@ -1381,10 +1412,12 @@ INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_capacitaciones" sc ON
 		sc.tipo_capacitacion = s1.tipo_capacitacion
 		AND sc.descrip_normalizada = s1.descrip_normalizada
 		);
+--</sql>--
 
 -- GOET
 --7.-- Crear tabla capacitaciones goet
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_goet_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_goet_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_goet_1" AS
 
 SELECT 'GOET' AS base_origen,
@@ -1423,6 +1456,7 @@ GROUP BY t.detalle,
 	UPPER(en.detalle),
 	a.detalle,
 	f.detalle;
+--</sql>--
 
 --8.-- Crear tabla maestro capacitaciones goet
 -- A) Si hay alguna capacitacion activa:
@@ -1433,7 +1467,8 @@ GROUP BY t.detalle,
 -- fecha fin => max(fecha de fin de capacitaciones)
 -- Si no hay valor para fecha_inicio o fecha_fin quedan en NULL
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_goet_capacitaciones`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_goet_capacitaciones`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_goet_capacitaciones" AS
 
 SELECT ROW_NUMBER() OVER () AS id,
@@ -1466,9 +1501,11 @@ FROM (
 	HAVING SUM(s1.estado) = 0
 	) c_goet
 ORDER BY c_goet.descrip_normalizada
+--</sql>--
 
 --9.-- Crear tabla match capacitaciones goet
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_goet_match`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_goet_match`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_goet_match" AS
 
 SELECT sc.base_origen,
@@ -1480,10 +1517,12 @@ INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_goet_capacitaciones" sc ON (
 		sc.tipo_capacitacion = s1.tipo_capacitacion
 		AND sc.descrip_normalizada = s1.descrip_normalizada
 		);
+--</sql>--
 
 -- MOODLE
 --10.-- Crear tabla capacitaciones moodle
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_moodle_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_moodle_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_1" AS
 SELECT 'MOODLE' AS base_origen,
 	-- En CAC son cursos de dos módulos
@@ -1523,6 +1562,7 @@ GROUP BY CAST(cc.id AS VARCHAR),
 	co.enddate,
 	cc.name,
 	cc.idnumber;
+--</sql>--
 
 --11.-- Crear tabla maestro capacitaciones moodle
 -- A) Si hay alguna capacitacion activa:
@@ -1533,7 +1573,8 @@ GROUP BY CAST(cc.id AS VARCHAR),
 -- fecha fin => max(fecha de fin de capacitaciones)
 -- Si no hay valor para fecha_inicio o fecha_fin quedan en NULL
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_moodle_capacitaciones`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_moodle_capacitaciones`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_capacitaciones" AS
 SELECT ROW_NUMBER() OVER () AS id,
 	c_moodle.*
@@ -1565,9 +1606,11 @@ FROM (
 	HAVING SUM(s1.estado) = 0
 	) c_moodle
 ORDER BY c_moodle.descrip_normalizada
+--</sql>--
 
 --12.-- Crear tabla match capacitaciones moodle
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_moodle_match`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_moodle_match`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_match" AS
 SELECT sc.base_origen,
 	sc.tipo_capacitacion,
@@ -1577,11 +1620,17 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_1" s1
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_capacitaciones" sc ON (
 		sc.tipo_capacitacion = s1.tipo_capacitacion
 		AND sc.descrip_normalizada = s1.descrip_normalizada
-		);
+		)
+GROUP BY sc.base_origen,
+	sc.tipo_capacitacion,
+	sc.id,
+	s1.capacitacion_id;
+--</sql>--
 
 -- SIU
 --13.-- Crear tabla capacitaciones siu
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_siu_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_siu_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_1" AS
 	WITH siu AS (
 			SELECT 'SIU' AS base_origen,
@@ -1627,6 +1676,7 @@ SELECT base_origen,
 	estado,
 	categoria
 FROM siu;
+--</sql>--
 
 --14.-- Crear tabla maestro capacitaciones siu
 -- A) Si hay alguna capacitacion activa:
@@ -1637,7 +1687,8 @@ FROM siu;
 -- fecha fin => max(fecha de fin de capacitaciones)
 -- Si no hay valor para fecha_inicio o fecha_fin quedan en NULL
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_siu_capacitaciones`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_siu_capacitaciones`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones" AS
 
 SELECT ROW_NUMBER() OVER () AS id,
@@ -1670,9 +1721,11 @@ FROM (
 	HAVING SUM(s1.estado) = 0
 	) c_siu
 ORDER BY c_siu.descrip_normalizada
+--</sql>--
 
 --15.-- Crear tabla match capacitaciones siu
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_siu_match`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_siu_match`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_match" AS
 
 SELECT sc.base_origen,
@@ -1684,10 +1737,12 @@ INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones" sc ON (
 		sc.tipo_capacitacion = s1.tipo_capacitacion
 		AND sc.descrip_normalizada = s1.descrip_normalizada
 		);
+--</sql>--
 
 -- UNIFICADAS
 --16.-- Crear tabla de capacitaciones de origen unificada
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_capacitacion`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_capacitacion`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion" AS
 SELECT base_origen || '-' || tipo_capacitacion || '-' || CAST(id AS VARCHAR) id,
 	id id_new,
@@ -1738,15 +1793,17 @@ SELECT base_origen || '-' || tipo_capacitacion || '-' || CAST(id AS VARCHAR),
 	fecha_fin,
 	estado
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 06 - consume capacitacion (Vcliente).sql 
+-- Copy of 2023.05.24 step 06 - consume capacitacion.sql 
 
 
 
 --1.-- Crear tabla de match de capacitaciones unificada
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_capacitacion_match`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_capacitacion_match`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" AS
 SELECT base_origen || '-' || tipo_capacitacion || '-' || CAST(id_new AS VARCHAR) AS id,
 	base_origen,
@@ -1754,37 +1811,39 @@ SELECT base_origen || '-' || tipo_capacitacion || '-' || CAST(id_new AS VARCHAR)
 	 id_new,
 	id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_match"
-UNION ALL
+UNION DISTINCT
 SELECT base_origen || '-' || tipo_capacitacion || '-' || CAST(id_new AS VARCHAR) AS id,
 	base_origen,
 	tipo_capacitacion,
 	 id_new,
 	id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_match"
-UNION ALL
+UNION DISTINCT
 SELECT base_origen || '-' || tipo_capacitacion || '-' || CAST(id_new AS VARCHAR) AS id,
 	base_origen,
 	tipo_capacitacion,
 	 id_new,
 	id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_goet_match"
-UNION ALL
+UNION DISTINCT
 SELECT base_origen || '-' || tipo_capacitacion || '-' || CAST(id_new AS VARCHAR) AS id,
 	base_origen,
 	tipo_capacitacion,
 	 id_new,
 	id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_match"
-UNION ALL
+UNION DISTINCT
 SELECT base_origen || '-' || tipo_capacitacion || '-' || CAST(id_new AS VARCHAR) AS id,
 	base_origen,
 	tipo_capacitacion,
 	 id_new,
 	id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_match";
+--</sql>--
 
 --2.--Crear tabla de maestro de capacitaciones unificada
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_capacitacion`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_capacitacion`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" AS
 SELECT tc.id,
 	tc.id_new,
@@ -1830,9 +1889,11 @@ LEFT JOIN (
 			AND ca1.codigo_capacitacion = cm.id_old
 			)
 	) AS ca ON (tc.id = ca.id);
+--</sql>--
 
 -- 3.-  Crear tabla aptitudes para cada capacitacion
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_def_aptitudes`;
+-- --<sql>--DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_def_aptitudes`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_aptitudes" AS
 SELECT c.id capacitacion_id,
 	   c.capacitacion_id_asi,
@@ -1844,15 +1905,17 @@ INNER JOIN "caba-piba-raw-zone-db"."api_asi_aptitud_capacitacion" ac
 ON (ac.capacitacion_id = c.capacitacion_id_asi)
 INNER JOIN "caba-piba-raw-zone-db"."api_asi_aptitud" a
 ON (ac.aptitud_id = a.id)
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 07 - staging vecinos (Vcliente).sql 
+-- Copy of 2023.05.24 step 07 - staging vecinos.sql 
 
 
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_vecino_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_vecino_1`;--</sql>--
 -- 1- Se crea tabla tbp_typ_tmp_vecino_2 con todos los vecinos excepto los provenientes de la base origen IEL
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino_1" AS
 SELECT 'SIU' base_origen,
        CAST(nmp.persona AS VARCHAR) cod_origen,
@@ -2402,9 +2465,11 @@ SELECT 'CRMEMPLEO' base_origen,
 FROM "caba-piba-raw-zone-db"."crm_empleo_account" cea
 WHERE LENGTH(TRIM(numero_de_documento__c))>0 AND ispersonaccount = TRUE
 GROUP BY 1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
+--</sql>--
 
 -- 2- Se crea la tabla tbp_typ_tmp_vecino_2 con los vecinos de la tabla tbp_typ_tmp_vecino_1 cruzados con broker
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_vecino_2`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_vecino_2`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino_2" AS
 WITH tmp_vec_broker AS
 (SELECT vec.broker_id_din||'-'||vec.base_origen vecino_id,
@@ -2506,9 +2571,11 @@ SELECT tvc.vecino_id,
 	   tvc.dni_valido,
 	   tvc.renaper_valido
 FROM tmp_vec_renaper tvc
+--</sql>--
 
 -- 3- Se crea tabla de analisis iel cruzando con tabla tbp_typ_tmp_vecino_2
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_analisis_iel`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_analisis_iel`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_analisis_iel" AS
 WITH
   iel AS (
@@ -2545,10 +2612,11 @@ FROM
   "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino_2" vec1
 WHERE ((vec1.broker_id = vec.broker_id) AND (vec1.base_origen = 'GOET'))
 )))) OR (vec.base_origen = 'GOET')))
-
+--</sql>--
 
 -- 4- Se utilizan las tablas de los pasos 1 y 3 para crear la tabla temporal definitiva: tbp_typ_tmp_vecino
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_vecino`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_vecino`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino" AS
 WITH tmp AS
 (SELECT iel.*,
@@ -2612,16 +2680,17 @@ WHERE tmp.broker_id IS NULL
 GROUP BY
 tmp.tipo_documento, tmp.nrodocumento, tmp.nivel, tmp.sede, tmp.curso, tmp.descrip_normalizada, tmp.comision, tmp.inscripcion, tmp.estado, tmp.apellido, tmp.nombre, tmp.nacionalidad, tmp.sexo, tmp.fecha_nacimiento, tmp.tipo_doc_broker, tmp.broker_id, tmp.broker_id_valido, tmp.base_origen,
 tmp.base_origen_ok, gu.idusuario
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 08 - consume vecinos (Vcliente).sql 
+-- Copy of 2023.05.24 step 08 - consume vecinos.sql 
 
 
 
 -- 1.- Crear la tabla definitiva de vecinos
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_vecino`;
-
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_vecino`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_vecino" AS
 WITH tmp_vec_broker AS
 (SELECT vec.broker_id_din||'-'||vec.base_origen vecino_id,
@@ -2723,15 +2792,17 @@ SELECT tvc.vecino_id,
 	   tvc.dni_valido,
 	   tvc.renaper_valido
 FROM tmp_vec_renaper tvc
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
+-- Copy of 2023.05.24 step 09 - staging estado_beneficiario_crmsl.sql 
 
 
 
 -- Query Estado de Beneficiario para athena
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_crmsl`;
+-- --<sql>--DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_crmsl`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_crmsl" AS
 -- Query Estado de Beneficiario para athena
 WITH seguimientos_calculado0 AS (
@@ -2827,14 +2898,16 @@ SELECT id alumno_id_old,
 	   fin,
 	   UPPER(estado_n) estado_beneficiario
 FROM resultado
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
+-- Copy of 2023.05.24 step 10 - staging estado_beneficiario_sienfo.sql 
 
 
 
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_sienfo`;
+-- --<sql>--DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_sienfo`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_sienfo" AS
 WITH t AS (
 	/*Limpieza de talleres, me quedo con los cursos validos,
@@ -3448,14 +3521,16 @@ SELECT
     *
 FROM
     car_cur
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
+-- Copy of 2023.05.24 step 11 - staging estado_beneficiario_goet.sql 
 
 
 
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_goet`;
+-- --<sql>--DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_goet`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_goet" AS
 WITH master AS (
 	SELECT
@@ -3649,14 +3724,16 @@ GROUP BY
     IdCertificadoCarrera,
     Fehca_cert,
     estado_beneficiario
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
+-- Copy of 2023.05.24 step 12 - staging estado_beneficiario_moodle.sql 
 
 
 
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_moodle`;
+-- --<sql>--DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_moodle`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_moodle" AS
 	WITH cursos AS (
 			SELECT mc.id AS id_curso,
@@ -3912,14 +3989,16 @@ FROM
 			ca.id_curso
 		FROM carreras ca) a ) resultado
 WHERE resultado.orden_duplicado=1
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
+-- Copy of 2023.05.24 step 13 - staging estado_beneficiario_siu.sql 
 
 
 
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_siu`;
+-- --<sql>--DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_estado_beneficiario_siu`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_siu" AS
 WITH preins AS (
 	SELECT
@@ -4139,16 +4218,18 @@ FROM
 		) a
 	) resultado
 WHERE resultado.orden_duplicado=1
+--</sql>--
 --Ver casos fecha inicio (min(fecha insc cursada)) > fecha_acta (max(fecha de acta)) 1165 casos de 50816
 
 
 
--- Copy of 2023.05.12 step 14 - staging edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.05.24 step 14 - staging edicion capacitacion.sql 
 
 
 
 -- 1.-- Crear EDICION CAPACITACION GOET, MOODLE, SIENFO Y CRMSL paso 1
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_edicion_capacitacion_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_edicion_capacitacion_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_edicion_capacitacion_1" AS
 -- GOET
 SELECT
@@ -4821,11 +4902,12 @@ SELECT
 	' ' descrip_capacitacion_old,
 
 	-- la clave de edicion capacitacion se compone los identificadores del 1-plan de estudio,
-	-- 2-la propuesta academica, 3-el periodo lectivo, 4-el establecimiento donde se dicta la capacitacion y
-	-- 5-la modalidad de la capacitacion
+	-- 2-la propuesta academica, 3-el periodo lectivo, 4-el establecimiento donde se dicta la capacitacion
+	-- 5-la modalidad de la capacitacion y 6-Turno
 	CAST(spl.plan AS VARCHAR) || '-' || CAST(spl.propuesta AS VARCHAR) || '-' ||
 	CAST(pl.periodo_lectivo AS VARCHAR)  || '-' || CAST(est.id AS VARCHAR) || '-' ||
-	CAST(dc.modalidad_id AS VARCHAR) edicion_capacitacion_id,
+	CAST(dc.modalidad_id AS VARCHAR) || '-' ||
+	CAST(turno_c.turno AS VARCHAR) edicion_capacitacion_id,
 
 	CAST(SPLIT_PART(MIN(date_format(pl.fecha_inicio_dictado, '%Y-%m-%d %h:%i%p')), '-', 1)  AS INTEGER) anio_inicio,
 
@@ -4841,10 +4923,10 @@ SELECT
 	CAST(DATE_PARSE(MAX(date_format(pl.fecha_fin_dictado, '%Y-%m-%d %h:%i%p')), '%Y-%m-%d %h:%i%p') AS DATE) fecha_fin_dictado,
 
 	-- se obtiene calculando la primer inscripcion en la edicion
-	MIN(CAST(DATE_PARSE(date_format(inscriptos.fecha_inscripcion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE)) fecha_inicio_inscripcion,
+	CAST(DATE_PARSE(date_format(inscriptos.min_fecha_inscripcion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE) fecha_inicio_inscripcion,
 
 	-- se obtiene calculando la ultima inscripcion en la edicion
-	MAX(CAST(DATE_PARSE(date_format(inscriptos.fecha_inscripcion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE)) fecha_limite_inscripcion,
+	CAST(DATE_PARSE(date_format(inscriptos.max_fecha_inscripcion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE) fecha_limite_inscripcion,
 
 	-- se considera turno mañana si la hora de inicio es entre las 7 y 12, tarde entre 12 y 20, noche entre 20 y 24
 	array_join(array_agg(DISTINCT(turno_c.nombre)), ',') turno,
@@ -4870,9 +4952,9 @@ SELECT
 	END activo,
 
 	-- solo se consideran los alumnos inscriptos y con el estado = A (el estado (P)endiente no se tiene en cuenta)
-	CAST(COUNT(DISTINCT(alumno)) AS VARCHAR) cant_inscriptos,
+	CAST(inscriptos.cant_alumnos AS VARCHAR) cant_inscriptos,
 
-	CAST(SUM(CAST(comi.cupo AS INTEGER)) AS VARCHAR) vacantes,
+	CAST(cupo.cupo AS VARCHAR) AS vacantes,
 
 	-- La modalidad se toma desde la entidad capacitacion
 	dc.modalidad_id,
@@ -4882,7 +4964,7 @@ SELECT
 
 FROM "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes" spl
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_propuestas" spr ON (spl.propuesta = spr.propuesta)
-LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_propuestas" cp ON (cp.propuesta = spr.propuesta)
+LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_propuestas" cp ON (cp.propuesta = spr.propuesta AND cp.plan=spl.plan)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones" comi ON (comi.comision=cp.comision)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(comi.ubicacion AS VARCHAR) AND est.base_origen = 'SIU')
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_periodos_lectivos" pl ON (comi.periodo_lectivo=pl.periodo_lectivo)
@@ -4894,10 +4976,54 @@ LEFT JOIN
 		LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_asignaciones" asig ON (asig.asignacion=banda_horaria.asignacion)
 		GROUP BY c.comision) dias ON (dias.comision=comi.comision)
 LEFT JOIN
-		(SELECT comision, alumno, CAST(fecha_inscripcion AS DATE) fecha_inscripcion
-		FROM "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_insc_cursada"
-		WHERE estado LIKE 'A'
-		GROUP BY comision, alumno, CAST(fecha_inscripcion AS DATE) ) inscriptos ON (inscriptos.comision=comi.comision)
+		(SELECT
+			spl.plan,
+			spl.propuesta,
+			c.periodo_lectivo,
+			est.id id_est,
+			c.turno,
+			SUM(CAST(c.cupo AS INTEGER)) AS cupo
+		FROM "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones" c
+			JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_propuestas" cp ON (c.comision=cp.comision)
+			JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_propuestas" spr ON (cp.propuesta = spr.propuesta)
+			JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes" spl ON (spl.propuesta = spr.propuesta AND cp.plan=spl.plan)
+			JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(c.ubicacion AS VARCHAR) AND est.base_origen = 'SIU')
+		    JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_turnos_cursadas" turno_c ON (turno_c.turno=c.turno)
+		GROUP BY
+			spl.plan,
+			spl.propuesta,
+			c.periodo_lectivo,
+			c.turno,
+			est.id
+		) cupo ON (cupo.plan=spl.plan AND cupo.propuesta=spr.propuesta AND cupo.periodo_lectivo=pl.periodo_lectivo
+		AND cupo.id_est=est.id AND cupo.turno = turno_c.turno)
+
+LEFT JOIN
+		(SELECT
+		COUNT(DISTINCT cu.alumno) AS cant_alumnos,
+		MIN(CAST(cu.fecha_inscripcion AS DATE)) min_fecha_inscripcion,
+		MAX(CAST(cu.fecha_inscripcion AS DATE)) max_fecha_inscripcion,
+		spl.plan,
+		spl.propuesta,
+		c.periodo_lectivo,
+		est.id id_est,
+		c.turno
+		FROM "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_insc_cursada" cu
+		JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones" c ON (cu.comision=c.comision)
+		JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_propuestas" cp ON (cu.comision=cp.comision)
+			JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_propuestas" spr ON (cp.propuesta = spr.propuesta)
+			JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes" spl ON (spl.propuesta = spr.propuesta AND cp.plan=spl.plan)
+			JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old=CAST(c.ubicacion AS VARCHAR) AND est.base_origen = 'SIU')
+		    JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_turnos_cursadas" turno_c ON (turno_c.turno=c.turno)
+		WHERE cu.estado LIKE 'A'
+		GROUP BY
+		spl.plan,
+		spl.propuesta,
+		c.periodo_lectivo,
+		c.turno,
+		est.id ) inscriptos
+		ON (inscriptos.plan=spl.plan AND inscriptos.propuesta=spr.propuesta AND inscriptos.periodo_lectivo=pl.periodo_lectivo
+		AND inscriptos.id_est=est.id AND inscriptos.turno = turno_c.turno)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" dcmatch ON (dcmatch.id_old = CAST(spl.plan AS VARCHAR) AND dcmatch.base_origen = 'SIU')
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" dc ON (dcmatch.id_new = dc.id_new AND dcmatch.base_origen = dc.base_origen)
 GROUP BY
@@ -4909,12 +5035,18 @@ GROUP BY
 	pl.periodo_lectivo,
 	dc.modalidad_id,
 	dc.descrip_modalidad,
-	est.id
-
+	est.id,
+	turno_c.turno,
+	cupo.cupo,
+	inscriptos.cant_alumnos,
+	inscriptos.min_fecha_inscripcion,
+	inscriptos.max_fecha_inscripcion
+--</sql>--
 
 -- 2.-- Crear EDICION CAPACITACION GOET, MOODLE, SIENFO Y CRMSL paso 2
 -- se agrega un indice incremental
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_edicion_capacitacion_2`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_edicion_capacitacion_2`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_edicion_capacitacion_2" AS
 SELECT row_number() OVER () AS id,
 		ed.base_origen,
@@ -4939,11 +5071,12 @@ SELECT row_number() OVER () AS id,
 		ed.descrip_modalidad,
 		ed.cod_origen_establecimiento
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_edicion_capacitacion_1" ed
-
+--</sql>--
 
 -- 3.-- Crear EDICION CAPACITACION GOET, MOODLE, SIENFO Y CRMSL paso 3
 -- se corrigen posibles desviasiones en fechas
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_edicion_capacitacion`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_edicion_capacitacion`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_edicion_capacitacion" AS
 SELECT
 	id,
@@ -5010,16 +5143,18 @@ try_cast(SPLIT_PART(date_format(fecha_inicio_dictado, '%Y-%m-%d %h:%i%p'), '-', 
 try_cast(SPLIT_PART(date_format(fecha_fin_dictado, '%Y-%m-%d %h:%i%p'), '-', 1)  AS INTEGER) <= 2024 AND
 try_cast(SPLIT_PART(date_format(fecha_fin_dictado, '%Y-%m-%d %h:%i%p'), '-', 1)  AS INTEGER) >= 1997) a ON (a.id=t.id)
 WHERE a.id IS NULL
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 15 - consume edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.05.24 step 15 - consume edicion capacitacion.sql 
 
 
 
 -- EDICION CAPACITACION GOET, MOODLE, SIENFO Y CRMSL
 -- 1.- Crear tabla edicion capacitacion definitiva
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_edicion_capacitacion`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_edicion_capacitacion`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" AS
 SELECT row_number() OVER () AS id,
        ed.base_origen,
@@ -5047,17 +5182,19 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_edicion_capacitacion" ed
 -- los mismos se quitan de la tabla def
 WHERE ed.edicion_capacitacion_id IS NOT NULL
 AND ed.capacitacion_id_new IS NOT NULL
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 16 - staging cursada (Vcliente).sql 
+-- Copy of 2023.05.24 step 16 - staging cursada.sql 
 
 
 
 -- GOET, MOODLE, SIENFO, CRMSL, SIU
 -- ENTIDAD:CURSADA
 -- 1.-  Crear tabla temporal de cursadas sin IEL
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_cursada_1`;
+-- --<sql>--DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_cursada_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_cursada_1" AS
 -- GOET
 
@@ -5470,6 +5607,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_insc_cursada" insc_c
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones" comi ON (comi.comision=insc_cur.comision)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_comisiones_propuestas" cp ON (comi.comision = cp.comision)
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes" spl ON (spl.propuesta = cp.propuesta)
+LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_turnos_cursadas" turno_c ON (turno_c.turno=comi.turno)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" dcmatch ON (dcmatch.id_old = CAST(spl.plan AS VARCHAR) AND dcmatch.base_origen = 'SIU')
 LEFT JOIN "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_periodos_lectivos" pl ON (comi.periodo_lectivo=pl.periodo_lectivo)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" dc ON (dcmatch.id_new = dc.id_new AND dcmatch.base_origen = dc.base_origen)
@@ -5478,7 +5616,8 @@ LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON
 		(ed.edicion_capacitacion_id_old=
 									(CAST(spl.plan AS VARCHAR) || '-' || CAST(spl.propuesta AS VARCHAR) || '-' ||
 									CAST(pl.periodo_lectivo AS VARCHAR)  || '-' || CAST(est.id AS VARCHAR) || '-' ||
-									CAST(dc.modalidad_id AS VARCHAR))
+									CAST(dc.modalidad_id AS VARCHAR) || '-' || CAST(turno_c.turno AS VARCHAR)
+									)
 		AND ed.base_origen = 'SIU')
 
 LEFT JOIN
@@ -5525,10 +5664,11 @@ GROUP BY
 	vec.vecino_id,
 	vec.broker_id,
 	eb.estado_beneficiario
-
+--</sql>--
 
 -- 2.-  Crear tabla temporal incluyendo IEL
--- DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_cursada`;
+-- --<sql>--DROP TABLE `caba-piba-staging-zone-db`.`tbp_typ_tmp_cursada`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_cursada" AS
 SELECT * FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cursada_1"
 -- IEL
@@ -5565,16 +5705,18 @@ GROUP BY
 	df.tipo_capacitacion,
 	iel.broker_id||'-'||df.base_origen,
 	iel.broker_id
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 17 - consume cursada (Vcliente).sql 
+-- Copy of 2023.05.24 step 17 - consume cursada.sql 
 
 
 
 -- CURSADA GOET, MOODLE, SIENFO, CRMSL Y SIU
 -- 1.- Crear tabla cursada definitiva
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cursada`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cursada`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cursada" AS
 SELECT row_number() OVER () AS id,
        base_origen,
@@ -5627,16 +5769,18 @@ GROUP BY
 	vecino_id,
 	broker_id,
 	estado_beneficiario
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 18 - consume trayectoria_educativa (Vcliente).sql 
+-- Copy of 2023.05.24 step 18 - consume trayectoria_educativa.sql 
 
 
 
 -- TRAYECTORIA EDUCATIVA GOET, MOODLE, SIENFO Y CRMSL
 -- 1.- Crear tabla trayectoria educativa definitiva
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_trayectoria_educativa`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_trayectoria_educativa`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_trayectoria_educativa" AS
 SELECT
 	CAST(row_number() OVER () AS VARCHAR) AS cursado_id,
@@ -5681,10 +5825,11 @@ GROUP BY
 	p.nombre_programa,
 	DATE_FORMAT(CAST(dcu.fecha_inicio AS DATE), '%d-%m-%Y'),
 	dcu.estado_beneficiario
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 19 - staging oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.05.24 step 19 - staging oportunidad_laboral.sql 
 
 
 
@@ -5707,7 +5852,8 @@ GROUP BY
 -- Nota: la tabla deberÃ¡ estar relacionada con la entidad "Registro laboral formal" si toma el empleo
 -- y con la entidad "Programa"
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_oportunidad_laboral`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_oportunidad_laboral`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral" AS
 -- CRM EMPLEO
 WITH oportunidad_laboral AS (
@@ -6510,10 +6656,11 @@ FROM ecr2
 )
 SELECT *
 FROM ecr3
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 20 - consume oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.05.24 step 20 - consume oportunidad_laboral.sql 
 
 
 
@@ -6536,7 +6683,8 @@ FROM ecr3
 -- Nota: la tabla deberÃ¡ estar relacionada con la entidad "Registro laboral formal" si tomo el empleo
 -- y con la entidad "Programa"
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" AS
 SELECT
 	row_number() OVER () AS oportunidad_laboral_id,
@@ -6576,49 +6724,17 @@ GROUP BY
 	grado_de_estudio,
 	duracion_practica_formativa,
 	sector_productivo
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 21 - staging nomenclador_actividades_economicas (Vcliente).sql 
-
-
-
--- ORIGEN DE tbp_typ_tmp_actividades_afip => https: / / serviciosweb.afip.gob.ar / genericos / nomencladorActividades / index.aspx - - ORIGEN DE tbp_typ_tmp_actividades_naiib_agip_res_13_2019 => https: / / www.agip.gob.ar / filemanager / source / Normativas / 2019 / 20190201 - Resol13 - AGIP -19 - Anexo.pdf -- se realizan chequeos de que esta en ambas tablas y que esta solo de un lado o del otro
-SELECT count(1)
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip" a
-	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_naiib_agip_res_13_2019" r ON try_cast(a.cod_actividad_f883 AS integer) = try_cast(r.actividad_naes AS integer)
-WHERE r.actividad_naes IS NULL
-LIMIT 100;
--- 180 registros que estan en aFip pero no en aGip
-SELECT count(1)
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip" a
-	RIGHT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_naiib_agip_res_13_2019" r ON try_cast(a.cod_actividad_f883 AS integer) = try_cast(r.actividad_naes AS integer)
-WHERE a.cod_actividad_f883 IS NULL
-LIMIT 100;
--- 64 registros que estan en aGip pero no en aFip
--- se crea una tabla con un full join entre las dos mediante el campo en comun
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip_2" AS
-SELECT r.*,
-	a.*
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip" a
-	FULL JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_naiib_agip_res_13_2019" r ON try_cast(a.cod_actividad_f883 AS integer) = try_cast(r.actividad_naes AS integer) -- se crea la tabla final de nomenclador de actividades economicas de afip actualizada (NO contiene codigos clanae)
-	CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas" AS
-SELECT actividad_naecba AS cod_actividad_agip_o_naecba,
-	descripcion_naecba AS desc_actividad_agip_o_naecba,
-	cod_actividad_f883 AS cod_actividad_afip_o_naes,
-	desc_actividad_f883 AS desc_actividad_afip_o_naes,
-	desc_larga_actividad_f883 AS desc_larga_actividad_afip_o_naes
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_actividades_afip_2"
-GROUP BY 1,	2,	3,	4,	5
-
-
-
--- Copy of 2023.05.12 step 22 - staging registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.05.24 step 21 - staging registro_laboral_formal.sql 
 
 
 
 -- 1.-- Crear REGISTRO LABORAL SIN CRUCE AGIP/AFIP
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_1`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_1`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_1" AS
 -- CRMSL
 SELECT
@@ -6761,10 +6877,12 @@ portal_empleo_candidatos.fecha_empleo,
 portal_empleo_candidatos.tipo_contratacion,
 portal_empleo_candidatos.organizacion_empleadora_cuit,
 portal_empleo_candidatos.oportunidad_laboral_id_old
+--</sql>--
 
 -- 2.-- Crear REGISTRO LABORAL AFIP AGIP ALTAS BAJAS
 --Campo descripcion_modalidad_contratacion. Existen casos con mas de una descripciÃ³n para un mismo codigo de modalidad de contrataciÃ³n. Los mismos provienen de la tabla "afip_agip_tipo_contratacion". Se optÃ³ por elegÃ­r una Ãºnica descripciÃ³n basada estrictamente en la descripciÃ³n que figura en la tabla de modalidades de contrataciÃ³n proveniente de la web de AFIP
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_afip_agip_ab`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_afip_agip_ab`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_afip_agip_ab" AS
 WITH aa_ab AS (
 	SELECT 'DNI' AS tipo_documento,
@@ -6778,14 +6896,15 @@ WITH aa_ab AS (
 			WHEN SUBSTRING(ab.cuil_del_empleado, 1, 2) = '23'
 			AND SUBSTRING(ab.cuil_del_empleado, 11, 1) = '4' THEN 'F' ELSE 'X'
 		END genero,
-		-- se convierte la fecha a date, si las fechas de inicio o fin son inconsistentes quedan con el valor NULL
+		-- se convierte la fecha a date, si las fechas de inicio queda con el valor NULL
 		CASE
-			WHEN ab.fecha_fin_de_relacion_laboral IN ('9999-12-31','999-12-31','3202-03-09','7202-08-17','4202-02-23','2109-02-25')
+			WHEN ab.fecha_inicio_de_relacion_laboral IN ('9999-12-31','999-12-31','3202-03-09','7202-08-17','4202-02-23','2109-02-25')
 			OR (LENGTH(TRIM(ab.fecha_inicio_de_relacion_laboral)) > 0 AND try_cast(ab.fecha_inicio_de_relacion_laboral AS date) IS NULL)
-			OR (LENGTH(TRIM(ab.fecha_fin_de_relacion_laboral)) > 0 AND try_cast(ab.fecha_fin_de_relacion_laboral AS date) IS NULL)
 			THEN CAST(NULL AS DATE)
 			ELSE try_cast(ab.fecha_inicio_de_relacion_laboral AS date)
 		END fecha_inicio_de_relacion_laboral,
+
+		-- se convierte la fecha a date, si las fechas de inicio o fin son inconsistentes quedan con el valor NULL
 		CASE
 			WHEN ab.fecha_fin_de_relacion_laboral IN ('9999-12-31','999-12-31','3202-03-09','7202-08-17','4202-02-23','2109-02-25')
 			OR (LENGTH(TRIM(ab.fecha_inicio_de_relacion_laboral)) > 0 AND try_cast(ab.fecha_inicio_de_relacion_laboral AS date) IS NULL)
@@ -6841,7 +6960,7 @@ WITH aa_ab AS (
 		LEFT JOIN (
 			SELECT cod_actividad_afip_o_naes,
 				desc_actividad_afip_o_naes
-			FROM "caba-piba-staging-zone-db".tbp_typ_tmp_nomenclador_actividades_economicas
+			FROM "caba-piba-raw-zone-db".tbp_typ_tmp_nomenclador_actividades_economicas
 			ORDER BY cod_actividad_afip_o_naes
 		) aa ON (
 			TRY_CAST(ab.codigo_de_actividad AS INT) = TRY_CAST(aa.cod_actividad_afip_o_naes AS INT)
@@ -6849,7 +6968,7 @@ WITH aa_ab AS (
 		LEFT JOIN (
 			SELECT cod_actividad_agip_o_naecba,
                 desc_actividad_agip_o_naecba
-			FROM "caba-piba-staging-zone-db".tbp_typ_tmp_nomenclador_actividades_economicas
+			FROM "caba-piba-raw-zone-db".tbp_typ_tmp_nomenclador_actividades_economicas
 			ORDER BY cod_actividad_agip_o_naecba
 		) ba ON (
 			TRY_CAST(ab.codigo_de_actividad AS INT) = TRY_CAST(ba.cod_actividad_agip_o_naecba AS INT)
@@ -7033,9 +7152,11 @@ abf2 AS (
 SELECT *
 FROM abf2
 WHERE orden = 1
+--</sql>--
 
 -- 3.-- Crear REGISTRO LABORAL FORMAL CON CRUCE AGIP/AFIP
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal" AS
 --fecha_inicio_de_relacion_laboral: Dado que no hasta el dÃ­a de la fecha no se cuenta con fuentes completas o fidedignas para determinar si un caso efectivamente participo de un proceso de alguna oportunidad laboral y fue contratado y dado de alta en AFIP (CUIT de organizaciones, fecha de contrato laboral) se establece como condicion que la fecha de inicio de la relaciÃ³n laboral no supere los 6 meses de la fecha de aplicaciÃ³n a una vacante
 SELECT *,
@@ -7050,9 +7171,11 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_afip_agip_
 		AND r.documento_broker = a.numero_documento
 		AND r.genero_broker = a.genero
 	)
+--</sql>--
 
 -- 4.-- Crear REGISTRO LABORAL FORMAL CON CRUCE AGIP/AFIP Y VECINOS
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_sin_ol`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_sin_ol`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_sin_ol" AS
 -- se crea una tabla de registro laboral de aquellos vecinos que no han participado de una oportunidad laboral
 SELECT
@@ -7084,9 +7207,11 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_afip_agip_
 		AND r.genero_broker = a.genero
 	)
 WHERE r.tipo_doc_broker IS NULL
+--</sql>--
 
 -- 5.-- Crear REGISTRO LABORAL FORMAL COMPLETO CON ATRIBUTO BASE_ORIGEN
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_completa`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_registro_laboral_formal_completa`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_completa" AS
 SELECT
 row_number() OVER () AS registro_laboral_formal_id,
@@ -7145,15 +7270,17 @@ FROM
 		rf_sin_oportunidad.modalidad_contratacion,
 		rf_sin_oportunidad.remuneracion_bruta
 ) registros
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 23 - consume sector_productivo (Vcliente).sql 
+-- Copy of 2023.05.24 step 22 - consume sector_productivo.sql 
 
 
 
 -- 1.-- Crear tabla def de Sector_Productivo
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_sector_productivo`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_sector_productivo`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_sector_productivo" AS
 --CLAE
 WITH clae AS (
@@ -7193,7 +7320,7 @@ CASE
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (279000,262000,264000,263000,721010,631200,952100,951200,951100,620200,620100,620300,620900,611010,614010,801020,619000,613000,614090,611090,612000,711003,631190,631120,631110,271020,271010,266010,266090,265101,265200,267002,265102,268000,261000,267001,266010,266090,272000,274000,275091,275020,273110,275099,275092,273190,275010 ) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
     WHEN TRY_CAST(cod_actividad_afip_o_naes AS INT) IN (131300,141130,141140,141120,141110,141191,139209,139204,131132,131131,131139,143010,143020,139900,131202,131209,131201,149000,142000,131120,131110,139400,139202,139203,139201,139100,139300,151100,141191,141199,141201,141202,152040,152011,152031,152021,151200) THEN 'TEXTIL'
 END sector_productivo
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas"
+FROM "caba-piba-raw-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas"
 WHERE (cod_actividad_afip_o_naes IS NOT NULL OR LENGTH(TRIM(TRY_CAST(cod_actividad_afip_o_naes AS VARCHAR))) <> 0)
 GROUP BY 1,2
 ),
@@ -7237,15 +7364,17 @@ SELECT
 row_number() OVER () AS id_sector_productivo,
 sector_productivo
 FROM sp
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 24 - consume_registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.05.24 step 23 - consume_registro_laboral_formal.sql 
 
 
 
 -- 1.-- Crear la tabla definitiva de REGISTRO LABORAL FORMAL
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_registro_laboral_formal`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_registro_laboral_formal`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_registro_laboral_formal" AS
 SELECT
 	MAX(registro_laboral_formal_id) AS registro_laboral_formal_id,
@@ -7267,9 +7396,11 @@ GROUP BY
 	modalidad_de_trabajo,
 	remuneracion_moneda_corriente,
 	remuneracion_moneda_constante
+--</sql>--
 
 -- 2.-- Crear la tabla definitiva N-N de OPORTUNIDAD LABORAL - REGISTRO LABORAL FORMAL
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral_registro_laboral_formal`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral_registro_laboral_formal`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_registro_laboral_formal" AS
 SELECT
 	lfc.registro_laboral_formal_id,
@@ -7284,15 +7415,17 @@ GROUP BY
 	lfc.registro_laboral_formal_id_old,
 	lfc.base_origen,
 	lfc.oportunidad_laboral_id
+--<sql>--
 
 
 
--- Copy of 2023.05.12 step 25 - staging entrevista (Vcliente).sql 
+-- Copy of 2023.05.24 step 24 - staging entrevista.sql 
 
 
 
 -- 1.-- Crear ENTREVISTA LABORAL
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_entrevista`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_entrevista`; --</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_entrevista" AS
 -- PORTALEMPLEO
 SELECT vec.base_origen,
@@ -7532,15 +7665,17 @@ GROUP BY
 	c.tipo_entrevista,
 	c.consiguio_trabajo,
 	c.estado_entrevista
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 26 - consume entrevista (Vcliente).sql 
+-- Copy of 2023.05.24 step 25 - consume entrevista.sql 
 
 
 
 -- 1.-- Crear la tabla def de entrevista
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_entrevista`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_entrevista`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_entrevista" AS
 SELECT
 row_number() OVER () AS id_entrevista,
@@ -7552,15 +7687,17 @@ fecha_entrevista,
 consiguio_trabajo,
 estado_entrevista
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_entrevista"
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 27 - staging organizaciones (Vcliente).sql 
+-- Copy of 2023.05.24 step 26 - staging organizaciones.sql 
 
 
 
 -- 1.-- Crear tabla tmp de organizaciones
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_organizaciones`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_organizaciones`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_organizaciones" AS
 --Se obtiene el "CUIT" de las organizaciones de las fuentes de registro laboral formal y oportunidades laborales
 WITH rlf_op AS (
@@ -7607,16 +7744,17 @@ CASE
     ELSE 0
 END ente_gubernamental
 FROM rlf_op2
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 28 - staging experiencia_laboral (Vcliente).sql 
+-- Copy of 2023.05.24 step 27 - staging experiencia_laboral.sql 
 
 
 
 -- Crear tabla tmp de experiencia laboral dentro del cv
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral_1`;
-
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral_1`;--</sql>--
+--<sql>--
  CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral_1" AS
 	SELECT
 		'PORTALEMPLEO' base_origen,
@@ -7693,8 +7831,10 @@ FROM rlf_op2
 		CAST(ecc.puesto AS VARCHAR),
 		CASE WHEN CAST(ecc.trabaja_actualmente AS VARCHAR) = 'false' THEN '0' ELSE '1' END,
 				CAST(cc.id_c  AS VARCHAR)
+--</sql>--
 
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral" AS
 WITH aux AS (
 SELECT
@@ -7762,9 +7902,11 @@ SELECT
 FROM aux
 -- se numera el group by en lugar de nombrarlo para reducir el tamaÃ±o del script
 GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
+--</sql>--
 
 -- Se crea tabla de similitud entre empresas de experiencia laboral y empresas de organizaciones
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral_organizacion`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_cv_experiencia_laboral_organizacion`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral_organizacion" AS
 WITH empresas_validas AS (
 	SELECT UPPER(empresa_limpia) AS empresa,
@@ -7838,15 +7980,17 @@ FROM empresas_validas el
 )
 SELECT *
 FROM uf
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 29 - consume organizaciones (Vcliente).sql 
+-- Copy of 2023.05.24 step 28 - consume organizaciones.sql 
 
 
 
 -- 1.-- Crear tabla def de organizaciones
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_organizaciones`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_organizaciones`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones" AS
 WITH org AS (
 SELECT
@@ -7876,15 +8020,17 @@ SELECT
 row_number() OVER () AS id_organizacion,
 org.*
 FROM org
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 30 - consume sector_estrategico (Vcliente).sql 
+-- Copy of 2023.05.24 step 29 - consume sector_estrategico.sql 
 
 
 
 -- 1.-- Crear tabla def de Sector Estrategico
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_sector_estrategico`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_sector_estrategico`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_sector_estrategico" AS
 WITH c AS (
 SELECT
@@ -7900,15 +8046,17 @@ codigo_sector_estrategico,
 REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(sector_estrategico,'"',''),'Ã','A'),'Ã','E'),'Ã','I'),'Ã','O'),'Ã','U') AS sector_estrategico
 FROM c
 ORDER BY 2
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 31 - consume match_sector_estrategico_sector_productivo (Vcliente).sql 
+-- Copy of 2023.05.24 step 30 - consume match_sector_estrategico_sector_productivo.sql 
 
 
 
 -- 1.-- Crear tabla def de match entre sector estrategico y sector productivo
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_match_sector_estrategico_sector_productivo`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_match_sector_estrategico_sector_productivo`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_match_sector_estrategico_sector_productivo" AS
 --match sector estrategico - sector productivo - CLAE
 WITH clae AS (
@@ -7977,7 +8125,7 @@ FROM
 TRY_CAST(cod_actividad_afip_o_naes AS INT) AS cod_actividad_afip_o_naes,
 cod_actividad_afip_o_naes AS cod_actividad_afip_o_naes_string,
 UPPER(desc_actividad_afip_o_naes) AS actividad_clae
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas"
+FROM "caba-piba-raw-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas"
 ) cl
 WHERE (cod_actividad_afip_o_naes IS NOT NULL OR LENGTH(TRIM(TRY_CAST(cod_actividad_afip_o_naes AS VARCHAR))) <> 0)
 GROUP BY 1,2,3,4,5
@@ -8158,15 +8306,17 @@ LEFT JOIN "caba-piba-staging-zone-db".tbp_typ_def_sector_estrategico se ON (sp.s
 )
 SELECT *
 FROM spf
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 32 - staging organizacion_actividad (Vcliente).sql 
+-- Copy of 2023.05.24 step 31 - staging organizacion_actividad.sql 
 
 
 
 -- 1.-- Crear tabla tmp de organizacion_actividades
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_organizacion_actividad`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_organizacion_actividad`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_organizacion_actividad" AS
 --Se agrega la data de codigo y descripcion de actividades al universo de organizaciones
 WITH c AS (
@@ -8182,15 +8332,17 @@ GROUP BY 1,2,3
 )
 SELECT *
 FROM c
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 33 - consume actividad_area_de_interes (Vcliente).sql 
+-- Copy of 2023.05.24 step 32 - consume actividad_area_de_interes.sql 
 
 
 
 -- 1.-- Crear tabla def de actividad/area de interes
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_actividad_area_de_interes`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_actividad_area_de_interes`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_actividad_area_de_interes" AS
 --Se realiza un cruce entre la tabla de organizacion_actividades y la tabla match sp y se para obtener el cÃ³digo de sector productivo correspondiente a la actividad clae
 WITH c1 AS (
@@ -8215,7 +8367,7 @@ END codigo_clae_clean,
 c1.codigo_clae,
 c1.codigo_sector_productivo
 FROM c1
-LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas" ae ON (c1.codigo_de_actividad = TRY_CAST(ae.cod_actividad_afip_o_naes AS INT) OR c1.codigo_de_actividad = TRY_CAST(ae.cod_actividad_agip_o_naecba AS INT))
+LEFT JOIN "caba-piba-raw-zone-db"."tbp_typ_tmp_nomenclador_actividades_economicas" ae ON (c1.codigo_de_actividad = TRY_CAST(ae.cod_actividad_afip_o_naes AS INT) OR c1.codigo_de_actividad = TRY_CAST(ae.cod_actividad_agip_o_naecba AS INT))
 ),
 c4 AS (
 SELECT
@@ -8248,19 +8400,21 @@ c5.codigo_sector_productivo
 FROM c5
 WHERE c5.codigo_sector_productivo IS NOT NULL
 GROUP BY 1,2,3
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 34 - consume cargos (Vcliente).sql 
+-- Copy of 2023.05.24 step 33 - consume puestos.sql 
 
 
 
--- 39.-- Crear tabla def de cargos
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cargos`;
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cargos" AS
+-- Crear tabla def de puestos
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_puestos`;--</sql>--
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_puestos" AS
 SELECT
 	codigo_de_puesto_desempeniado AS codigo,
-	UPPER(descripcion_de_puesto_desempeniado) AS cargo
+	UPPER(descripcion_de_puesto_desempeniado) AS puesto
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal"
 WHERE
 	descripcion_de_puesto_desempeniado IS NOT NULL
@@ -8270,15 +8424,17 @@ GROUP BY
 	codigo_de_puesto_desempeniado
 ORDER BY
 	descripcion_de_puesto_desempeniado
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 35 - staging curriculum (Vcliente).sql 
+-- Copy of 2023.05.24 step 34 - staging curriculum.sql 
 
 
 
 -- Crear tabla tmp de curriculum
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_curriculum`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_curriculum`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum" AS
 WITH datos_broker AS (
 	SELECT bg.*
@@ -8344,6 +8500,82 @@ nivel_educativo AS (
 		)
 	GROUP BY cc.id_c,
 		ee.document_name
+),
+nivel_educactivo_pe_ponderado AS (
+	SELECT CAST(af.curriculum_id AS VARCHAR) AS cv_id,
+		UPPER(ls.value) AS estado,
+		UPPER(el.value) AS nivel_capacitacion,
+		CASE
+			UPPER(el.value)
+			WHEN 'MAESTRÃA' THEN CASE
+				UPPER(ls.value)
+				WHEN 'GRADUADO' THEN 2
+				WHEN 'EN CURSO' THEN 6
+				WHEN 'ABANDONADO' THEN 10
+			END
+			WHEN 'DOCTORADO' THEN CASE
+				UPPER(ls.value)
+				WHEN 'GRADUADO' THEN 1
+				WHEN 'EN CURSO' THEN 5
+				WHEN 'ABANDONADO' THEN 9
+			END
+			WHEN 'POSTGRADO' THEN CASE
+				UPPER(ls.value)
+				WHEN 'GRADUADO' THEN 3
+				WHEN 'EN CURSO' THEN 7
+				WHEN 'ABANDONADO' THEN 11
+			END
+			WHEN 'UNIVERSITARIO' THEN CASE
+				UPPER(ls.value)
+				WHEN 'GRADUADO' THEN 4
+				WHEN 'EN CURSO' THEN 8
+				WHEN 'ABANDONADO' THEN 12
+			END
+			WHEN 'TERCIARIO' THEN CASE
+				UPPER(ls.value)
+				WHEN 'GRADUADO' THEN 13
+				WHEN 'EN CURSO' THEN 14
+				WHEN 'ABANDONADO' THEN 15
+			END
+			WHEN 'SECUNDARIO' THEN CASE
+				UPPER(ls.value)
+				WHEN 'GRADUADO' THEN 16
+				WHEN 'EN CURSO' THEN 17
+				WHEN 'ABANDONADO' THEN 18
+			END
+			WHEN 'PRIMARIO' THEN CASE
+				UPPER(ls.value)
+				WHEN 'GRADUADO' THEN 19
+				WHEN 'EN CURSO' THEN 20
+				WHEN 'ABANDONADO' THEN 21
+			END
+			WHEN 'OTRO' THEN CASE
+				UPPER(ls.value)
+				WHEN 'GRADUADO' THEN 22
+				WHEN 'EN CURSO' THEN 23
+				WHEN 'ABANDONADO' THEN 24
+			END
+		END AS prioridad_nivel_educativo
+	FROM "caba-piba-raw-zone-db"."portal_empleo_instructions" i
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (
+			i.id = af.id
+			AND instruction_type LIKE 'ACADEMIC_FORMATION'
+		)
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_education_level_status" ls ON (af.education_level_id = ls.id)
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_education_level" el ON (af.education_average_id = el.id)
+),
+nivel_educactivo_pe_ordenado AS (
+	SELECT *,
+		ROW_NUMBER() OVER(
+			PARTITION BY cv_id
+			ORDER BY prioridad_nivel_educativo ASC
+		) AS "orden_duplicado"
+	FROM nivel_educactivo_pe_ponderado
+),
+nivel_educactivo_pe AS (
+	SELECT cv_id, estado, nivel_capacitacion
+	FROM nivel_educactivo_pe_ordenado
+	WHERE orden_duplicado = 1
 )
 SELECT CAST(cv.id AS VARCHAR) cod_origen,
 	'PORTALEMPLEO' base_origen,
@@ -8374,7 +8606,8 @@ SELECT CAST(cv.id AS VARCHAR) cod_origen,
 	END nacionalidad_broker,
 	ta.name disponibilidad,
 	m.name modalidad,
-	eds.value nivel_educativo,
+	ne.nivel_capacitacion AS nivel_educativo,
+	ne.estado AS nivel_educativo_estado,
 	CONCAT(
 		(
 			CASE
@@ -8399,6 +8632,7 @@ SELECT CAST(cv.id AS VARCHAR) cod_origen,
 FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
 	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
 	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_education_level_status" eds ON (eds.id = af.education_level_id)
+	INNER JOIN nivel_educactivo_pe ne ON (ne.cv_id = CAST(cv.id AS VARCHAR))
 	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_candidates" c ON (c.id = cv.candidate_id)
 	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_condition_types" ct ON (ct.id = cv.condition_type_id)
 	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_time_availability" ta ON (ta.id = cv.availability_id)
@@ -8428,7 +8662,8 @@ GROUP BY cv.id,
 	END,
 	ta.name,
 	m.name,
-	eds.value,
+	ne.nivel_capacitacion,
+	ne.estado,
 	CONCAT(
 		(
 			CASE
@@ -8470,6 +8705,8 @@ SELECT e.id,
 	NULL disponibilidad,
 	NULL modalidad,
 	e.nivel_de_instruccion__c nivel_educativo,
+	CASE WHEN e.nivel_de_instruccion__c IS NOT NULL AND LENGTH(TRIM(TRY_CAST(e.nivel_de_instruccion__c AS VARCHAR)))>0 THEN
+	'GRADUADO' ELSE CAST(NULL AS VARCHAR) END,
 	b.id
 FROM "caba-piba-raw-zone-db"."crm_empleo_experiencia_laboral__c" el
 	INNER JOIN "caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e ON (
@@ -8482,6 +8719,8 @@ GROUP BY e.id,
 	e.estado__c,
 	CAST(e.dni__c AS INT),
 	e.nivel_de_instruccion__c,
+	CASE WHEN e.nivel_de_instruccion__c IS NOT NULL AND LENGTH(TRIM(TRY_CAST(e.nivel_de_instruccion__c AS VARCHAR)))>0 THEN
+	'GRADUADO' ELSE CAST(NULL AS VARCHAR) END,
 	b.id,
 	b.genero,
 	CAST(b.login2_id AS VARCHAR),
@@ -8531,6 +8770,8 @@ SELECT COALESCE(ecc.id, NULL),
 	NULL disponibilidad,
 	NULL modalidad,
 	ne.nivel_educativo nivel_educativo,
+	CASE WHEN ne.nivel_educativo IS NOT NULL AND LENGTH(TRIM(TRY_CAST(ne.nivel_educativo AS VARCHAR)))>0 THEN
+	'GRADUADO' ELSE CAST(NULL AS VARCHAR) END,
 	b.id
 FROM "caba-piba-raw-zone-db"."crm_sociolaboral_re_experiencia_laboral" ecc
 	INNER JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_re_experiencia_laboral_contacts_c" c ON (
@@ -8555,17 +8796,21 @@ GROUP BY ecc.id,
 	cc.trabaja_actualmente_c,
 	b.id,
 	ne.nivel_educativo,
+	CASE WHEN ne.nivel_educativo IS NOT NULL AND LENGTH(TRIM(TRY_CAST(ne.nivel_educativo AS VARCHAR)))>0 THEN
+	'GRADUADO' ELSE CAST(NULL AS VARCHAR) END,
 	cc.tipo_discapacidad_c,
 	cc.cuil2_c
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 36 - consume curriculum (Vcliente).sql 
+-- Copy of 2023.05.24 step 35 - consume curriculum.sql 
 
 
 
 -- Crear tabla def de curriculum
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_curriculum`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_curriculum`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" AS
 SELECT cv.base_origen || cv.cod_origen AS id,
 	cv.cod_origen id_old,
@@ -8577,7 +8822,8 @@ SELECT cv.base_origen || cv.cod_origen AS id,
 	cv.presentacion,
 	cv.estado,
 	cv.metas,
-	cv.nivel_educativo,
+	CASE WHEN UPPER(cv.nivel_educativo) LIKE 'OTRO%' THEN 'OTRO' ELSE UPPER(cv.nivel_educativo) END nivel_educativo,
+	cv.nivel_educativo_estado,
 	cv.capacidades_diferentes tipo_discapacidad
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum" cv
 	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
@@ -8596,17 +8842,20 @@ GROUP BY
 	cv.presentacion,
 	cv.estado,
 	cv.metas,
-	cv.nivel_educativo,
+	CASE WHEN UPPER(cv.nivel_educativo) LIKE 'OTRO%' THEN 'OTRO' ELSE UPPER(cv.nivel_educativo) END,
+	cv.nivel_educativo_estado,
 	cv.capacidades_diferentes
+--</sql>--
 
 
 
--- Copy of 2023.05.12 step 37 - consume experiencia_laboral (Vcliente).sql 
+-- Copy of 2023.05.24 step 36 - consume experiencia_laboral.sql 
 
 
 
 -- Crear tabla def de experiencia laboral dentro del cv
--- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cv_experiencia_laboral`;
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cv_experiencia_laboral`;--</sql>--
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cv_experiencia_laboral" AS
 WITH el AS (
 SELECT
@@ -8649,6 +8898,275 @@ GROUP BY
 	el.fecha_fin,
 	org.id_organizacion,
 	el.puesto
+--</sql>--
+
+
+
+-- Copy of 2023.05.24 step 37 - consume tipo_formacion.sql 
+
+
+
+-- Crear tabla def de tipo de formacion
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_tipo_formacion`;--</sql>--
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_tipo_formacion" AS
+SELECT id AS codigo,
+	UPPER(value) AS descripcion
+FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_education_level"
+ORDER BY value
+--</sql>--
+
+
+
+-- Copy of 2023.05.24 step 38 - staging formacion_academica.sql 
+
+
+
+-- Crear tabla tmp de formaciÃ³n academica
+-- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_formacion_academica`;--</sql>--
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_formacion_academica" AS
+WITH
+-- PORTALEMPLEO es la unica base origen que tiene informacion de carreras o formacion academica
+-- (no consideramos cursos como formacion academica)
+datos AS (
+	SELECT
+		CAST(i.id AS VARCHAR) AS codigo,
+		'PORTALEMPLEO' base_origen,
+		i.start_date fecha_inicio,
+		i.end_date fecha_fin,
+		UPPER(ls.value) AS estado,
+		sa.name AS descripcion,
+		inst.name AS institucion_educativa,
+		CAST(af.curriculum_id AS VARCHAR) AS cv_id,
+		UPPER(el.value) AS tipo_formacion
+	FROM "caba-piba-raw-zone-db"."portal_empleo_instructions" i
+	JOIN  "caba-piba-raw-zone-db"."portal_empleo_institutions" inst ON (i.institution_id=inst.id)
+	JOIN  "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (i.id=af.id AND instruction_type LIKE 'ACADEMIC_FORMATION')
+	JOIN  "caba-piba-raw-zone-db"."portal_empleo_study_area" sa ON (i.study_area_id=sa.id)
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_education_level_status" ls ON (af.education_level_id=ls.id)
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_education_level" el ON (af.education_average_id=el.id)
+	),
+cl1 AS (
+SELECT
+	codigo,
+	base_origen,
+	fecha_inicio,
+	fecha_fin,
+	estado,
+	descripcion,
+	institucion_educativa,
+	cv_id,
+	tipo_formacion,
+	regexp_replace(regexp_replace(regexp_replace(descripcion,'[^a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃ²Ã¹ÃÃÃÅ¡\s#\/+\:\|\-\,\(\)\Â°\&\â\Âº\Âª\_\]\[\@;.]+',''),'Ã²','Ã³'),'Ã¹','Ãº') AS descripcion_clean
+FROM datos
+),
+
+cl2 AS (
+SELECT
+	codigo,
+	base_origen,
+	fecha_inicio,
+	fecha_fin,
+	estado,
+	descripcion,
+	institucion_educativa,
+	cv_id,
+	tipo_formacion,
+	CASE
+		WHEN cl1.descripcion LIKE '%.%' THEN regexp_replace(cl1.descripcion_clean,'[^a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃ²Ã¹ÃÃÃÅ¡\s#\/+\:\|\-\,\(\)\Â°\&\â\Âº\Âª\_\]\[\@;]+',' ')
+		WHEN regexp_like(cl1.descripcion ,'[a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃÃÃÅ¡\s?]+\s?\-\-\s?[a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃÃÃÅ¡\s?]+') THEN regexp_replace(cl1.descripcion_clean,'--','-')
+		WHEN cl1.descripcion LIKE '%--%' AND NOT regexp_like(cl1.descripcion ,'[a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃÃÃÅ¡\s?]+\s?\-\-\s?[a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃÃÃÅ¡\s?]+') THEN regexp_replace(cl1.descripcion_clean,'-',' ')
+		ELSE cl1.descripcion_clean
+	END descripcion_clean
+FROM cl1
+),
+
+cl3 AS (
+SELECT
+	codigo,
+	base_origen,
+	fecha_inicio,
+	fecha_fin,
+	estado,
+	descripcion,
+	institucion_educativa,
+	cv_id,
+	tipo_formacion,
+	CASE
+		WHEN cl2.descripcion_clean = '-' THEN regexp_replace(cl2.descripcion_clean,'\-','')
+		WHEN cl2.descripcion LIKE '%(' THEN regexp_replace(cl2.descripcion_clean,'\(','')
+		WHEN cl2.descripcion LIKE ':%' THEN regexp_replace(cl2.descripcion_clean,'\:','')
+		WHEN cl2.descripcion LIKE '%:' THEN regexp_replace(cl2.descripcion_clean,'\:','')
+		WHEN cl2.descripcion LIKE '. %' THEN replace(cl2.descripcion_clean,'.','')
+		WHEN cl2.descripcion LIKE '- %' THEN regexp_replace(cl2.descripcion_clean,'\-','')
+		WHEN cl2.descripcion LIKE '-%' THEN regexp_replace(cl2.descripcion_clean,'\-','')
+		WHEN cl2.descripcion LIKE '%-' THEN regexp_replace(cl2.descripcion_clean,'\-','')
+		WHEN cl2.descripcion LIKE '%â' THEN regexp_replace(cl2.descripcion_clean,'\â','')
+		WHEN cl2.descripcion LIKE 'â%' THEN regexp_replace(cl2.descripcion_clean,'\â','')
+		WHEN cl2.descripcion LIKE ',%' THEN regexp_replace(cl2.descripcion_clean,'\,','')
+		WHEN cl2.descripcion LIKE '%,' THEN regexp_replace(cl2.descripcion_clean,'\,','')
+		WHEN cl2.descripcion LIKE '%&' THEN regexp_replace(cl2.descripcion_clean,'\&','')
+		WHEN cl2.descripcion LIKE '.:%' THEN regexp_replace(cl2.descripcion_clean,'.:','')
+		WHEN cl2.descripcion LIKE '[%' THEN replace(replace(cl2.descripcion_clean,'[',''),']','')
+		WHEN cl2.descripcion LIKE '%( %' THEN replace(replace(cl2.descripcion_clean,'( ','('),' )',')')
+		WHEN cl2.descripcion LIKE '%.0%' THEN replace(cl2.descripcion_clean,' 0','.0')
+		ELSE cl2.descripcion_clean
+	END descripcion_clean
+FROM cl2
+),
+
+cl4 AS (
+SELECT
+	codigo,
+	base_origen,
+	fecha_inicio,
+	fecha_fin,
+	estado,
+	descripcion,
+	institucion_educativa,
+	cv_id,
+	tipo_formacion,
+	CASE
+		WHEN LTRIM(cl3.descripcion_clean) LIKE '%â%' THEN replace(LTRIM(cl3.descripcion_clean),'â','-')
+		WHEN UPPER(cl3.descripcion) LIKE '%.NET%' THEN replace(UPPER(LTRIM(cl3.descripcion_clean)),'NET','.NET')
+		WHEN UPPER(cl3.descripcion) LIKE '%Âª CATEGORÃA%' THEN regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.descripcion),'1Âª|1.Âª|1. Âª','PRIMERA'),'2Âª|2.Âª|2. Âª','SEGUNDA'),'3Âª|3.Âª|3. Âª','TERCERA'),'4Âª|4.Âª|4. Âª','CUARTA'),'5Âª|5.Âª|5. Âª','QUINTA'),'6Âª|6.Âª|6. Âª','SEXTA'),'7Âª|7.Âª|7. Âª','SEPTIMA'),'8Âª|8.Âª|8. Âª','OCTAVA'),'9Âª|9.Âª|9. Âª','NOVENA'),'10Âª|10.Âª|10. Âª','DECIMA')
+		WHEN UPPER(cl3.descripcion) LIKE '%Âª' THEN regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.descripcion),'1Âª|1.Âª|1. Âª','PRIMERA'),'2Âª|2.Âª|2. Âª','SEGUNDA'),'3Âª|3.Âª|3. Âª','TERCERA'),'4Âª|4.Âª|4. Âª','CUARTA'),'5Âª|5.Âª|5. Âª','QUINTA'),'6Âª|6.Âª|6. Âª','SEXTA'),'7Âª|7.Âª|7. Âª','SEPTIMA'),'8Âª|8.Âª|8. Âª','OCTAVA'),'9Âª|9.Âª|9. Âª','NOVENA'),'10Âª|10.Âª|10. Âª','DECIMA')
+		WHEN UPPER(cl3.descripcion) LIKE '%Âª GENERACIÃN%' THEN regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.descripcion),'1Âª|1.Âª|1. Âª','PRIMERA'),'2Âª|2.Âª|2. Âª','SEGUNDA'),'3Âª|3.Âª|3. Âª','TERCERA'),'4Âª|4.Âª|4. Âª','CUARTA'),'5Âª|5.Âª|5. Âª','QUINTA'),'6Âª|6.Âª|6. Âª','SEXTA'),'7Âª|7.Âª|7. Âª','SEPTIMA'),'8Âª|8.Âª|8. Âª','OCTAVA'),'9Âª|9.Âª|9. Âª','NOVENA'),'10Âª|10.Âª|10. Âª','DECIMA')
+		WHEN UPPER(cl3.descripcion) LIKE '%Âª EDICIÃN%' THEN regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.descripcion),'1Âª|1.Âª|1. Âª','PRIMERA'),'2Âª|2.Âª|2. Âª','SEGUNDA'),'3Âª|3.Âª|3. Âª','TERCERA'),'4Âª|4.Âª|4. Âª','CUARTA'),'5Âª|5.Âª|5. Âª','QUINTA'),'6Âª|6.Âª|6. Âª','SEXTA'),'7Âª|7.Âª|7. Âª','SEPTIMA'),'8Âª|8.Âª|8. Âª','OCTAVA'),'9Âª|9.Âª|9. Âª','NOVENA'),'10Âª|10.Âª|10. Âª','DECIMA')
+		ELSE UPPER(LTRIM(cl3.descripcion_clean))
+	END descripcion_clean
+FROM cl3
+)
+
+SELECT *
+FROM cl4
+ORDER BY cl4.descripcion
+--</sql>--
+
+
+
+-- Copy of 2023.05.24 step 39 - consume formacion_academica.sql 
+
+
+
+-- Crear tabla def de formaciÃ³n academica
+--<sql>--
+--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_formacion_academica`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_formacion_academica" AS
+WITH organizaciones_formadoras AS
+	(SELECT
+		fa.codigo,
+		fa.base_origen,
+		COALESCE(org1.id_organizacion, org2.id_organizacion) id_organizacion,
+		ROW_NUMBER() OVER(
+		PARTITION BY fa.codigo,	fa.base_origen
+		ORDER BY org1.razon_social_new, org2.razon_social_old
+			) AS "orden_duplicado"
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_formacion_academica" fa
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones" org1 ON (UPPER(fa.institucion_educativa) = org1.razon_social_new)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones" org2 ON (UPPER(fa.institucion_educativa) = org2.razon_social_old )
+	)
+SELECT
+	fa.base_origen || fa.codigo AS id,
+	fa.codigo AS id_old,
+	fa.base_origen,
+
+	CASE
+	-- si la fecha de inicio o de fin son null o inconsistentes, se deja ambas fechas en null
+		WHEN
+			try_cast(fa.fecha_inicio AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) > (YEAR(CURRENT_DATE)+1)
+			OR try_cast(fa.fecha_fin AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_fin AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_fin AS date)) > (YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE)
+
+		-- si la fecha de fin es menor a la de inicio se invierten
+		WHEN try_cast(fa.fecha_fin AS date)< try_cast(fa.fecha_inicio AS date)
+		THEN try_cast(fa.fecha_fin AS date)
+
+		ELSE try_cast(fa.fecha_inicio AS date)
+	END fecha_inicio,
+
+	CASE
+		-- si la fecha de inicio o de fin son null o inconsistentes, se deja ambas fechas en null
+		WHEN
+			try_cast(fa.fecha_inicio AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) > (YEAR(CURRENT_DATE)+1)
+			OR try_cast(fa.fecha_fin AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_fin AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_fin AS date)) > (YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE)
+
+		-- si la fecha de fin es menor a la de inicio se invierten
+		WHEN try_cast(fa.fecha_fin AS date)< try_cast(fa.fecha_inicio AS date)
+		THEN try_cast(fa.fecha_inicio AS date)
+
+		ELSE try_cast(fa.fecha_fin AS date)
+	END fecha_fin,
+
+	fa.estado,
+	fa.descripcion_clean AS descripcion,
+	UPPER(fa.institucion_educativa) AS institucion_educativa,
+	org.id_organizacion AS id_organizacion,
+	cv.id AS codigo_cv,
+	tf.codigo AS codigo_tipo_formacion
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_formacion_academica" fa
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_tipo_formacion" tf ON (fa.tipo_formacion=tf.descripcion)
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (cv.base_origen=fa.base_origen AND cv.id_old = fa.cv_id)
+LEFT JOIN organizaciones_formadoras org ON (org.codigo=fa.codigo AND org.base_origen=fa.base_origen AND org.orden_duplicado=1)
+GROUP BY
+	fa.base_origen || fa.codigo,
+	fa.codigo,
+	fa.base_origen,
+	CASE
+	-- si la fecha de inicio o de fin son null o inconsistentes, se deja ambas fechas en null
+		WHEN
+			try_cast(fa.fecha_inicio AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) > (YEAR(CURRENT_DATE)+1)
+			OR try_cast(fa.fecha_fin AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_fin AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_fin AS date)) > (YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE)
+
+		-- si la fecha de fin es menor a la de inicio se invierten
+		WHEN try_cast(fa.fecha_fin AS date)< try_cast(fa.fecha_inicio AS date)
+		THEN try_cast(fa.fecha_fin AS date)
+
+		ELSE try_cast(fa.fecha_inicio AS date)
+	END,
+
+	CASE
+		-- si la fecha de inicio o de fin son null o inconsistentes, se deja ambas fechas en null
+		WHEN
+			try_cast(fa.fecha_inicio AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) > (YEAR(CURRENT_DATE)+1)
+			OR try_cast(fa.fecha_fin AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_fin AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_fin AS date)) > (YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE)
+
+		-- si la fecha de fin es menor a la de inicio se invierten
+		WHEN try_cast(fa.fecha_fin AS date)< try_cast(fa.fecha_inicio AS date)
+		THEN try_cast(fa.fecha_inicio AS date)
+
+		ELSE try_cast(fa.fecha_fin AS date)
+	END,
+	fa.estado,
+	fa.descripcion_clean,
+	UPPER(fa.institucion_educativa),
+	org.id_organizacion,
+	cv.id,
+	tf.codigo
+--</sql>--
 
 
 
