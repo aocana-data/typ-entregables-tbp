@@ -1,4 +1,4 @@
--- Copy of 2023.06.09 step 00 - creacion de vistas (Vcliente).sql 
+-- Copy of 2023.06.23 step 00 - creacion de vistas (Vcliente).sql 
 
 
 
@@ -498,7 +498,7 @@ LEFT JOIN carrera_1_old ON carrera_1_old.carrera = todas.carrera
 
 
 
--- Copy of 2023.06.09 step 01 - consume programa (Vcliente).sql 
+-- Copy of 2023.06.23 step 01 - consume programa (Vcliente).sql 
 
 
 
@@ -529,7 +529,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- Copy of 2023.06.09 step 02 - staging establecimiento (Vcliente).sql 
+-- Copy of 2023.06.23 step 02 - staging establecimiento (Vcliente).sql 
 
 
 
@@ -1067,7 +1067,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estand
 
 
 
--- Copy of 2023.06.09 step 03 - consume establecimiento (Vcliente).sql 
+-- Copy of 2023.06.23 step 03 - consume establecimiento (Vcliente).sql 
 
 
 
@@ -1111,7 +1111,7 @@ ORDER BY tmp.base_origen, tmp.nombre
 
 
 
--- Copy of 2023.06.09 step 04 - staging capacitacion asi (Vcliente).sql 
+-- Copy of 2023.06.23 step 04 - staging capacitacion asi (Vcliente).sql 
 
 
 
@@ -1175,7 +1175,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.06.09 step 05 - staging capacitacion (Vcliente).sql 
+-- Copy of 2023.06.23 step 05 - staging capacitacion (Vcliente).sql 
 
 
 
@@ -1797,7 +1797,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- Copy of 2023.06.09 step 06 - consume capacitacion (Vcliente).sql 
+-- Copy of 2023.06.23 step 06 - consume capacitacion (Vcliente).sql 
 
 
 
@@ -1909,7 +1909,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.06.09 step 07 - staging vecinos (Vcliente).sql 
+-- Copy of 2023.06.23 step 07 - staging vecinos (Vcliente).sql 
 
 
 
@@ -2472,7 +2472,7 @@ GROUP BY 1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino_2" AS
 WITH tmp_vec_broker AS
-(SELECT vec.broker_id_din||'-'||vec.base_origen vecino_id,
+(SELECT replace(replace(vec.broker_id_din, ' ', '') || '-' || replace(vec.base_origen, ' ', ''), ' ', '') AS vecino_id,
 	   vec.base_origen,
 	   vec.cod_origen,
 	   vec.broker_id_din broker_id,
@@ -2592,7 +2592,10 @@ WITH
    , apellido
    , nombre
    , nacionalidad
-   , sexo
+   , CASE WHEN sexo IN ('F', 'M', 'X') THEN sexo
+		    WHEN sexo LIKE 'Masculino' THEN 'M'
+		    WHEN sexo LIKE 'Femenino' THEN 'F'
+		    ELSE 'X' END sexo
    , fecha_nacimiento
    FROM
      "caba-piba-raw-zone-db"."iel_nsge_maqueta_v_iel_cfp"
@@ -2667,7 +2670,10 @@ SELECT tmp.base_origen_ok base_origen,
 		UPPER(tmp.nombre) nombre,
         UPPER(tmp.apellido) apellido,
 		tmp.fecha_nacimiento fecha_nacimiento,
-		tmp.sexo genero_broker,
+		CASE WHEN tmp.sexo IN ('F', 'M', 'X') THEN tmp.sexo
+		    WHEN tmp.sexo LIKE 'Masculino' THEN 'M'
+		    WHEN tmp.sexo LIKE 'Femenino' THEN 'F'
+		    ELSE 'X' END genero_broker,
 		CASE WHEN (tmp.tipo_documento IN ('DNI', 'CUIT', 'CUIL', 'LC', 'LE', 'CI')) THEN 'ARG' ELSE 'NNN' END nacionalidad,
 		NULL descrip_nacionalidad,
 		CASE WHEN (tmp.tipo_documento IN ('DNI', 'CUIT', 'CUIL', 'LC', 'LE', 'CI')) THEN 'ARG' ELSE 'NNN' END nacionalidad_broker,
@@ -2684,7 +2690,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- Copy of 2023.06.09 step 08 - consume vecinos (Vcliente).sql 
+-- Copy of 2023.06.23 step 08 - consume vecinos (Vcliente).sql 
 
 
 
@@ -2693,7 +2699,7 @@ tmp.base_origen_ok, gu.idusuario
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_vecino" AS
 WITH tmp_vec_broker AS
-(SELECT vec.broker_id_din||'-'||vec.base_origen vecino_id,
+(SELECT replace(replace(vec.broker_id_din, ' ', '') || '-' || replace(vec.base_origen, ' ', ''), ' ', '') AS vecino_id,
 	   vec.base_origen,
 	   vec.cod_origen,
 	   vec.broker_id_din broker_id,
@@ -2796,7 +2802,7 @@ FROM tmp_vec_renaper tvc
 
 
 
--- Copy of 2023.06.09 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
+-- Copy of 2023.06.23 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
 
 
 
@@ -2902,7 +2908,7 @@ FROM resultado
 
 
 
--- Copy of 2023.06.09 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
+-- Copy of 2023.06.23 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
 
 
 
@@ -3525,7 +3531,7 @@ FROM
 
 
 
--- Copy of 2023.06.09 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
+-- Copy of 2023.06.23 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
 
 
 
@@ -3728,7 +3734,7 @@ GROUP BY
 
 
 
--- Copy of 2023.06.09 step 12 - staging estado_beneficiario_moodle (Vcliente) .sql 
+-- Copy of 2023.06.23 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
 
 
 
@@ -3993,7 +3999,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.06.09 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
+-- Copy of 2023.06.23 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
 
 
 
@@ -4223,7 +4229,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.06.09 step 14 - staging edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.06.23 step 14 - staging edicion capacitacion (Vcliente).sql 
 
 
 
@@ -5147,7 +5153,7 @@ WHERE a.id IS NULL
 
 
 
--- Copy of 2023.06.09 step 15 - consume edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.06.23 step 15 - consume edicion capacitacion (Vcliente).sql 
 
 
 
@@ -5186,7 +5192,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- Copy of 2023.06.09 step 16 - staging cursada (Vcliente).sql 
+-- Copy of 2023.06.23 step 16 - staging cursada (Vcliente).sql 
 
 
 
@@ -5691,7 +5697,7 @@ SELECT df.base_origen,
 	   'PREINSCRIPTO' estado_beneficiario
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_analisis_iel" iel
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" df ON
-(levenshtein_distance(df.descrip_normalizada,iel.descrip_normalizada) <= 0.9) AND df.base_origen IN ('GOET','SIU')
+(levenshtein_distance(df.descrip_normalizada,iel.descrip_normalizada) <= 0.9) AND df.base_origen = iel.base_origen
 WHERE NOT EXISTS (SELECT 1 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cursada_1" dcu
 				  WHERE dcu.capacitacion_id_new = df.id_new AND
 						dcu.base_origen = df.base_origen AND
@@ -5709,7 +5715,7 @@ GROUP BY
 
 
 
--- Copy of 2023.06.09 step 17 - consume cursada (Vcliente).sql 
+-- Copy of 2023.06.23 step 17 - consume cursada (Vcliente).sql 
 
 
 
@@ -5773,7 +5779,7 @@ GROUP BY
 
 
 
--- Copy of 2023.06.09 step 18 - consume trayectoria_educativa (Vcliente).sql 
+-- Copy of 2023.06.23 step 18 - consume trayectoria_educativa (Vcliente).sql 
 
 
 
@@ -5829,7 +5835,7 @@ GROUP BY
 
 
 
--- Copy of 2023.06.09 step 19 - consume puestos (Vcliente).sql 
+-- Copy of 2023.06.23 step 19 - consume puestos (Vcliente).sql 
 
 
 
@@ -5856,7 +5862,7 @@ WHERE codigo='3139'
 DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_puestos_con_niveles`;
 --</sql>--
 
---</sql>--
+--<sql>--
  CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_puestos_con_niveles" AS
  WITH titulos_1_digito AS (
  	SELECT ciuo_08_code,
@@ -5909,7 +5915,7 @@ WHERE codigo='3139'
 
 
 
--- Copy of 2023.06.09 step 20 - staging oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.06.23 step 20 - staging oportunidad_laboral (Vcliente).sql 
 
 
 
@@ -5934,6 +5940,31 @@ WHERE codigo='3139'
 
 --<sql>--
 DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_oportunidad_laboral`;
+--</sql>--
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_oportunidad_laboral_idiomas`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_idiomas" AS
+WITH oportunidad_laboral_idiomas AS (
+SELECT CAST(jo.id AS VARCHAR) oportunidad_laboral_id,
+-- idioma requerido para el puesto
+CASE WHEN UPPER(pel.name) LIKE 'OTRO' THEN CAST(NULL AS VARCHAR)
+ELSE UPPER(pel.name) END idioma_requerido
+
+FROM "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
+LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (jo.id=jp.job_offer_id)
+LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_job_requirements" jr ON (jp.job_requirement_id=jr.id)
+LEFT JOIN
+"caba-piba-raw-zone-db"."portal_empleo_job_req_language" jrl ON (jr.id=jrl.job_requirement_id)
+LEFT JOIN
+"caba-piba-raw-zone-db"."portal_empleo_language" pel ON (jrl.language_id=pel.id)
+WHERE jp.deleted = 0
+)
+SELECT *
+FROM oportunidad_laboral_idiomas
 --</sql>--
 
 --<sql>--
@@ -5976,8 +6007,7 @@ SELECT
 	CAST(NULL AS VARCHAR) organizacion_empleadora_barrio,
 	CAST(NULL AS VARCHAR) organizacion_empleadora_cuit,
 	CAST(NULL AS VARCHAR) AS genero_requerido,
-	CAST(NULL AS INT) AS experiencia_requerida,
-	CAST(NULL AS VARCHAR) AS idioma_requerido
+	CAST(NULL AS INT) AS experiencia_requerida
 FROM "caba-piba-raw-zone-db"."crm_empleo_anuncio__c"
 
 UNION
@@ -6019,8 +6049,7 @@ SELECT
 	CAST(NULL AS VARCHAR) organizacion_empleadora_barrio,
 	CAST(NULL AS VARCHAR) organizacion_empleadora_cuit,
 	CAST(NULL AS VARCHAR) AS genero_requerido,
-	CAST(NULL AS INT) AS experiencia_requerida,
-	CAST(NULL AS VARCHAR) AS idioma_requerido
+	CAST(NULL AS INT) AS experiencia_requerida
 FROM "caba-piba-raw-zone-db"."crm_empleo_historico_anuncio__c"
 
 UNION
@@ -6069,15 +6098,14 @@ SELECT
 	CAST(NULL AS VARCHAR) organizacion_empleadora_barrio,
 	CAST(NULL AS VARCHAR) organizacion_empleadora_cuit,
 	CAST(NULL AS VARCHAR) AS genero_requerido,
-	CAST(NULL AS INT) AS experiencia_requerida,
-	CAST(NULL AS VARCHAR) AS idioma_requerido
+	CAST(NULL AS INT) AS experiencia_requerida
 FROM "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_laborales"
 
 UNION
 SELECT
 'PORTALEMPLEO' base_origen,
 CAST(jo.id AS VARCHAR) id,
-CAST(jo.position || jo.tasks_description AS VARCHAR) descripcion,
+CAST(jo.tasks_description AS VARCHAR) descripcion,
 CAST(DATE_PARSE(date_format(COALESCE(jp.created_at, jp.published_date), '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE) fecha_publicacion,
 CASE WHEN jo.due_date <= NOW() THEN 'finalizada' ELSE 'en_curso' END estado,
 CASE WHEN for_disabled = 0 THEN '0' ELSE '1' END apto_discapacitado,
@@ -6122,10 +6150,7 @@ CASE
 	WHEN UPPER(jr.gender) IN ('F', 'M') THEN UPPER(jr.gender) ELSE 'I'
 END AS genero_requerido,
 -- 1 si requiere experiencia, 0 en caso contrario
-CAST(jr.experience_required AS  INT) AS experiencia_requerida,
--- idioma requerido para el puesto
-CASE WHEN UPPER(pel.name) LIKE 'OTRO' THEN CAST(NULL AS VARCHAR)
-ELSE UPPER(pel.name) END idioma_requerido
+CAST(jr.experience_required AS  INT) AS experiencia_requerida
 
 FROM "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (jo.id=jp.job_offer_id)
@@ -6137,10 +6162,6 @@ LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_job_requirements" jr ON (jp.job
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_education_level" el ON (jr.academic_level_id=el.id)
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_working_modalities" m ON (jo.working_modality=m.id)
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_industry_sectors" s ON (jo.sector_id=s.id)
-LEFT JOIN
-"caba-piba-raw-zone-db"."portal_empleo_job_req_language" jrl ON (jr.id=jrl.job_requirement_id)
-LEFT JOIN
-"caba-piba-raw-zone-db"."portal_empleo_language" pel ON (jrl.language_id=pel.id)
 WHERE jp.deleted = 0
 ),
 -- 2.-- Se estandarizan los campos mas relevantes.
@@ -6197,8 +6218,7 @@ organizacion_empleadora_cp,
 organizacion_empleadora_barrio,
 organizacion_empleadora_cuit,
 genero_requerido,
-experiencia_requerida,
-idioma_requerido
+experiencia_requerida
 FROM oportunidad_laboral
 ),
 et2 AS (
@@ -6282,8 +6302,7 @@ et.organizacion_empleadora_cp,
 et.organizacion_empleadora_barrio,
 et.organizacion_empleadora_cuit,
 et.genero_requerido,
-et.experiencia_requerida,
-et.idioma_requerido
+et.experiencia_requerida
 FROM et
 ),
 et3 AS (
@@ -6331,8 +6350,7 @@ et2.organizacion_empleadora_cp,
 et2.organizacion_empleadora_barrio,
 et2.organizacion_empleadora_cuit,
 et2.genero_requerido,
-et2.experiencia_requerida,
-et2.idioma_requerido
+et2.experiencia_requerida
 FROM et2
 ),
 et4 AS (
@@ -6409,8 +6427,7 @@ et3.organizacion_empleadora_cp,
 et3.organizacion_empleadora_barrio,
 et3.organizacion_empleadora_cuit,
 et3.genero_requerido,
-et3.experiencia_requerida,
-et3.idioma_requerido
+et3.experiencia_requerida
 FROM et3
 ),
 et5 AS (
@@ -6466,8 +6483,7 @@ et4.organizacion_empleadora_cp,
 et4.organizacion_empleadora_barrio,
 et4.organizacion_empleadora_cuit,
 et4.genero_requerido,
-et4.experiencia_requerida,
-et4.idioma_requerido
+et4.experiencia_requerida
 FROM et4
 ),
 et6 AS (
@@ -6513,8 +6529,7 @@ et5.organizacion_empleadora_cp,
 et5.organizacion_empleadora_barrio,
 et5.organizacion_empleadora_cuit,
 et5.genero_requerido,
-et5.experiencia_requerida,
-et5.idioma_requerido
+et5.experiencia_requerida
 FROM et5
 ),
 etf AS (
@@ -6573,8 +6588,7 @@ et6.organizacion_empleadora_cp,
 et6.organizacion_empleadora_barrio,
 et6.organizacion_empleadora_cuit,
 et6.genero_requerido,
-et6.experiencia_requerida,
-et6.idioma_requerido
+et6.experiencia_requerida
 FROM et6
 ),
 -- 2.2.-- Se estandarizan los campos apto_discapacitado, estado, grado_de_estudio, edad minima, edad maxima, modalidad_trabajo, sector_productivo
@@ -6633,7 +6647,7 @@ END grado_de_estudio,
 etf.duracion_practica_formativa,
 etf.sector_productivo AS sector_productivo_origen,
 CASE
-    WHEN regexp_like(etf.sector_productivo,'GastronomÃ­a, HotelerÃ­a y Turismo|Camareros') OR regexp_like(etf.descripcion,'Camarero/a|Cocinero/a|Bachero/a') THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
+    WHEN regexp_like(etf.sector_productivo,'GastronomÃ­a, HotelerÃ­a y Turismo|Camareros') OR regexp_like(etf.descripcion,'Camarero/a|Cocinero/a|Bachero/a') OR (etf.tipo_de_puesto IS NOT NULL AND regexp_like(etf.tipo_de_puesto,'Camarero/a|Cocinero/a|Bachero/a') ) THEN 'GASTRONOMIA, HOTELERIA Y TURISMO'
     WHEN LENGTH(etf.sector_productivo) = 0 OR LENGTH(etf.industria) > 0 THEN UPPER(etf.industria)
     WHEN regexp_like(etf.sector_productivo,'Abastecimiento y LogÃ­stica|AlmacÃ©n / DepÃ³sito / ExpediciÃ³n') THEN 'ABASTECIMIENTO Y LOGISTICA'
     WHEN regexp_like(etf.sector_productivo,'Contabilidad|Secretarias y RecepciÃ³n|AdministraciÃ³n, Contabilidad y Finanzas|Gerencia y DirecciÃ³n General') THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
@@ -6668,8 +6682,7 @@ etf.organizacion_empleadora_cp,
 etf.organizacion_empleadora_barrio,
 etf.organizacion_empleadora_cuit,
 etf.genero_requerido,
-etf.experiencia_requerida,
-etf.idioma_requerido
+etf.experiencia_requerida
 FROM etf
 ),
 ecr2 AS (
@@ -6680,8 +6693,8 @@ ecr1.descripcion,
 ecr1.fecha_publicacion,
 CASE
     WHEN ecr1.base_origen LIKE 'PORTALEMPLEO' THEN 'PORTAL DE EMPLEO'
-    WHEN ecr1.base_origen LIKE 'CRMEMPLEO' THEN 'IMPULSO A LA INSERCION LABORAL'
-    WHEN ecr1.base_origen LIKE 'CRMSL' THEN 'ACTIVA TU POTENCIAL LABORAL'
+    WHEN ecr1.base_origen LIKE 'CRMEMPLEO' THEN 'IMPULSO A LA INSERCIÃN LABORAL'
+    WHEN ecr1.base_origen LIKE 'CRMSL' THEN 'ACTIVÃ TU POTENCIAL LABORAL'
 END programa,
 ecr1.estado_origen,
 ecr1.estado,
@@ -6738,8 +6751,7 @@ ecr1.organizacion_empleadora_cp,
 ecr1.organizacion_empleadora_barrio,
 ecr1.organizacion_empleadora_cuit,
 ecr1.genero_requerido,
-ecr1.experiencia_requerida,
-ecr1.idioma_requerido
+ecr1.experiencia_requerida
 FROM ecr1
 ),
 ecr3 AS (
@@ -6795,8 +6807,7 @@ ecr2.organizacion_empleadora_cp,
 ecr2.organizacion_empleadora_barrio,
 ecr2.organizacion_empleadora_cuit,
 ecr2.genero_requerido,
-ecr2.experiencia_requerida,
-ecr2.idioma_requerido
+ecr2.experiencia_requerida
 FROM ecr2
 )
 SELECT *
@@ -6805,7 +6816,7 @@ FROM ecr3
 
 
 
--- Copy of 2023.06.09 step 21 - staging registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.06.23 step 21 - staging registro_laboral_formal (Vcliente).sql 
 
 
 
@@ -7378,7 +7389,7 @@ FROM
 
 
 
--- Copy of 2023.06.09 step 22 - staging organizaciones (Vcliente).sql 
+-- Copy of 2023.06.23 step 22 - staging organizaciones (Vcliente).sql 
 
 
 
@@ -7440,7 +7451,7 @@ FROM rlf_op2
 
 
 
--- Copy of 2023.06.09 step 23 - consume organizaciones (Vcliente).sql 
+-- Copy of 2023.06.23 step 23 - consume organizaciones (Vcliente).sql 
 
 
 
@@ -7463,7 +7474,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_organizaciones"
 
 
 
--- Copy of 2023.06.09 step 24 - consume oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.06.23 step 24 - consume oportunidad_laboral (Vcliente).sql 
 
 
 
@@ -7491,6 +7502,11 @@ DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_labora
 --</sql>--
 
 --<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral_idiomas`;
+--</sql>--
+
+
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" AS
 WITH
 empresas_validas AS (
@@ -7515,15 +7531,25 @@ SELECT
 	el.empresa,
 	el.id_old,
 	el.base_origen,
-	el.organizacion_empleadora_cuit,
+	org.cuit,
+	org.razon_social,
+	org.id_organizacion,
+	1 AS "orden_duplicado"
+FROM empresas_validas el
+	JOIN organizaciones org ON (
+		org.cuit=el.organizacion_empleadora_cuit
+	)
+UNION
+SELECT
+	el.empresa,
+	el.id_old,
+	el.base_origen,
+	org.cuit,
 	org.razon_social,
 	org.id_organizacion,
 	ROW_NUMBER() OVER(
 		PARTITION BY
-		el.empresa_ordenada,
-		org.razon_social_ordenada,
-		el.id_old,
-		el.base_origen
+		el.id_old
 		ORDER BY el.organizacion_empleadora_cuit, (
 				(
 					CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
@@ -7549,9 +7575,9 @@ FROM empresas_validas el
 				)
 			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
 		) >= 0.99
-		OR
-			org.cuit=el.organizacion_empleadora_cuit
-	)
+	) LEFT JOIN organizaciones ON (el.organizacion_empleadora_cuit = organizaciones.cuit)
+	WHERE organizaciones.cuit IS NULL
+
 )
 SELECT
 	row_number() OVER () AS oportunidad_laboral_id,
@@ -7559,8 +7585,9 @@ SELECT
 	ol.id oportunidad_laboral_id_old,
 	ol.descripcion,
 	ol.fecha_publicacion,
+	p.programa_id,
 	ol.programa,
-	ol.estado,
+	UPPER(ol.estado) estado,
 	ol.apto_discapacitado,
 	ol.vacantes,
 	ol.modalidad_de_trabajo,
@@ -7568,24 +7595,25 @@ SELECT
 	ol.edad_maxima,
 	ol.genero_requerido,
 	ol.experiencia_requerida,
-	ol.idioma_requerido,
 	ol.grado_de_estudio,
 	ol.vacantes_cubiertas,
 	ol.tipo_de_puesto,
 	ol.turno_trabajo,
 	ol.duracion_practica_formativa,
 	ol.sector_productivo,
-	ol.organizacion_empleadora AS organizacion,
+	org.razon_social AS organizacion,
 	org.id_organizacion
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral" ol
 LEFT JOIN ol_organizaciones org ON (ol.id=org.id_old AND ol.base_origen=org.base_origen AND org.orden_duplicado=1)
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_programa" p ON (UPPER(p.nombre_programa)=ol.programa)
 GROUP BY
 	ol.base_origen,
 	ol.id,
 	ol.descripcion,
 	ol.fecha_publicacion,
+	p.programa_id,
 	ol.programa,
-	ol.estado,
+	UPPER(ol.estado),
 	ol.apto_discapacitado,
 	ol.vacantes,
 	ol.modalidad_de_trabajo,
@@ -7593,20 +7621,29 @@ GROUP BY
 	ol.edad_maxima,
 	ol.genero_requerido,
 	ol.experiencia_requerida,
-	ol.idioma_requerido,
 	ol.grado_de_estudio,
 	ol.vacantes_cubiertas,
 	ol.tipo_de_puesto,
 	ol.turno_trabajo,
 	ol.duracion_practica_formativa,
 	ol.sector_productivo,
-	ol.organizacion_empleadora,
+	org.razon_social,
 	org.id_organizacion
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_idiomas" AS
+WITH
+oportunidad_laboral_idiomas AS ( SELECT row_number() OVER () AS oportunidad_laboral_idiomas_id, oportunidad_laboral_id, idioma_requerido FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_idiomas" oli JOIN
+											"caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.oportunidad_laboral_id_old=oli.id)
+											)
+SELECT *
+FROM oportunidad_laboral_idiomas
 --</sql>--
 
 
 
--- Copy of 2023.06.09 step 25 - consume sector_productivo (Vcliente).sql 
+-- Copy of 2023.06.23 step 25 - consume sector_productivo (Vcliente).sql 
 
 
 
@@ -7703,7 +7740,7 @@ FROM sp
 
 
 
--- Copy of 2023.06.09 step 26 - consume_registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.06.23 step 26 - consume_registro_laboral_formal (Vcliente).sql 
 
 
 
@@ -7763,7 +7800,7 @@ GROUP BY
 
 
 
--- Copy of 2023.06.09 step 27 - staging postulaciones (Vcliente).sql 
+-- Copy of 2023.06.23 step 27 - staging postulaciones (Vcliente).sql 
 
 
 
@@ -8035,7 +8072,7 @@ GROUP BY
 
 
 
--- Copy of 2023.06.09 step 28 - consume postulaciones (Vcliente).sql 
+-- Copy of 2023.06.23 step 28 - consume postulaciones (Vcliente).sql 
 
 
 
@@ -8071,7 +8108,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_postulaciones" p
 
 
 
--- Copy of 2023.06.09 step 29 - staging experiencia_laboral (Vcliente).sql 
+-- Copy of 2023.06.23 step 29 - staging experiencia_laboral (Vcliente).sql 
 
 
 
@@ -8241,7 +8278,7 @@ GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
 
 
 
--- Copy of 2023.06.09 step 30 - consume sector_estrategico (Vcliente).sql 
+-- Copy of 2023.06.23 step 30 - consume sector_estrategico (Vcliente).sql 
 
 
 
@@ -8267,7 +8304,7 @@ ORDER BY 2
 
 
 
--- Copy of 2023.06.09 step 31 - consume match_sector_estrategico_sector_productivo (Vcliente).sql 
+-- Copy of 2023.06.23 step 31 - consume match_sector_estrategico_sector_productivo (Vcliente).sql 
 
 
 
@@ -8527,7 +8564,7 @@ FROM spf
 
 
 
--- Copy of 2023.06.09 step 32 - staging organizacion_actividad (Vcliente).sql 
+-- Copy of 2023.06.23 step 32 - staging organizacion_actividad (Vcliente).sql 
 
 
 
@@ -8553,7 +8590,7 @@ FROM c
 
 
 
--- Copy of 2023.06.09 step 33 - consume actividad_area_de_interes (Vcliente).sql 
+-- Copy of 2023.06.23 step 33 - consume actividad_area_de_interes (Vcliente).sql 
 
 
 
@@ -8621,7 +8658,7 @@ GROUP BY 1,2,3
 
 
 
--- Copy of 2023.06.09 step 34 - staging curriculum (Vcliente).sql 
+-- Copy of 2023.06.23 step 34 - staging curriculum (Vcliente).sql 
 
 
 
@@ -8908,8 +8945,10 @@ SELECT e.id,
 	'GRADUADO' ELSE CAST(NULL AS VARCHAR) END,
 	b.id,
 	CAST(NULL AS VARCHAR) AS licencia_conducir
-FROM "caba-piba-raw-zone-db"."crm_empleo_experiencia_laboral__c" el
-	INNER JOIN "caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e ON (
+FROM
+	"caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e
+	LEFT JOIN "caba-piba-raw-zone-db"."crm_empleo_experiencia_laboral__c" el
+	ON (
 		el.postulante__c = e.postulante__c
 		AND e.dni__c IS NOT NULL
 	)
@@ -9005,7 +9044,7 @@ GROUP BY ecc.id,
 
 
 
--- Copy of 2023.06.09 step 35 - consume curriculum (Vcliente).sql 
+-- Copy of 2023.06.23 step 35 - consume curriculum (Vcliente).sql 
 
 
 
@@ -9016,7 +9055,78 @@ DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_curriculum`;
 
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" AS
-SELECT cv.base_origen || cv.cod_origen AS id,
+WITH nivel_educativo_ponderado AS
+(
+SELECT c.*,
+		CASE
+			UPPER(c.nivel_educativo)
+			WHEN 'MAESTRÃA' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 2
+				WHEN 'EN CURSO' THEN 6
+				WHEN 'ABANDONADO' THEN 10
+			END
+			WHEN 'DOCTORADO' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 1
+				WHEN 'EN CURSO' THEN 5
+				WHEN 'ABANDONADO' THEN 9
+			END
+			WHEN 'POSTGRADO' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 3
+				WHEN 'EN CURSO' THEN 7
+				WHEN 'ABANDONADO' THEN 11
+			END
+			WHEN 'UNIVERSITARIO' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 4
+				WHEN 'EN CURSO' THEN 8
+				WHEN 'ABANDONADO' THEN 12
+			END
+			WHEN 'TERCIARIO' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 13
+				WHEN 'EN CURSO' THEN 14
+				WHEN 'ABANDONADO' THEN 15
+			END
+			WHEN 'SECUNDARIO' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 16
+				WHEN 'EN CURSO' THEN 17
+				WHEN 'ABANDONADO' THEN 18
+			END
+			WHEN 'PRIMARIO' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 19
+				WHEN 'EN CURSO' THEN 20
+				WHEN 'ABANDONADO' THEN 21
+			END
+			WHEN 'OTRO' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 22
+				WHEN 'EN CURSO' THEN 23
+				WHEN 'ABANDONADO' THEN 24
+			END
+				WHEN 'OTROS' THEN CASE
+				UPPER(c.nivel_educativo_estado)
+				WHEN 'GRADUADO' THEN 22
+				WHEN 'EN CURSO' THEN 23
+				WHEN 'ABANDONADO' THEN 24
+			END
+		END AS prioridad_nivel_educativo
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum" c
+),
+nivel_educactivo_pe_ordenado AS (
+	SELECT *,
+		ROW_NUMBER() OVER(
+			PARTITION BY tipo_doc_broker, documento_broker
+			ORDER BY prioridad_nivel_educativo ASC
+		) AS "orden_duplicado"
+	FROM nivel_educativo_ponderado
+),
+cv_con_duplicados AS (
+	SELECT cv.base_origen || cv.cod_origen AS id,
 	cv.cod_origen id_old,
 	cv.base_origen,
 	vec.vecino_id,
@@ -9029,13 +9139,30 @@ SELECT cv.base_origen || cv.cod_origen AS id,
 	CASE WHEN UPPER(cv.nivel_educativo) LIKE 'OTRO%' THEN 'OTRO' ELSE UPPER(cv.nivel_educativo) END nivel_educativo,
 	cv.nivel_educativo_estado,
 	cv.capacidades_diferentes tipo_discapacidad,
-	cv.licencia_conducir
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum" cv
+	cv.licencia_conducir,
+	ROW_NUMBER() OVER(
+			PARTITION BY cv.tipo_doc_broker, cv.documento_broker
+			ORDER BY CASE cv.tipo_doc_broker
+					WHEN 'DNI' THEN 1
+					WHEN 'CUIL' THEN 2
+					WHEN 'LC' THEN 3
+					WHEN 'LE' THEN 4
+					WHEN 'CE' THEN 5
+					WHEN 'CI' THEN 6
+					WHEN 'PE' THEN 7
+					WHEN 'OTRO' THEN 8
+					WHEN 'NN' THEN 9
+					ELSE 10
+				  END
+		) AS "orden_duplicado_vecino"
+FROM
+	"nivel_educactivo_pe_ordenado" cv
 	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
 		cv.base_origen = vec.base_origen
 		AND cv.tipo_doc_broker = vec.tipo_doc_broker
 		AND CAST(cv.documento_broker AS VARCHAR) = vec.documento_broker
 	)
+WHERE cv.orden_duplicado = 1
 GROUP BY
 	cv.base_origen || cv.cod_origen,
 	cv.cod_origen,
@@ -9050,12 +9177,31 @@ GROUP BY
 	CASE WHEN UPPER(cv.nivel_educativo) LIKE 'OTRO%' THEN 'OTRO' ELSE UPPER(cv.nivel_educativo) END,
 	cv.nivel_educativo_estado,
 	cv.capacidades_diferentes,
-	cv.licencia_conducir
+	cv.licencia_conducir,
+	cv.tipo_doc_broker,
+	cv.documento_broker
+)
+SELECT  id,
+	id_old,
+	base_origen,
+	vecino_id,
+	modalidad,
+	fecha_publicacion,
+	disponibilidad,
+	presentacion,
+	estado,
+	metas,
+	nivel_educativo,
+	nivel_educativo_estado,
+	tipo_discapacidad,
+	licencia_conducir
+FROM cv_con_duplicados
+WHERE orden_duplicado_vecino = 1
 --</sql>--
 
 
 
--- Copy of 2023.06.09 step 36 - consume experiencia_laboral (Vcliente).sql 
+-- Copy of 2023.06.23 step 36 - consume experiencia_laboral (Vcliente).sql 
 
 
 
@@ -9155,7 +9301,7 @@ SELECT
 	el.puesto
 FROM el
 LEFT JOIN experiencias_empresas org
-ON (el.id_old = org.id_old AND	el.base_origen = org.base_origen)
+ON (el.id_old = org.id_old AND	el.base_origen = org.base_origen AND org.orden_duplicado=1)
 GROUP BY
 	el.base_origen||el.id_old,
 	el.curriculum_id,
@@ -9170,7 +9316,7 @@ GROUP BY
 
 
 
--- Copy of 2023.06.09 step 37 - consume tipo_formacion (Vcliente).sql 
+-- Copy of 2023.06.23 step 37 - consume tipo_formacion (Vcliente).sql 
 
 
 
@@ -9186,7 +9332,7 @@ ORDER BY value
 
 
 
--- Copy of 2023.06.09 step 38 - staging formacion_academica (Vcliente).sql 
+-- Copy of 2023.06.23 step 38 - staging formacion_academica (Vcliente).sql 
 
 
 
@@ -9324,7 +9470,7 @@ ORDER BY cl4.descripcion
 
 
 
--- Copy of 2023.06.09 step 39 - consume formacion_academica (Vcliente).sql 
+-- Copy of 2023.06.23 step 39 - consume formacion_academica (Vcliente).sql 
 
 
 
@@ -9488,6 +9634,766 @@ GROUP BY
 	org.id_organizacion,
 	cv.id,
 	tf.codigo
+--</sql>--
+
+
+
+-- Copy of 2023.06.23 step 40 - staging conocimientos_aptitudes (Vcliente).sql 
+
+
+
+-- 1- Se crea la tabla tbp_typ_tmp_conocimientos_aptitudes_1 que contiene informacion de CURSOS
+-- las carreras estan en la tabla de formacion academica
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_conocimientos_aptitudes_1`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_conocimientos_aptitudes_1" AS
+WITH seguimientos_calculado0 AS (
+	SELECT off.id,
+		ofs.op_oportunidades_formacion_se_seguimiento_1se_seguimiento_idb,
+		s.name,
+		s.date_modified,
+		dense_rank() OVER(
+			PARTITION BY off.id,
+			s.name
+			ORDER BY s.date_modified DESC
+		) AS max_date
+	FROM "caba-piba-raw-zone-db".crm_sociolaboral_op_oportunidades_formacion OFF
+		LEFT JOIN "caba-piba-raw-zone-db".crm_sociolaboral_op_oportunidades_formacion_se_seguimiento_1_c ofs ON (ofs.op_oportun868armacion_ida = off.id)
+		LEFT JOIN "caba-piba-raw-zone-db".crm_sociolaboral_se_seguimiento s ON (
+			s.id = ofs.op_oportunidades_formacion_se_seguimiento_1se_seguimiento_idb
+		)
+),
+seguimientos_calculado AS (
+	SELECT sc0.id,
+		sc0.op_oportunidades_formacion_se_seguimiento_1se_seguimiento_idb,
+		sc0.name,
+		sc0.date_modified
+	FROM seguimientos_calculado0 AS sc0
+	WHERE sc0.max_date = 1
+)
+SELECT 'CRMSL' base_origen,
+	CAST(cm.id_new AS VARCHAR) || '-' || CAST(cv.id AS VARCHAR) || '-' || CAST(of.id AS VARCHAR) AS codigo,
+	CAST(
+		DATE_PARSE(
+			CASE
+				WHEN fechas.fecha_inicio = '0000-00-00' THEN date_format(cast(of.inicio AS date), '%Y-%m-%d %h:%i%p') ELSE date_format(
+					cast(fechas.fecha_inicio AS date),
+					'%Y-%m-%d %h:%i%p'
+				)
+			END,
+			'%Y-%m-%d %h:%i%p'
+		) AS DATE
+	) fecha_inicio,
+	CAST(
+		DATE_PARSE(
+			CASE
+				WHEN fechas.fecha_fin = '0000-00-00' THEN date_format(of.fin, '%Y-%m-%d %h:%i%p') ELSE date_format(
+					cast(fechas.fecha_fin AS date),
+					'%Y-%m-%d %h:%i%p'
+				)
+			END,
+			'%Y-%m-%d %h:%i%p'
+		) AS DATE
+	) fecha_fin,
+	cm.tipo_capacitacion AS tipo_formacion,
+	of.organismo AS institucion_educativa,
+	CAST(cv.id AS VARCHAR) AS cv_id,
+	of.name descripcion,
+	dc.descrip_capacitacion AS observacion,
+	sc.estado_c estado
+FROM "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_formacion" OF
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (of.sede IN (est.nombres_old))
+	LEFT JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_formacion_contacts_c" ofc ON (of.id = ofc.op_oportun1d35rmacion_ida)
+	LEFT JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_contacts" co ON (
+		co.id = ofc.op_oportunidades_formacion_contactscontacts_idb
+	)
+	LEFT JOIN seguimientos_calculado SCN ON (
+		of.id = scn.id
+		AND replace(
+			trim(concat_ws(' ', co.first_name, co.last_name)),
+			' ',
+			' '
+		) = replace(trim(scn.name), '  ', ' ')
+	)
+	LEFT JOIN "caba-piba-raw-zone-db".crm_sociolaboral_op_oportunidades_formacion_se_seguimiento_1_c ofs ON (
+		ofs.op_oportunidades_formacion_se_seguimiento_1se_seguimiento_idb = scn.op_oportunidades_formacion_se_seguimiento_1se_seguimiento_idb
+	)
+	LEFT JOIN "caba-piba-raw-zone-db".crm_sociolaboral_se_seguimiento s ON (
+		s.id = ofs.op_oportunidades_formacion_se_seguimiento_1se_seguimiento_idb
+	)
+	LEFT JOIN "caba-piba-raw-zone-db".crm_sociolaboral_se_seguimiento_cstm sc ON (sc.id_c = s.id)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" cs ON (co.id = cs.id_c)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion_match" cm ON (
+		cm.base_origen = 'CRMSL'
+		AND cm.tipo_capacitacion = 'CURSO'
+		AND cm.id_old = CAST(of.id AS VARCHAR)
+	)
+	LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" dc ON (
+		cm.id_new = dc.id_new
+		AND cm.base_origen = dc.base_origen
+	)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_candidates" c ON (c.doc_number = cs.numero_documento_c)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv ON (cv.candidate_id = c.id)
+	LEFT JOIN (
+		SELECT edicion_capacitacion_id_old,
+			CAST(MIN(inicio) AS VARCHAR) fecha_inicio,
+			CAST(MAX(fin) AS VARCHAR) fecha_fin,
+			CAST(MIN(inicio) AS VARCHAR) fecha_inicio_inscripcion,
+			CAST(MAX(inicio) AS VARCHAR) fecha_fin_inscripcion,
+			COUNT(*) cantidad_inscriptos
+		FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_crmsl"
+		GROUP BY edicion_capacitacion_id_old
+	) fechas ON (
+		CAST(of.id AS VARCHAR) = fechas.edicion_capacitacion_id_old
+	)
+WHERE (
+		co.lead_source = 'sociolaboral'
+		OR (
+			(co.lead_source = 'rib')
+			AND cs.forma_parte_interm_lab_c = 'si'
+		)
+	)
+GROUP BY cm.base_origen,
+	cm.tipo_capacitacion,
+	cm.id_new,
+	of.id,
+	of.name,
+	of.inicio,
+	dc.fecha_inicio,
+	of.fin,
+	dc.fecha_fin,
+	of.description,
+	of.organismo,
+	cv.id,
+	dc.descrip_capacitacion,
+	fechas.fecha_inicio,
+	fechas.fecha_fin,
+	sc.estado_c
+UNION
+SELECT 'PORTALEMPLEO' base_origen,
+	CAST(i.id AS VARCHAR) AS codigo,
+	i.start_date fecha_inicio,
+	i.end_date fecha_fin,
+	'CURSO' AS tipo_formacion,
+	inst.name AS organizacion,
+	CAST(c.curriculum_id AS VARCHAR) AS cv_id,
+	c.name AS descripcion,
+	c.observation AS observacion,
+	LOWER(els.value) estado
+FROM "caba-piba-raw-zone-db"."portal_empleo_instructions" i
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_institutions" inst ON (i.institution_id = inst.id)
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_courses" c ON (
+		i.id = c.id
+		AND i.instruction_type LIKE 'COURSE'
+	)
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_education_level_status" els ON (els.id = i.education_level_status_id)
+UNION
+SELECT -- CURSOS REALIZADO QUE SE PUDIERON TRACKEAR CON EL VECINO ENTREVISTADO
+	'CRMEMPLEO' base_origen,
+	ins.id AS codigo,
+	CAST(c.avx_inicio_del_curso__c AS DATE) fecha_inicio,
+	CAST(c.avx_finalizacion_del_curso__c AS DATE) fecha_fin,
+	'CURSO' AS tipo_formacion,
+	c.avx_institucion_capacitadora__c AS organizacion,
+	e.id AS cv_id,
+	-- c.name tiene codigos y no contamos con tabla parametrica por ahora, se quita hasta tenerla?
+	c.name AS capacitacion,
+	NULL observacion,
+	CASE
+		WHEN ins.avx_estado__c = 'Finalizado' THEN 'graduado' ELSE LOWER(ins.avx_estado__c)
+	END AS estado
+FROM "caba-piba-raw-zone-db"."crm_empleo_avx_asistente__c" ins
+	JOIN "caba-piba-raw-zone-db"."crm_empleo_account" a ON (ins.alumno__c = a.id)
+	JOIN "caba-piba-raw-zone-db"."crm_empleo_avx_curso__c" c ON (ins.curso__c = c.id)
+	JOIN "caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e ON (e.postulante__c = a.id)
+--</sql>--
+
+-- 2- Se crea la tabla tbp_typ_tmp_conocimientos_aptitudes_2 que contiene informacion nomenclada de idiomas e informatica
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_conocimientos_aptitudes_2`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_conocimientos_aptitudes_2" AS
+-- IDIOMAS
+SELECT 'PORTALEMPLEO' base_origen,
+	CAST(cvl.id AS VARCHAR) ||'-'|| 'IDIOMA' AS codigo,
+	'IDIOMA' AS tipo_formacion,
+	CAST(cv.id AS VARCHAR) AS cv_id,
+	UPPER(l.name) AS descripcion,
+	UPPER(ll.name) AS  nivel_idioma
+FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_cv_languages" cvl ON (cvl.curriculum_id = af.curriculum_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_language" l ON (l.id = cvl.language_id)
+	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_language_level" ll ON (ll.id = cvl.language_level_id)
+UNION
+-- HERRAMIENTAS INFORMATICAS MICROSOFT OFFICE
+SELECT 'PORTALEMPLEO' base_origen,
+	CAST(io.informatic_id AS VARCHAR) ||'-MO-'|| CAST(io.office_id AS VARCHAR) AS codigo,
+	'HERRAMIENTAS INFORMÃTICAS' AS tipo_formacion,
+	CAST(cv.id AS VARCHAR) AS cv_id,
+	UPPER(os.name) AS descripcion,
+	CAST(NULL AS VARCHAR)
+FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" i ON (i.id = cv.informatic_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics_office" io ON (io.informatic_id = cv.informatic_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_office_software" os ON (os.id = io.office_id)
+UNION
+-- HERRAMIENTAS INFORMATICAS PROGRAMACION
+SELECT 'PORTALEMPLEO' base_origen,
+	CAST(ip.informatic_id AS VARCHAR) ||'-PR-'|| CAST(ip.programming_knowledge_id AS VARCHAR) AS codigo,
+	'HERRAMIENTAS INFORMÃTICAS' AS tipo_formacion,
+	CAST(cv.id AS VARCHAR) AS cv_id,
+	CASE WHEN UPPER(pk.name) LIKE 'OTRO'  THEN 'OTRO LENGUAJE DE PROGRAMACIÃN'
+	ELSE UPPER(pk.name) END AS descripcion,
+	CAST(NULL AS VARCHAR)
+FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" i ON (i.id = cv.informatic_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics_programming" ip ON (ip.informatic_id = cv.informatic_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_programming_knowledge" pk ON (pk.id = ip.programming_knowledge_id)
+UNION
+-- HERRAMIENTAS INFORMATICAS BASES DE DATOS
+SELECT 'PORTALEMPLEO' base_origen,
+	CAST(id.informatic_id AS VARCHAR) ||'-DB-'|| CAST(id.database_id AS VARCHAR) AS codigo,
+	'HERRAMIENTAS INFORMÃTICAS' AS tipo_formacion,
+	CAST(cv.id AS VARCHAR) AS cv_id,
+	CASE WHEN UPPER(db.name) LIKE 'OTRO'  THEN 'OTRA BASE DE DATOS'
+	ELSE UPPER(db.name) END AS descripcion,
+	CAST(NULL AS VARCHAR)
+FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" i ON (i.id = cv.informatic_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics_databases" id ON (id.informatic_id = cv.informatic_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_database_knowledge" db ON (db.id = id.database_id)
+UNION
+-- HERRAMIENTAS INFORMATICAS SISTEMAS CONTABLES
+SELECT 'PORTALEMPLEO' base_origen,
+	CAST(ia.informatic_id AS VARCHAR) ||'-SC-'|| CAST(ia.accounting_knowledge_id AS VARCHAR) AS codigo,
+	'HERRAMIENTAS INFORMÃTICAS' AS tipo_formacion,
+	CAST(cv.id AS VARCHAR) AS cv_id,
+	CASE WHEN UPPER(kas.name) LIKE 'OTRO'  THEN 'OTRO SISTEMA CONTABLE'
+	ELSE UPPER(kas.name) END AS descripcion,
+	CAST(NULL AS VARCHAR)
+FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" i ON (i.id = cv.informatic_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics_accouting" ia ON (ia.informatic_id = cv.informatic_id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_know_account_systems" kas ON (kas.id = ia.accounting_knowledge_id)
+UNION
+-- HERRAMIENTAS INFORMATICAS INTERNET
+SELECT 'PORTALEMPLEO' base_origen,
+	CAST(i.id AS VARCHAR) ||'-INTERNET' AS codigo,
+	'HERRAMIENTAS INFORMÃTICAS' AS tipo_formacion,
+	CAST(cv.id AS VARCHAR) AS cv_id,
+	'INTERNET' AS descripcion,
+	CAST(NULL AS VARCHAR)
+FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
+	INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" i ON (i.id = cv.informatic_id)
+WHERE i.internet=1
+--</sql>--
+
+-- 3- Se crea la tabla tbp_typ_tmp_conocimientos_aptitudes que consiste en la union de las dos anteriores
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_conocimientos_aptitudes`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_conocimientos_aptitudes" AS
+WITH
+datos AS
+(
+SELECT base_origen,
+	codigo,
+	fecha_inicio,
+	fecha_fin,
+	tipo_formacion,
+	institucion_educativa,
+	cv_id,
+	descripcion,
+	observacion,
+	estado,
+	CAST(NULL AS VARCHAR) AS nivel_idioma
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_conocimientos_aptitudes_1"
+UNION
+SELECT base_origen,
+	codigo,
+	CAST(NULL AS DATE) fecha_inicio,
+	CAST(NULL AS DATE) fecha_fin,
+	tipo_formacion,
+	CAST(NULL AS VARCHAR) AS organizacion,
+	cv_id,
+	descripcion,
+	CAST(NULL AS VARCHAR) AS observacion,
+	CAST(NULL AS VARCHAR) AS estado,
+	nivel_idioma
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_conocimientos_aptitudes_2"
+),
+cl1 AS (
+SELECT
+	codigo,
+	base_origen,
+	fecha_inicio,
+	fecha_fin,
+	UPPER(estado) estado,
+	descripcion,
+	institucion_educativa,
+	cv_id,
+	tipo_formacion,
+	observacion,
+	nivel_idioma,
+	regexp_replace(regexp_replace(regexp_replace(descripcion,'[^a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃ²Ã¹ÃÃÃÅ¡\s#\/+\:\|\-\,\(\)\Â°\&\â\Âº\Âª\_\]\[\@;.]+',''),'Ã²','Ã³'),'Ã¹','Ãº') AS descripcion_clean
+FROM datos
+),
+cl2 AS (
+SELECT
+	codigo,
+	base_origen,
+	fecha_inicio,
+	fecha_fin,
+	CASE
+	WHEN estado IN ('GRADUADO','ABANDONADO', 'EN CURSO') THEN estado
+	WHEN estado IN ('INCOMPLETO','EN_CURSO') THEN 'EN CURSO'
+	WHEN estado LIKE 'FINALIZADO' THEN 'GRADUADO'
+	WHEN estado LIKE 'NUNCA_INICIO' THEN 'ABANDONADO'
+	END estado,
+	descripcion,
+	institucion_educativa,
+	cv_id,
+	tipo_formacion,
+	observacion,
+	nivel_idioma,
+	CASE
+		WHEN cl1.descripcion LIKE '%.%' THEN regexp_replace(cl1.descripcion_clean,'[^a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃ²Ã¹ÃÃÃÅ¡\s#\/+\:\|\-\,\(\)\Â°\&\â\Âº\Âª\_\]\[\@;]+',' ')
+		WHEN regexp_like(cl1.descripcion ,'[a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃÃÃÅ¡\s?]+\s?\-\-\s?[a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃÃÃÅ¡\s?]+') THEN regexp_replace(cl1.descripcion_clean,'--','-')
+		WHEN cl1.descripcion LIKE '%--%' AND NOT regexp_like(cl1.descripcion ,'[a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃÃÃÅ¡\s?]+\s?\-\-\s?[a-zA-Z0-9ÃÃ±ÃÃ¡ÃÃ©ÃÃ­ÃÃ³ÃÃºÃ¼ÃÃ¤ÃÃÃÃÅ¡\s?]+') THEN regexp_replace(cl1.descripcion_clean,'-',' ')
+		ELSE cl1.descripcion_clean
+	END descripcion_clean
+FROM cl1
+),
+cl3 AS (
+SELECT
+	codigo,
+	base_origen,
+	fecha_inicio,
+	fecha_fin,
+	estado,
+	descripcion,
+	institucion_educativa,
+	cv_id,
+	tipo_formacion,
+	observacion,
+	nivel_idioma,
+	CASE
+		WHEN cl2.descripcion_clean = '-' THEN regexp_replace(cl2.descripcion_clean,'\-','')
+		WHEN cl2.descripcion LIKE '%(' THEN regexp_replace(cl2.descripcion_clean,'\(','')
+		WHEN cl2.descripcion LIKE ':%' THEN regexp_replace(cl2.descripcion_clean,'\:','')
+		WHEN cl2.descripcion LIKE '%:' THEN regexp_replace(cl2.descripcion_clean,'\:','')
+		WHEN cl2.descripcion LIKE '. %' THEN replace(cl2.descripcion_clean,'.','')
+		WHEN cl2.descripcion LIKE '- %' THEN regexp_replace(cl2.descripcion_clean,'\-','')
+		WHEN cl2.descripcion LIKE '-%' THEN regexp_replace(cl2.descripcion_clean,'\-','')
+		WHEN cl2.descripcion LIKE '%-' THEN regexp_replace(cl2.descripcion_clean,'\-','')
+		WHEN cl2.descripcion LIKE '%â' THEN regexp_replace(cl2.descripcion_clean,'\â','')
+		WHEN cl2.descripcion LIKE 'â%' THEN regexp_replace(cl2.descripcion_clean,'\â','')
+		WHEN cl2.descripcion LIKE ',%' THEN regexp_replace(cl2.descripcion_clean,'\,','')
+		WHEN cl2.descripcion LIKE '%,' THEN regexp_replace(cl2.descripcion_clean,'\,','')
+		WHEN cl2.descripcion LIKE '%&' THEN regexp_replace(cl2.descripcion_clean,'\&','')
+		WHEN cl2.descripcion LIKE '.:%' THEN regexp_replace(cl2.descripcion_clean,'.:','')
+		WHEN cl2.descripcion LIKE '[%' THEN replace(replace(cl2.descripcion_clean,'[',''),']','')
+		WHEN cl2.descripcion LIKE '%( %' THEN replace(replace(cl2.descripcion_clean,'( ','('),' )',')')
+		WHEN cl2.descripcion LIKE '%.0%' THEN replace(cl2.descripcion_clean,' 0','.0')
+		ELSE cl2.descripcion_clean
+	END descripcion_clean
+FROM cl2
+),
+cl4 AS (
+SELECT
+	codigo,
+	base_origen,
+	fecha_inicio,
+	fecha_fin,
+	estado,
+	descripcion AS capacitacion,
+	institucion_educativa,
+	cv_id,
+	tipo_formacion,
+	observacion,
+	nivel_idioma,
+	CASE
+		WHEN LTRIM(cl3.descripcion_clean) LIKE '%â%' THEN replace(LTRIM(cl3.descripcion_clean),'â','-')
+		WHEN UPPER(cl3.descripcion) LIKE '%.NET%' THEN replace(UPPER(LTRIM(cl3.descripcion_clean)),'NET','.NET')
+		WHEN UPPER(cl3.descripcion) LIKE '%Âª CATEGORÃA%' THEN regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.descripcion),'1Âª|1.Âª|1. Âª','PRIMERA'),'2Âª|2.Âª|2. Âª','SEGUNDA'),'3Âª|3.Âª|3. Âª','TERCERA'),'4Âª|4.Âª|4. Âª','CUARTA'),'5Âª|5.Âª|5. Âª','QUINTA'),'6Âª|6.Âª|6. Âª','SEXTA'),'7Âª|7.Âª|7. Âª','SEPTIMA'),'8Âª|8.Âª|8. Âª','OCTAVA'),'9Âª|9.Âª|9. Âª','NOVENA'),'10Âª|10.Âª|10. Âª','DECIMA')
+		WHEN UPPER(cl3.descripcion) LIKE '%Âª' THEN regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.descripcion),'1Âª|1.Âª|1. Âª','PRIMERA'),'2Âª|2.Âª|2. Âª','SEGUNDA'),'3Âª|3.Âª|3. Âª','TERCERA'),'4Âª|4.Âª|4. Âª','CUARTA'),'5Âª|5.Âª|5. Âª','QUINTA'),'6Âª|6.Âª|6. Âª','SEXTA'),'7Âª|7.Âª|7. Âª','SEPTIMA'),'8Âª|8.Âª|8. Âª','OCTAVA'),'9Âª|9.Âª|9. Âª','NOVENA'),'10Âª|10.Âª|10. Âª','DECIMA')
+		WHEN UPPER(cl3.descripcion) LIKE '%Âª GENERACIÃN%' THEN regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.descripcion),'1Âª|1.Âª|1. Âª','PRIMERA'),'2Âª|2.Âª|2. Âª','SEGUNDA'),'3Âª|3.Âª|3. Âª','TERCERA'),'4Âª|4.Âª|4. Âª','CUARTA'),'5Âª|5.Âª|5. Âª','QUINTA'),'6Âª|6.Âª|6. Âª','SEXTA'),'7Âª|7.Âª|7. Âª','SEPTIMA'),'8Âª|8.Âª|8. Âª','OCTAVA'),'9Âª|9.Âª|9. Âª','NOVENA'),'10Âª|10.Âª|10. Âª','DECIMA')
+		WHEN UPPER(cl3.descripcion) LIKE '%Âª EDICIÃN%' THEN regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.descripcion),'1Âª|1.Âª|1. Âª','PRIMERA'),'2Âª|2.Âª|2. Âª','SEGUNDA'),'3Âª|3.Âª|3. Âª','TERCERA'),'4Âª|4.Âª|4. Âª','CUARTA'),'5Âª|5.Âª|5. Âª','QUINTA'),'6Âª|6.Âª|6. Âª','SEXTA'),'7Âª|7.Âª|7. Âª','SEPTIMA'),'8Âª|8.Âª|8. Âª','OCTAVA'),'9Âª|9.Âª|9. Âª','NOVENA'),'10Âª|10.Âª|10. Âª','DECIMA')
+		ELSE UPPER(LTRIM(cl3.descripcion_clean))
+	END descripcion_clean,
+	CASE
+        WHEN UPPER(cl3.institucion_educativa) LIKE '%INSTITUTO UNIVERSITARIO DE CIENCIAS DE LA SALUD%' THEN 'INSTITUTO UNIVERSITARIO DE CIENCIAS DE LA SALUD FUNDACIÃN H.A. BARCELÃ'
+        WHEN UPPER(cl3.institucion_educativa) LIKE '%INSTITUTO UNIVERSITARIO DEL EJÃCITO%' THEN 'INSTITUTO UNIVERSITARIO DEL EJÃRCITO "MAYOR FRANCISCO ROMERO"'
+        WHEN UPPER(cl3.institucion_educativa) LIKE '%INSTITUTO UNIVERSITARIO DEL EJÃRCITO â MAYOR FRANCISCO ROMEROâ%' THEN 'INSTITUTO UNIVERSITARIO DEL EJÃRCITO "MAYOR FRANCISCO ROMERO"'
+        WHEN UPPER(cl3.institucion_educativa) LIKE '%INSTITUTO UNIVERSITARIO ESCUELA ARGENTINA DE NEGOCIOS%' THEN 'ESCUELA ARGENTINA DE NEGOCIOS'
+        WHEN UPPER(cl3.institucion_educativa) LIKE '%UNIVERSIDAD CATÃLICA ARGENTINA%' THEN 'UNIVERSIDAD CATÃLICA ARGENTINA SANTA MARÃA DE LOS BUENOS AIRES'
+        WHEN UPPER(cl3.institucion_educativa) LIKE '%AUSTRAL DE ROSARIO%' THEN 'UNIVERSIDAD AUSTRAL - SEDE ROSARIO'
+        ELSE regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(UPPER(cl3.institucion_educativa), 'INSTITUTO DE ESTUDIOS PAR LA EXCELENCIA COMPETITIVA', 'INSTITUTO DE ESTUDIOS PARA LA EXCELENCIA COMPETITIVA'), 'INSTITUTO UNIVERSITARIO DE CIENCIAS DE LA SALUD', 'INSTITUTO UNIVERSITARIO DE CIENCIAS DE LA SALUD FUNDACIÃN H.A. BARCELÃ'), 'INSTITUTO UNIVERSITARIO DEL EJÃCITO', 'INSTITUTO UNIVERSITARIO DEL EJÃRCITO "MAYOR FRANCISCO ROMERO"'),'INSTITUTO UNIVERSITARIO DEL EJÃRCITO â MAYOR FRANCISCO ROMEROâ', 'INSTITUTO UNIVERSITARIO DEL EJÃRCITO "MAYOR FRANCISCO ROMERO"'), 'INSTITUTO UNIVERSITARIO ESCUELA ARGENTINA DE NEGOCIOS', 'ESCUELA ARGENTINA DE NEGOCIOS'), 'UNIVERSIDAD CATÃLICA ARGENTINA', 'UNIVERSIDAD CATÃLICA ARGENTINA SANTA MARÃA DE LOS BUENOS AIRES'), 'AUSTRAL DE ROSARIO', 'UNIVERSIDAD AUSTRAL - SEDE ROSARIO')
+    END AS institucion_clean
+FROM cl3
+)
+SELECT *
+FROM cl4
+--</sql>--
+
+
+
+-- Copy of 2023.06.23 step 41 -consume conocimientos_aptitudes (Vcliente).sql 
+
+
+
+-- 1- Se crea la tabla tbp_typ_def_nivel_conocimientos_aptitudes que contiene el nivel de conocimientos_aptitudes
+-- Por ahora solo serÃ¡ el nivel de idiomas
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_nivel_conocimientos_aptitudes`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_nivel_conocimientos_aptitudes" AS
+SELECT
+id AS codigo,
+UPPER(name) AS descripcion
+FROM "caba-piba-raw-zone-db"."portal_empleo_language_level"
+--</sql>--
+
+-- 2- Se crea la tabla tbp_typ_def_nivel_conocimientos_aptitudes que contiene el tipo de conocimientos_aptitudes
+-- Por ahora son grupos predefinidos en script de staging
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_tipo_conocimientos_aptitudes`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_tipo_conocimientos_aptitudes" AS
+SELECT
+row_number() OVER () AS codigo,
+tipo_formacion AS descripcion
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_conocimientos_aptitudes"
+GROUP BY tipo_formacion
+--</sql>--
+
+-- 3- Se crea la tabla tbp_typ_def_conocimientos_aptitudes con sus relaciones
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_conocimientos_aptitudes`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_conocimientos_aptitudes" AS
+WITH
+instituciones AS (
+	SELECT UPPER(institucion_clean) AS empresa,
+		ARRAY_JOIN(ARRAY_SORT(SPLIT(UPPER(institucion_clean), ' ')), ' ') AS empresa_ordenada,
+		length(institucion_clean) longitud,
+		codigo id_old,
+		base_origen
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_conocimientos_aptitudes"
+	WHERE institucion_clean IS NOT NULL
+	GROUP BY institucion_clean, codigo, base_origen
+),
+organizaciones AS (
+	SELECT id_organizacion,
+		UPPER(COALESCE(razon_social_new, razon_social_old)) AS razon_social,
+		ARRAY_JOIN(ARRAY_SORT(SPLIT(UPPER(COALESCE(razon_social_new, razon_social_old)), ' ')), ' ') AS razon_social_ordenada,
+		length(COALESCE(razon_social_new, razon_social_old)) longitud
+	FROM "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones"
+),
+organizaciones_formadoras AS (
+SELECT
+	el.empresa,
+	el.id_old,
+	el.base_origen,
+	org.razon_social,
+	org.id_organizacion,
+	ROW_NUMBER() OVER(
+		PARTITION BY
+		el.empresa_ordenada,
+		org.razon_social_ordenada,
+		el.id_old,
+		el.base_origen
+		ORDER BY (
+				(
+					CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+						levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
+					)
+				) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+			) DESC
+	) AS "orden_duplicado"
+FROM instituciones el
+	JOIN organizaciones org ON (
+		(
+			(
+				CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+					levenshtein_distance(el.empresa, org.razon_social) AS DOUBLE
+				)
+			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+		) >= 0.80
+		OR
+		(
+			(
+				CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+					levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
+				)
+			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+		) >= 0.80
+	)
+)
+SELECT
+	fa.base_origen || fa.codigo AS id,
+	fa.codigo AS id_old,
+	fa.base_origen,
+
+	CASE
+	-- si la fecha de inicio o de fin son null o inconsistentes, se deja ambas fechas en null
+		WHEN
+			try_cast(fa.fecha_inicio AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) > (YEAR(CURRENT_DATE)+1)
+			OR try_cast(fa.fecha_fin AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_fin AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_fin AS date)) > (YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE)
+
+		-- si la fecha de fin es menor a la de inicio se invierten
+		WHEN try_cast(fa.fecha_fin AS date)< try_cast(fa.fecha_inicio AS date)
+		THEN try_cast(fa.fecha_fin AS date)
+
+		ELSE try_cast(fa.fecha_inicio AS date)
+	END fecha_inicio,
+
+	CASE
+		-- si la fecha de inicio o de fin son null o inconsistentes, se deja ambas fechas en null
+		WHEN
+			try_cast(fa.fecha_inicio AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) > (YEAR(CURRENT_DATE)+1)
+			OR try_cast(fa.fecha_fin AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_fin AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_fin AS date)) > (YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE)
+
+		-- si la fecha de fin es menor a la de inicio se invierten
+		WHEN try_cast(fa.fecha_fin AS date)< try_cast(fa.fecha_inicio AS date)
+		THEN try_cast(fa.fecha_inicio AS date)
+
+		ELSE try_cast(fa.fecha_fin AS date)
+	END fecha_fin,
+
+	fa.estado,
+	fa.descripcion_clean AS descripcion,
+	UPPER(fa.institucion_clean) AS organizacion,
+	org.id_organizacion AS id_organizacion,
+	UPPER(fa.observacion) AS observacion,
+	cv.id AS codigo_cv,
+	n.descripcion AS nivel,
+	t.descripcion AS tipo_formacion_conocimientos_aptitudes
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_conocimientos_aptitudes" fa
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv
+-- cuando la base origen es CRMSL se cambia el JOIN por portalempleo porque en el script de staging de
+-- asociaron los registros entre las dos bases por dni
+ON (
+	cv.base_origen=CASE WHEN fa.base_origen like 'CRMSL'
+						THEN 'PORTALEMPLEO' ELSE fa.base_origen END
+				AND cv.id_old = fa.cv_id)
+
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_tipo_conocimientos_aptitudes" t ON (t.descripcion=fa.tipo_formacion)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_nivel_conocimientos_aptitudes" n ON (n.descripcion=fa.nivel_idioma)
+LEFT JOIN organizaciones_formadoras org ON (fa.base_origen=org.base_origen AND fa.codigo = org.id_old AND orden_duplicado=1)
+GROUP BY
+	fa.base_origen || fa.codigo,
+	fa.codigo,
+	fa.base_origen,
+	CASE
+	-- si la fecha de inicio o de fin son null o inconsistentes, se deja ambas fechas en null
+		WHEN
+			try_cast(fa.fecha_inicio AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) > (YEAR(CURRENT_DATE)+1)
+			OR try_cast(fa.fecha_fin AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_fin AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_fin AS date)) > (YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE)
+
+		-- si la fecha de fin es menor a la de inicio se invierten
+		WHEN try_cast(fa.fecha_fin AS date)< try_cast(fa.fecha_inicio AS date)
+		THEN try_cast(fa.fecha_fin AS date)
+
+		ELSE try_cast(fa.fecha_inicio AS date)
+	END,
+
+	CASE
+		-- si la fecha de inicio o de fin son null o inconsistentes, se deja ambas fechas en null
+		WHEN
+			try_cast(fa.fecha_inicio AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_inicio AS date)) > (YEAR(CURRENT_DATE)+1)
+			OR try_cast(fa.fecha_fin AS date) IS NULL
+			OR YEAR(try_cast(fa.fecha_fin AS date)) < (YEAR(CURRENT_DATE)-100)
+			OR YEAR(try_cast(fa.fecha_fin AS date)) > (YEAR(CURRENT_DATE)+1)
+		THEN CAST(NULL AS DATE)
+
+		-- si la fecha de fin es menor a la de inicio se invierten
+		WHEN try_cast(fa.fecha_fin AS date)< try_cast(fa.fecha_inicio AS date)
+		THEN try_cast(fa.fecha_inicio AS date)
+
+		ELSE try_cast(fa.fecha_fin AS date)
+	END,
+    fa.estado,
+	fa.descripcion_clean,
+	fa.institucion_clean,
+	org.id_organizacion,
+	UPPER(fa.observacion),
+	cv.id,
+	n.descripcion,
+	t.descripcion
+--</sql>--
+
+
+
+-- Copy of 2023.06.23 step 42 - staging areas_de_interes (Vcliente).sql 
+
+
+
+-- 1.-- Crear la tabla tmp AREAS_DE_INTERES PORTALEMPLEO,
+-- ID
+-- DescripciÃ³n
+
+-- 1.-- Crear la tabla tmp OPORTUNIDAD_LABORAL_AREAS_DE_INTERES PORTALEMPLEO,
+-- Oportunidad Laboral ID
+-- Areas de Interes ID
+
+-- 3.-- Crear la tabla tmp CURRICULUM_AREAS_DE_INTERES PORTALEMPLEO,
+-- Curriculum ID
+-- Areas de Interes ID
+
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_areas_de_interes`;
+--</sql>--
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_oportunidad_laboral_areas_de_interes`;
+--</sql>--
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_curriculum_areas_de_interes`;
+--</sql>--
+
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_areas_de_interes" AS
+WITH
+areas_de_interes AS (
+-- Se obtienen las Ã¡reas de interÃ©s a partir de la tabla "portal_empleo_mtr_interest_areas"
+-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+SELECT CAST(ia.id AS VARCHAR) id, CAST(ia.name AS VARCHAR) descripcion FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
+)
+SELECT * FROM areas_de_interes
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_areas_de_interes" AS
+WITH
+oportunidad_laboral_areas_de_interes AS (
+-- Se unen dos tablas relacionadas, "portal_empleo_mtr_interest_areas" y "portal_empleo_job_offers", para
+-- obtener las Ã¡reas de interÃ©s de una oferta laboral en particular. El resultado estÃ¡ limitado a 10 registros.
+-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+SELECT CAST(jo.id AS VARCHAR) oportunidad_laboral_id, CAST(ia.id AS VARCHAR) areas_de_interes_id FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
+JOIN "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
+ON (ia.id=jo.area_id)
+)
+SELECT * FROM oportunidad_laboral_areas_de_interes
+--</sql>--
+
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_areas_de_interes" AS
+WITH
+curriculum_areas_de_interes AS (
+-- Se unen varias tablas, incluyendo "portal_empleo_mtr_interest_areas", "portal_empleo_preferences_area",
+-- "portal_empleo_candidate_preferences", "portal_empleo_candidates" y portal_empleo_curriculum_vitaes, para obtener las Ã¡reas de interÃ©s de un postulante.
+-- AREAS DE INTERES DEL POSTULANTE, POR EJEMPLO 'AdministraciÃ³n', 'AtenciÃ³n al Cliente', 'Asistente', 'Caja', 'AlmacÃ©n / DepÃ³sito / ExpediciÃ³n'
+SELECT CAST(cv.id AS VARCHAR) curriculum_id, CAST(ia.id AS VARCHAR) areas_de_interes_id FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
+JOIN "caba-piba-raw-zone-db"."portal_empleo_preferences_area" pa ON (ia.id=pa.area_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_candidate_preferences" cp ON (cp.id=pa.candidate_preference_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_candidates" ca ON (ca.id=cp.candidate_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv ON (cv.candidate_id=ca.id))
+SELECT * FROM curriculum_areas_de_interes
+--</sql>--
+
+
+
+-- Copy of 2023.06.23 step 43 - consume areas_de_interes (Vcliente).sql 
+
+
+
+-- 1.-- Crear la tabla def AREAS_DE_INTERES PORTALEMPLEO,
+-- CÃ³digo (1+)
+-- DescripciÃ³n
+
+-- 1.-- Crear la tabla def OPORTUNIDAD_LABORAL_AREAS_DE_INTERES PORTALEMPLEO,
+-- Oportunidad Laboral ID
+-- Areas de Interes ID
+
+-- 3.-- Crear la tabla def CURRICULUM_AREAS_DE_INTERES PORTALEMPLEO,
+-- Curriculum ID
+-- Areas de Interes ID
+
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_areas_de_interes`;
+--</sql>--
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral_areas_de_interes`;
+--</sql>--
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_curriculum_areas_de_interes`;
+--</sql>--
+
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" AS
+WITH
+areas_de_interes AS (
+-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+SELECT row_number() OVER () AS areas_de_interes_id, id AS id_old, descripcion AS descripcion FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_areas_de_interes")
+SELECT * FROM areas_de_interes
+--</sql>--
+
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_areas_de_interes" AS
+WITH
+oportunidad_laboral_areas_de_interes AS (
+-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+SELECT row_number() OVER () AS oportunidad_laboral_areas_de_interes_id, ol.oportunidad_laboral_id, ai.areas_de_interes_id FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_areas_de_interes" olai
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (olai.areas_de_interes_id=ai.id_old)
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.oportunidad_laboral_id_old=olai.oportunidad_laboral_id))
+SELECT * FROM oportunidad_laboral_areas_de_interes
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum_areas_de_interes" AS
+WITH
+curriculum_areas_de_interes AS (
+-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+SELECT row_number() OVER () AS curriculum_areas_de_interes_id, cv.id AS curriculum_id, ai.areas_de_interes_id FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_areas_de_interes" cvai
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (cvai.areas_de_interes_id=ai.id_old)
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (cv.id_old=cvai.curriculum_id))
+SELECT * FROM curriculum_areas_de_interes
 --</sql>--
 
 
