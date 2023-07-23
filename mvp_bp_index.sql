@@ -1,4 +1,4 @@
--- Copy of 2023.07.07 step 00 - creacion de vistas (Vcliente).sql 
+-- Copy of 2023.07.21 step 00 - creacion de vistas(Vcliente).sql 
 
 
 
@@ -498,7 +498,7 @@ LEFT JOIN carrera_1_old ON carrera_1_old.carrera = todas.carrera
 
 
 
--- Copy of 2023.07.07 step 01 - consume programa (Vcliente).sql 
+-- Copy of 2023.07.21 step 01 - consume programa(Vcliente).sql 
 
 
 
@@ -529,7 +529,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- Copy of 2023.07.07 step 02 - staging establecimiento (Vcliente).sql 
+-- Copy of 2023.07.21 step 02 - staging establecimiento(Vcliente).sql 
 
 
 
@@ -1067,7 +1067,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estand
 
 
 
--- Copy of 2023.07.07 step 03 - consume establecimiento (Vcliente).sql 
+-- Copy of 2023.07.21 step 03 - consume establecimiento (Vcliente).sql 
 
 
 
@@ -1111,7 +1111,7 @@ ORDER BY tmp.base_origen, tmp.nombre
 
 
 
--- Copy of 2023.07.07 step 04 - staging capacitacion asi (Vcliente).sql 
+-- Copy of 2023.07.21 step 04 - staging capacitacion asi(Vcliente).sql 
 
 
 
@@ -1119,7 +1119,7 @@ ORDER BY tmp.base_origen, tmp.nombre
 -- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_capacitacion_asi`;--</sql>--
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_capacitacion_asi" AS
-SELECT c.id capacitacion_id,
+SELECT c.id id_capacitacion,
        c.codigo codigo_capacitacion,
        c.nombre descrip_capacitacion,
        c.tipo_formacion_origen_id tipo_formacion,
@@ -1162,7 +1162,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_modalidad" m ON (m.id = c.modalidad_i
 -- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_aptitudes_asi`;--</sql>--
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_aptitudes_asi" AS
-SELECT c.id capacitacion_id,
+SELECT c.id id_capacitacion,
        c.codigo codigo_capacitacion,
        ac.aptitud_id,
        a.nombre descrip_aptitud
@@ -1175,7 +1175,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.07.07 step 05 - staging capacitacion (Vcliente).sql 
+-- Copy of 2023.07.21 step 05 - staging capacitacion(Vcliente).sql 
 
 
 
@@ -1187,7 +1187,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_1" AS
 
 SELECT 'CRMSL' AS base_origen,
 	'CURSO' AS tipo_capacitacion,
-	CAST(OF.id AS VARCHAR) AS capacitacion_id,
+	CAST(OF.id AS VARCHAR) AS id_capacitacion,
 	TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(CASE
 																					WHEN TRIM(UPPER(OF.area)) IN (
 																							'GESTIÓN COMERCIAL',
@@ -1267,7 +1267,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_match" AS
 SELECT sc.base_origen,
 	sc.tipo_capacitacion,
 	sc.id AS id_new,
-	s1.capacitacion_id AS id_old
+	s1.id_capacitacion AS id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_1" s1
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_crmsl_capacitaciones" sc ON (
 		sc.tipo_capacitacion = s1.tipo_capacitacion
@@ -1283,8 +1283,8 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_1" AS
 
 SELECT 'SIENFO' AS base_origen,
 	'CARRERA' AS tipo_capacitacion,
-	-- CAST(ca.id_carrera AS VARCHAR) AS capacitacion_id,
-	CAST(ca.id_carrera AS VARCHAR) || '-' || CAST(ca.id_carrera AS VARCHAR) AS capacitacion_id,
+	-- CAST(ca.id_carrera AS VARCHAR) AS id_capacitacion,
+	CAST(ca.id_carrera AS VARCHAR) || '-' || CAST(ca.id_carrera AS VARCHAR) AS id_capacitacion,
 	TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(ca.nom_carrera), CHR(160), ' '), 'Á', 'A'), 'É', 'E'), 'Í', 'I'), 'Ó', 'O'), '[ÚÜ]', 'U'), ' +', ' ')) AS descrip_normalizada,
 	UPPER(ca.nom_carrera) AS descrip_capacitacion,
 	MIN(date_parse(CASE
@@ -1320,7 +1320,7 @@ UNION
 
 SELECT 'SIENFO' AS base_origen,
 	'CURSO' AS tipo_capacitacion,
-	CAST(COALESCE(t.id_carrera, 0) AS VARCHAR) || '-' || CAST(cu.id_curso AS VARCHAR) AS capacitacion_id,
+	CAST(COALESCE(t.id_carrera, 0) AS VARCHAR) || '-' || CAST(cu.id_curso AS VARCHAR) AS id_capacitacion,
 	TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(cu.nom_curso), CHR(160), ' '), 'Á', 'A'), 'É', 'E'), 'Í', 'I'), 'Ó', 'O'), '[ÚÜ]', 'U'), '\(ANCHORENA\)|\(ARANGUREN\)|\(ARANGUREN-JUNCAL\)|\(ARANGUREN-MANANTIALES\)|\(CORRALES\)|\(DON BOSCO\)|\(INTEGRADOR ALMAFUERTE\)|\(JUAN A. GARCIA\)|\(JUNCAL\)|\(LAMBARE\)|\(NIDO SOLDATI-CARRILLO\)|\(PRINGLES\)|\(RETIRO NORTE\)|\(RETIRO\)|\(SAN NICOLAS\)|\(SARAZA\)|\(SEIS ESQUINAS\)|HT18', ''), ' +', ' ')) AS descrip_normalizada,
 	UPPER(cu.nom_curso) AS descrip_capacitacion,
 	MIN(date_parse(CASE
@@ -1406,7 +1406,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_match" AS
 SELECT sc.base_origen,
 	sc.tipo_capacitacion,
 	sc.id AS id_new,
-	s1.capacitacion_id AS id_old
+	s1.id_capacitacion AS id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_1" s1
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_sienfo_capacitaciones" sc ON (
 		sc.tipo_capacitacion = s1.tipo_capacitacion
@@ -1430,7 +1430,7 @@ SELECT 'GOET' AS base_origen,
 		WHEN t.detalle IS NOT NULL
 			THEN CAST(n.idnomenclador AS VARCHAR) || '-' || CAST(t.idkeytrayecto AS VARCHAR)
 		ELSE CAST(n.idnomenclador AS VARCHAR)
-		END AS capacitacion_id,
+		END AS id_capacitacion,
 	TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(COALESCE(t.detalle, n.detalle)), CHR(160), ' '), 'Á', 'A'), 'É', 'E'), 'Í', 'I'), 'Ó', 'O'), '[ÚÜ]', 'U'), '\([0-9 ]*\)', ''), '["?¿]', ''), ' +', ' ')) AS descrip_normalizada,
 	TRIM(COALESCE(t.detalle, n.detalle)) AS descrip_capacitacion,
 	MIN(cc.iniciocurso) AS fecha_inicio_dictado,
@@ -1511,7 +1511,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_goet_match" AS
 SELECT sc.base_origen,
 	sc.tipo_capacitacion,
 	sc.id AS id_new,
-	s1.capacitacion_id AS id_old
+	s1.id_capacitacion AS id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_goet_1" s1
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_goet_capacitaciones" sc ON (
 		sc.tipo_capacitacion = s1.tipo_capacitacion
@@ -1527,7 +1527,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_1" AS
 SELECT 'MOODLE' AS base_origen,
 	-- En CAC son cursos de dos módulos
 	'CURSO' AS tipo_capacitacion,
-	CAST(cc.id AS VARCHAR) AS capacitacion_id,
+	CAST(cc.id AS VARCHAR) AS id_capacitacion,
 	TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(cc.name), CHR(160), ' '), 'Á', 'A'), 'É', 'E'), 'Í', 'I'), 'Ó', 'O'), '[ÚÜ]', 'U'), '[0-9_\-.]+', ' '), 'FORMACION PARA EMPLEABILIDAD', 'FORMACION PARA LA EMPLEABILIDAD'), ' FS ', ' FULLSTACK '), ' +', ' ')) AS descrip_normalizada,
 	TRIM(cc.name) AS descrip_capacitacion,
 	TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(co.fullname), CHR(160), ' '), 'Á', 'A'), 'É', 'E'), 'Í', 'I'), 'Ó', 'O'), '[ÚÜ]', 'U'), '[0-9./_]', ' '), 'CATAMARCA|CHACO|MAR DEL PLATA|NEUQUEN|TUCUMAN', ' '), ' ENE| FEB| MAR| ABR| MAY| JUN| JUL| AGO| SEP| OCT| NOV| DIC', ' '), '\(COMISION *\)|AULA[A-Z]? *$|^CURSO:* | [A-HJ-Z]$|^CAC', ' '), '-', ' - '), ' +', ' ')) AS descrip_normalizada_modulo,
@@ -1615,7 +1615,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_match" AS
 SELECT sc.base_origen,
 	sc.tipo_capacitacion,
 	sc.id AS id_new,
-	s1.capacitacion_id AS id_old
+	s1.id_capacitacion AS id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_1" s1
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_capacitaciones" sc ON (
 		sc.tipo_capacitacion = s1.tipo_capacitacion
@@ -1624,7 +1624,7 @@ INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_moodle_capacitaciones" sc ON
 GROUP BY sc.base_origen,
 	sc.tipo_capacitacion,
 	sc.id,
-	s1.capacitacion_id;
+	s1.id_capacitacion;
 --</sql>--
 
 -- SIU
@@ -1635,7 +1635,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_1" AS
 	WITH siu AS (
 			SELECT 'SIU' AS base_origen,
 				'CARRERA' AS tipo_capacitacion,
-				CAST(spl.PLAN AS VARCHAR) AS capacitacion_id,
+				CAST(spl.PLAN AS VARCHAR) AS id_capacitacion,
 				TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(spl.nombre), CHR(160), ' '), 'Á', 'A'), 'É', 'E'), 'Í', 'I'), 'Ó', 'O'), '[ÚÜ]', 'U'), '[0-9\-]+|IFTS| RM |NUEVO|OK!', ''), '\( *\)', ''), ' +', ' ')) AS descrip_normalizada_plan,
 				spl.nombre AS descrip_capacitacion_plan,
 				TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(UPPER(spr.nombre), CHR(160), ' '), 'Á', 'A'), 'É', 'E'), 'Í', 'I'), 'Ó', 'O'), '[ÚÜ]', 'U'), '[0-9\-]+|IFTS| RM |NUEVO|OK!', ''), '\( *\)', ''), ' +', ' ')) AS descrip_normalizada_propuesta,
@@ -1660,7 +1660,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_1" AS
 
 SELECT base_origen,
 	tipo_capacitacion,
-	capacitacion_id,
+	id_capacitacion,
 	CASE
 		WHEN LENGTH(descrip_normalizada_plan) > 0
 			THEN descrip_normalizada_plan
@@ -1731,7 +1731,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_match" AS
 SELECT sc.base_origen,
 	sc.tipo_capacitacion,
 	sc.id AS id_new,
-	s1.capacitacion_id AS id_old
+	s1.id_capacitacion AS id_old
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_1" s1
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones" sc ON (
 		sc.tipo_capacitacion = s1.tipo_capacitacion
@@ -1797,7 +1797,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- Copy of 2023.07.07 step 06 - consume capacitacion (Vcliente).sql 
+-- Copy of 2023.07.21 step 06 - consume capacitacion (Vcliente).sql 
 
 
 
@@ -1853,7 +1853,7 @@ SELECT tc.id,
 	tc.fecha_inicio,
 	tc.fecha_fin,
 	tc.estado,
-	ca.capacitacion_id AS id_capacitacion_asi,
+	ca.id_capacitacion AS id_capacitacion_asi,
 	ca.programa_id AS id_programa,
 	ca.descrip_capacitacion,
 	ca.tipo_formacion,
@@ -1909,7 +1909,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.07.07 step 07 - staging vecinos (Vcliente).sql 
+-- Copy of 2023.07.21 step 07 - staging vecinos(Vcliente).sql 
 
 
 
@@ -2675,7 +2675,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- Copy of 2023.07.07 step 08 - consume vecinos (Vcliente).sql 
+-- Copy of 2023.07.21 step 08 - consume vecinos(Vcliente).sql 
 
 
 
@@ -2790,7 +2790,7 @@ WHERE documento_broker IS NOT NULL AND LENGTH(TRIM(documento_broker))>0
 
 
 
--- Copy of 2023.07.07 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
+-- Copy of 2023.07.21 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
 
 
 
@@ -2896,7 +2896,7 @@ FROM resultado
 
 
 
--- Copy of 2023.07.07 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
+-- Copy of 2023.07.21 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
 
 
 
@@ -3519,7 +3519,7 @@ FROM
 
 
 
--- Copy of 2023.07.07 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
+-- Copy of 2023.07.21 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
 
 
 
@@ -3722,7 +3722,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.07 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
+-- Copy of 2023.07.21 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
 
 
 
@@ -3987,7 +3987,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.07.07 step 13 - staging estado_beneficiario_siu (Vcliente).sql 
+-- Copy of 2023.07.21 step 13 - staging estado_beneficiario_siu(Vcliente).sql 
 
 
 
@@ -4217,7 +4217,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.07.07 step 14 - staging edicion capacitacion (Vcliente).sql 
+-- Copy of 2023.07.21 step 14 - staging edicion capacitacion(Vcliente).sql 
 
 
 
@@ -5141,7 +5141,7 @@ WHERE a.id IS NULL
 
 
 
--- Copy of 2023.07.07 step 15 - consume edicion capacitacion (Vcliente) .sql 
+-- Copy of 2023.07.21 step 15 - consume edicion capacitacion(Vcliente).sql 
 
 
 
@@ -5153,7 +5153,7 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" AS
 SELECT row_number() OVER () AS id,
        ed.base_origen,
 	ed.tipo_capacitacion,
-       cap.id AS capacitacion_id,
+       cap.id AS id_capacitacion,
        ed.capacitacion_id_new AS id_capacitacion_new,
        ed.capacitacion_id_old AS id_capacitacion_old,
        ed.edicion_capacitacion_id AS id_edicion_capacitacion_old,
@@ -5182,7 +5182,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- Copy of 2023.07.07 step 16 - staging cursada (Vcliente).sql 
+-- Copy of 2023.07.21 step 16 - staging cursada(Vcliente).sql 
 
 
 
@@ -5267,8 +5267,9 @@ LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON (
 		ed.id_edicion_capacitacion_old = CAST(cc.idctrcdcurso AS VARCHAR)
 		AND ed.base_origen = 'GOET'
 		AND ed.id_capacitacion_old=(CASE WHEN UPPER(t.detalle) IS NOT NULL THEN CAST(n.IdNomenclador AS VARCHAR)||'-'||CAST(t.IdKeyTrayecto AS VARCHAR) ELSE CAST(n.IdNomenclador AS VARCHAR) END)
-		AND ed.id_establecimiento = chm.IdCentro
 		)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old = CAST(chm.IdCentro AS VARCHAR) AND ed.id_establecimiento=est.id AND est.base_origen = ed.base_origen)
+
 
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
 		vec.base_origen = 'GOET'
@@ -5386,6 +5387,8 @@ LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
 					ELSE split_part(usuario.username, '.', 1) END AS VARCHAR)),'[A-Za-z]+|\.','')
 		)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_estado_beneficiario_moodle" eb ON (eb.id_curso=co.id AND eb.alumno_id=usuario.id)
+-- se excluyen registros que son de test
+WHERE vec.id_broker NOT IN  ('DNI1XARG','DNI2XARG','DNI6XARG','DNI3XARG','DNI40XARG')
 GROUP BY
 	usuario.username,
 	uenrolments.timestart,
@@ -5434,7 +5437,8 @@ LEFT JOIN "caba-piba-raw-zone-db"."sienfo_alumnos" a ON (sf.nrodoc = a.nrodoc)
 LEFT JOIN "caba-piba-raw-zone-db"."sienfo_tgenero" g ON (CAST(g.id AS INT) = CAST(a.sexo AS INT))
 LEFT JOIN "caba-piba-raw-zone-db"."sienfo_tdoc" d ON (a.tipodoc = d.tipodoc)
 LEFT JOIN "caba-piba-staging-zone-db"."goayvd_typ_vw_sienfo_fichas_preinscripcion" sfp ON (sfp.codigo_ct = sf.codigo_ct AND sf.nrodoc = sfp.nrodoc)
-LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON (ed.id_edicion_capacitacion_old = sf.codigo_ct AND ed.id_establecimiento = sf.id_centro AND ed.base_origen = 'SIENFO')
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON (ed.id_edicion_capacitacion_old = sf.codigo_ct AND ed.base_origen = 'SIENFO')
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_establecimientos" est ON (est.id_old = CAST(sf.id_centro AS VARCHAR) AND ed.id_establecimiento=est.id AND est.base_origen = ed.base_origen)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON
 (vec.base_origen = 'SIENFO'
 AND vec.documento_broker = CASE WHEN d.nombre IN ('D.N.I.', 'L.C.', 'L.E.', 'C.I.', 'CUIT', 'CUIL') THEN REGEXP_REPLACE(UPPER(a.nrodoc),'[A-Za-z]+|\.|\,','') ELSE
@@ -5499,6 +5503,7 @@ INNER JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_contacts" co ON (co.id = of
 INNER JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" cs ON (ofc.op_oportunidades_formacion_contactscontacts_idb = cs.id_c)
 LEFT JOIN "caba-piba-raw-zone-db"."crm_sociolaboral_se_seguimiento_cstm" sc ON (sc.id_c = ofc.op_oportunidades_formacion_contactscontacts_idb)
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON (ed.id_edicion_capacitacion_old = ofc.op_oportun1d35rmacion_ida AND ed.id_establecimiento = est.id AND ed.base_origen = 'CRMSL')
+
 LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
 	ON (
 		vec.base_origen = 'CRMSL'
@@ -5714,7 +5719,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.07 step 17 - consume cursada(Vcliente).sql 
+-- Copy of 2023.07.21 step 17 - consume cursada(Vcliente).sql 
 
 
 
@@ -5723,65 +5728,84 @@ GROUP BY
 -- --<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cursada`;--</sql>--
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cursada" AS
-SELECT row_number() OVER () AS id,
-       cur.base_origen,
-	   id_edicion_capacitacion_old AS id_edicion_capacitacion_old,
-	   edicion_capacitacion_id_new AS id_edicion_capacitacion_new,
-	   cap.id AS capacitacion_id,
-	   id_capacitacion_new AS id_capacitacion_new,
-	   identificacion_alumno identificacion_alumno_old,
-       documento_broker,
-	   -- si hay mas de una fecha de preinscripcion se toma la menor
-       MIN(cur.fecha_preinscripcion) fecha_preinscripcion,
-	   -- si hay mas de una fecha de inicio se toma la menor
-	   MIN(cur.fecha_inicio) fecha_inicio,
-	   -- si hay mas de una fecha de abandono se toma la menor
-	   MIN(cur.fecha_abandono) fecha_abandono,
-	   -- si hay mas de una fecha de egreso se toma la menor
-	   MIN(cur.fecha_egreso) fecha_egreso,
-	   porcentaje_asistencia,
-	   -- si hay de un registro de cantidad de aprobados, porque tiene mas de un registro de inscripcion, se toma el numero mayor
-       MAX(cur.cant_aprobadas) cant_aprobadas,
-       id_vecino ,
-       id_broker,
-	   CASE
-		WHEN estado_beneficiario LIKE 'FINALIZADO' THEN 'FINALIZO_CURSADA'
-		WHEN estado_beneficiario LIKE 'APROBADO' THEN 'EGRESADO'
-		WHEN estado_beneficiario LIKE 'NO_APLICA' THEN 'PREINSCRIPTO'
-		WHEN estado_beneficiario LIKE 'BAJA' THEN 'BAJA'
-		WHEN estado_beneficiario LIKE 'REGULAR' THEN 'EN_CURSO'
-		ELSE estado_beneficiario
-		END estado_beneficiario
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cursada" cur
-JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" cap ON (id_capacitacion_new = cap.id_new AND cur.base_origen = cap.base_origen)
-WHERE
-id_vecino IS NOT NULL
-AND id_broker IS NOT NULL
-AND id_capacitacion_new IS NOT NULL
-AND TRIM(documento_broker) != ''
-AND
-(edicion_capacitacion_id_new IS NOT NULL
-OR
--- puede no existir edicion_capacitacion_id_new cuando el estado_beneficiario es 'PREINSCRIPTO'
-(estado_beneficiario LIKE 'PREINSCRIPTO' AND cur.base_origen IN ('SIU', 'GOET'))
+WITH tmp AS (
+	SELECT row_number() OVER () AS id,
+		cur.base_origen,
+		id_edicion_capacitacion_old AS id_edicion_capacitacion_old,
+		edicion_capacitacion_id_new AS id_edicion_capacitacion_new,
+		cap.id AS id_capacitacion,
+		id_capacitacion_new AS id_capacitacion_new,
+		identificacion_alumno identificacion_alumno_old,
+		documento_broker,
+		cur.fecha_preinscripcion,
+		cur.fecha_inicio,
+		cur.fecha_abandono,
+		cur.fecha_egreso,
+		porcentaje_asistencia,
+		cur.cant_aprobadas,
+		id_vecino,
+		id_broker,
+		CASE
+			WHEN estado_beneficiario LIKE 'FINALIZADO' THEN 'FINALIZO_CURSADA'
+			WHEN estado_beneficiario LIKE 'APROBADO' THEN 'EGRESADO'
+			WHEN estado_beneficiario LIKE 'NO_APLICA' THEN 'PREINSCRIPTO'
+			WHEN estado_beneficiario LIKE 'BAJA' THEN 'BAJA'
+			WHEN estado_beneficiario LIKE 'REGULAR' THEN 'EN_CURSO' ELSE estado_beneficiario
+		END estado_beneficiario,
+		ROW_NUMBER() OVER(
+			PARTITION BY cur.base_origen,
+			id_edicion_capacitacion_old,
+			cap.id,
+			id_capacitacion_new,
+			documento_broker
+			ORDER BY estado_beneficiario ASC,
+				cur.fecha_preinscripcion ASC,
+				cur.fecha_inicio ASC,
+				cur.fecha_abandono ASC,
+				cur.fecha_egreso DESC
+		) AS "orden"
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cursada" cur
+		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_capacitacion" cap ON (
+			id_capacitacion_new = cap.id_new
+			AND cur.base_origen = cap.base_origen
+		)
+	WHERE id_vecino IS NOT NULL
+		AND id_broker IS NOT NULL
+		AND id_capacitacion_new IS NOT NULL
+		AND TRIM(documento_broker) != ''
+		AND (
+			edicion_capacitacion_id_new IS NOT NULL
+			OR -- puede no existir edicion_capacitacion_id_new cuando el estado_beneficiario es 'PREINSCRIPTO'
+			(
+				estado_beneficiario LIKE 'PREINSCRIPTO'
+				AND cur.base_origen IN ('SIU', 'GOET')
+			)
+		)
 )
-GROUP BY
- 	cur.base_origen,
- 	id_edicion_capacitacion_old,
- 	edicion_capacitacion_id_new,
- 	id_capacitacion_new,
- 	identificacion_alumno,
- 	documento_broker,
- 	porcentaje_asistencia,
- 	id_vecino,
- 	id_broker,
- 	estado_beneficiario,
- 	cap.id
+SELECT row_number() OVER () AS id,
+	base_origen,
+	id_edicion_capacitacion_old,
+	id_edicion_capacitacion_new,
+	id_capacitacion,
+	id_capacitacion_new,
+	identificacion_alumno_old,
+	documento_broker,
+	fecha_preinscripcion,
+	fecha_inicio,
+	fecha_abandono,
+	fecha_egreso,
+	porcentaje_asistencia,
+	cant_aprobadas,
+	id_vecino,
+	id_broker,
+	estado_beneficiario
+FROM tmp
+WHERE orden = 1
 --</sql>--
 
 
 
--- Copy of 2023.07.07 step 18 - consume trayectoria_educativa (Vcliente).sql 
+-- Copy of 2023.07.21 step 18 - consume trayectoria_educativa(Vcliente).sql 
 
 
 
@@ -5837,7 +5861,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.07 step 19 - consume puestos (Vcliente).sql 
+-- Copy of 2023.07.21 step 19 - consume puestos(Vcliente).sql 
 
 
 
@@ -5917,7 +5941,7 @@ WHERE codigo='3139'
 
 
 
--- Copy of 2023.07.07 step 20 - staging oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.07.21 step 20 - staging oportunidad_laboral(Vcliente).sql 
 
 
 
@@ -5949,11 +5973,17 @@ DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_oportunidad_labora
 --</sql>--
 
 --<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_oportunidad_laboral_conocimientos`;
+--</sql>--
+
+--<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_idiomas" AS
 WITH oportunidad_laboral_idiomas AS (
-SELECT CAST(jo.id AS VARCHAR) oportunidad_laboral_id,
--- idioma requerido para el puesto
-UPPER(pel.name) AS idioma_requerido
+SELECT
+	'PORTALEMPLEO' base_origen,
+	CAST(jo.id AS VARCHAR) oportunidad_laboral_id,
+	-- idioma requerido para el puesto
+	UPPER(pel.name) AS idioma_requerido
 
 FROM "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (jo.id=jp.job_offer_id)
@@ -5963,9 +5993,121 @@ LEFT JOIN
 LEFT JOIN
 "caba-piba-raw-zone-db"."portal_empleo_language" pel ON (jrl.language_id=pel.id)
 WHERE jp.deleted = 0 AND UPPER(pel.name) NOT LIKE 'OTRO' AND pel.name IS NOT NULL
+
+UNION
+
+SELECT
+	'ASI' base_origen,
+	CAST(olv.id AS VARCHAR) AS oportunidad_laboral_id,
+	-- idioma requerido para el puesto
+	olv.idioma_requerido
+	FROM (SELECT id,
+		'ESPAÃOL' idioma_requerido
+		FROM "caba-piba-raw-zone-db"."ofertas_laborales_view" WHERE UPPER(idiomas_nombre) LIKE '%ESPAÃOL%'
+
+		UNION
+
+		SELECT id,
+		'INGLÃS' idioma_requerido
+		FROM "caba-piba-raw-zone-db"."ofertas_laborales_view" WHERE UPPER(idiomas_nombre) LIKE '%INGLÃS%'
+
+		UNION
+
+		SELECT id,
+		'PORTUGUÃS' idioma_requerido
+		FROM "caba-piba-raw-zone-db"."ofertas_laborales_view" WHERE UPPER(idiomas_nombre) LIKE '%PORTUGUÃS%'
+
+		UNION
+
+		SELECT id,
+		'ALEMÃN' idioma_requerido
+		FROM "caba-piba-raw-zone-db"."ofertas_laborales_view" WHERE UPPER(idiomas_nombre) LIKE '%ALEMÃN%'
+
+		UNION
+
+		SELECT id,
+		'FRANCÃS' idioma_requerido
+		FROM "caba-piba-raw-zone-db"."ofertas_laborales_view" WHERE UPPER(idiomas_nombre) LIKE '%FRANCÃS%'
+
+		UNION
+
+		SELECT id,
+		'ITALIANO' idioma_requerido
+		FROM "caba-piba-raw-zone-db"."ofertas_laborales_view" WHERE UPPER(idiomas_nombre) LIKE '%ITALIANO%'
+
+		) AS olv
 )
 SELECT *
 FROM oportunidad_laboral_idiomas
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_conocimientos" AS
+WITH oportunidad_laboral_conocimientos AS (
+SELECT
+	'PORTALEMPLEO' base_origen,
+	CAST(inf_a.informatic_id AS VARCHAR)||'-'||CAST(kas.id AS VARCHAR) AS informatica_conocimiento_id,
+	CAST(jo.id AS VARCHAR) AS oportunidad_laboral_id,
+	inf_a.informatic_id AS informatica_id,
+	kas.id AS conocimiento_id,
+	'SOFTWARE CONTABLE' AS tipo_conocimiento,
+	UPPER(kas.name) AS descripcion_conocimiento
+FROM "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
+JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (jo.id=jp.job_offer_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" inf ON (jp.informatic_id=inf.id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics_accouting" inf_a ON (inf_a.informatic_id = jp.informatic_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_know_account_systems" kas ON (inf_a.accounting_knowledge_id = kas.id)
+
+UNION
+
+SELECT
+	'PORTALEMPLEO' base_origen,
+	CAST(inf_db.informatic_id AS VARCHAR)||'-'||CAST(dbk.id AS VARCHAR) AS informatica_conocimiento_id,
+	CAST(jo.id AS VARCHAR) AS oportunidad_laboral_id,
+	inf_db.informatic_id AS informatica_id,
+	dbk.id AS conocimiento_id,
+	'BASES DE DATOS' AS tipo_conocimiento,
+	UPPER(dbk.name) AS descripcion_conocimiento
+FROM "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
+JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (jo.id=jp.job_offer_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" inf ON (jp.informatic_id=inf.id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics_databases" inf_db ON (inf_db.informatic_id = jp.informatic_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_database_knowledge" dbk ON (inf_db.database_id = dbk.id)
+
+UNION
+
+SELECT
+	'PORTALEMPLEO' base_origen,
+	CAST(inf_off.informatic_id AS VARCHAR)||'-'||CAST(off_sof.id AS VARCHAR) AS informatica_conocimiento_id,
+	CAST(jo.id AS VARCHAR) AS oportunidad_laboral_id,
+	inf_off.informatic_id AS informatica_id,
+	off_sof.id AS conocimiento_id,
+	'SOFTWARE OFIMATICA' AS tipo_conocimiento,
+	UPPER(off_sof.name) AS descripcion_conocimiento
+FROM "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
+JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (jo.id=jp.job_offer_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" inf ON (jp.informatic_id=inf.id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics_office" inf_off ON (inf_off.informatic_id = jp.informatic_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_office_software" off_sof ON (inf_off.office_id = off_sof.id)
+
+UNION
+
+SELECT
+	'PORTALEMPLEO' base_origen,
+	CAST(inf_pro.informatic_id AS VARCHAR)||'-'||CAST(pro_k.id AS VARCHAR) AS informatica_conocimiento_id,
+	CAST(jo.id AS VARCHAR) AS oportunidad_laboral_id,
+	inf_pro.informatic_id AS informatica_id,
+	pro_k.id AS conocimiento_id,
+	'PROGRAMACION' AS tipo_conocimiento,
+	UPPER(pro_k.name) AS descripcion_conocimiento
+FROM "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
+JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (jo.id=jp.job_offer_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" inf ON (jp.informatic_id=inf.id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics_programming" inf_pro ON (inf_pro.informatic_id = jp.informatic_id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_programming_knowledge" pro_k ON (inf_pro.programming_knowledge_id = pro_k.id)
+)
+SELECT *
+FROM oportunidad_laboral_conocimientos
 --</sql>--
 
 --<sql>--
@@ -6008,7 +6150,10 @@ SELECT
 	CAST(NULL AS VARCHAR) organizacion_empleadora_barrio,
 	CAST(NULL AS VARCHAR) organizacion_empleadora_cuit,
 	CAST(NULL AS VARCHAR) AS genero_requerido,
-	CAST(NULL AS INT) AS experiencia_requerida
+	CAST(NULL AS INT) AS experiencia_requerida,
+	CAST(NULL AS INT) AS informatica,
+	CAST(NULL AS INT) AS internet,
+	CAST(NULL AS VARCHAR) AS conocimiento_especifico_requerido
 FROM "caba-piba-raw-zone-db"."crm_empleo_anuncio__c"
 
 UNION
@@ -6050,7 +6195,10 @@ SELECT
 	CAST(NULL AS VARCHAR) organizacion_empleadora_barrio,
 	CAST(NULL AS VARCHAR) organizacion_empleadora_cuit,
 	CAST(NULL AS VARCHAR) AS genero_requerido,
-	CAST(NULL AS INT) AS experiencia_requerida
+	CAST(NULL AS INT) AS experiencia_requerida,
+	CAST(NULL AS INT) AS informatica,
+	CAST(NULL AS INT) AS internet,
+	CAST(NULL AS VARCHAR) AS conocimiento_especifico_requerido
 FROM "caba-piba-raw-zone-db"."crm_empleo_historico_anuncio__c"
 
 UNION
@@ -6099,10 +6247,14 @@ SELECT
 	CAST(NULL AS VARCHAR) organizacion_empleadora_barrio,
 	CAST(NULL AS VARCHAR) organizacion_empleadora_cuit,
 	CAST(NULL AS VARCHAR) AS genero_requerido,
-	CAST(NULL AS INT) AS experiencia_requerida
+	CAST(NULL AS INT) AS experiencia_requerida,
+	CAST(NULL AS INT) AS informatica,
+	CAST(NULL AS INT) AS internet,
+	CAST(NULL AS VARCHAR) AS conocimiento_especifico_requerido
 FROM "caba-piba-raw-zone-db"."crm_sociolaboral_op_oportunidades_laborales"
 
 UNION
+
 SELECT
 'PORTALEMPLEO' base_origen,
 CAST(jo.id AS VARCHAR) id,
@@ -6151,7 +6303,10 @@ CASE
 	WHEN UPPER(jr.gender) IN ('F', 'M') THEN UPPER(jr.gender) ELSE 'I'
 END AS genero_requerido,
 -- 1 si requiere experiencia, 0 en caso contrario
-CAST(jr.experience_required AS  INT) AS experiencia_requerida
+CAST(jr.experience_required AS  INT) AS experiencia_requerida,
+inf.informatics AS informatica,
+inf.internet AS internet,
+inf.specific_knowledge AS conocimiento_especifico_requerido
 
 FROM "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_job_postings" jp ON (jo.id=jp.job_offer_id)
@@ -6163,7 +6318,67 @@ LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_job_requirements" jr ON (jp.job
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_education_level" el ON (jr.academic_level_id=el.id)
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_working_modalities" m ON (jo.working_modality=m.id)
 LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_industry_sectors" s ON (jo.sector_id=s.id)
+JOIN "caba-piba-raw-zone-db"."portal_empleo_informatics" inf ON (jp.informatic_id=inf.id)
 WHERE jp.deleted = 0
+
+UNION
+
+SELECT
+'ASI' base_origen,
+CAST(olv.id AS VARCHAR) id,
+CAST(olv.descripcion AS VARCHAR) descripcion,
+CAST(DATE_PARSE(date_format(olv.fecha_publicacion, '%Y-%m-%d %h:%i%p'), '%Y-%m-%d %h:%i%p') AS DATE) fecha_publicacion,
+CAST(olv.estado AS VARCHAR) estado,
+CAST(NULL AS VARCHAR) apto_discapacitado,
+CAST(NULL AS VARCHAR) vacantes,
+CAST(olv.modalidad_trabajo_nombre AS VARCHAR) modalidad_de_trabajo,
+
+CAST(CAST(olv.edad_minima AS INT) AS VARCHAR) edad_minima,
+CAST(CAST(olv.edad_maxima AS INT) AS VARCHAR) edad_maxima,
+
+CAST(NULL AS VARCHAR) vacantes_cubiertas,
+CAST(olv.nombre AS VARCHAR) tipo_de_puesto,
+
+-- mirar tambien el campo tasks_description contiene diverso texto que indica el horario de entrada y salida,
+-- se deben analizar las posibilidades para determinar el turno de trabajo
+CAST(olv.horario_desde AS VARCHAR) horario_entrada,
+CAST(olv.horario_hasta AS VARCHAR) horario_salida,
+
+
+CAST(NULL AS VARCHAR) grado_de_estudio,
+-- en un futuro cuando este asociado a "Registro laboral formal" si la misma finalizo se podria obtener
+-- por la diferencia entre el inicio y fin de la relacion
+CAST(NULL AS VARCHAR) duracion_practica_formativa,
+
+-- tienen sentido los siguientes campos?
+-- analizar valores
+CAST(NULL AS VARCHAR) sector_productivo,
+CAST(NULL AS VARCHAR) industria,
+CAST(NULL AS VARCHAR) enviado_para_aprobacion__c,
+CAST(NULL AS VARCHAR) postulantes_contratados__c,
+
+-- datos de organizacion/empresa que busca empleados
+CAST(olv.empresa_nombre AS VARCHAR) organizacion_empleadora,
+CAST(olv.calle AS VARCHAR) organizacion_empleadora_calle,
+CAST(olv.piso AS VARCHAR) organizacion_empleadora_piso,
+CAST(olv.apt AS VARCHAR) organizacion_empleadora_depto,
+CAST(olv.cp AS VARCHAR) organizacion_empleadora_cp,
+CAST(olv.barrio AS VARCHAR) organizacion_empleadora_barrio,
+CAST(NULL AS VARCHAR) organizacion_empleadora_cuit,
+
+-- cuando gender es vacio se asume como indistinto
+CASE
+	WHEN UPPER(olv.genero) = 'FEMENINO' THEN 'F'
+	WHEN UPPER(olv.genero) = 'MASCULINO' THEN 'M'
+	ELSE 'I'
+END AS genero_requerido,
+-- 1 si requiere experiencia, 0 en caso contrario
+CAST(olv.experiencia_previa AS INT) AS experiencia_requerida,
+CAST(NULL AS INT) AS informatica,
+CAST(NULL AS INT) AS internet,
+CAST(NULL AS VARCHAR) AS conocimiento_especifico_requerido
+
+FROM "caba-piba-raw-zone-db"."ofertas_laborales_view" olv
 ),
 -- 2.-- Se estandarizan los campos mas relevantes.
 -- 2.1.-- Se estandarizan los campos turno_trabajo, horario_entrada y horario_salida
@@ -6219,7 +6434,10 @@ organizacion_empleadora_cp,
 organizacion_empleadora_barrio,
 organizacion_empleadora_cuit,
 genero_requerido,
-experiencia_requerida
+experiencia_requerida,
+informatica,
+internet,
+conocimiento_especifico_requerido
 FROM oportunidad_laboral
 ),
 et2 AS (
@@ -6303,7 +6521,10 @@ et.organizacion_empleadora_cp,
 et.organizacion_empleadora_barrio,
 et.organizacion_empleadora_cuit,
 et.genero_requerido,
-et.experiencia_requerida
+et.experiencia_requerida,
+et.informatica,
+et.internet,
+et.conocimiento_especifico_requerido
 FROM et
 ),
 et3 AS (
@@ -6351,7 +6572,10 @@ et2.organizacion_empleadora_cp,
 et2.organizacion_empleadora_barrio,
 et2.organizacion_empleadora_cuit,
 et2.genero_requerido,
-et2.experiencia_requerida
+et2.experiencia_requerida,
+et2.informatica,
+et2.internet,
+et2.conocimiento_especifico_requerido
 FROM et2
 ),
 et4 AS (
@@ -6428,7 +6652,10 @@ et3.organizacion_empleadora_cp,
 et3.organizacion_empleadora_barrio,
 et3.organizacion_empleadora_cuit,
 et3.genero_requerido,
-et3.experiencia_requerida
+et3.experiencia_requerida,
+et3.informatica,
+et3.internet,
+et3.conocimiento_especifico_requerido
 FROM et3
 ),
 et5 AS (
@@ -6484,7 +6711,10 @@ et4.organizacion_empleadora_cp,
 et4.organizacion_empleadora_barrio,
 et4.organizacion_empleadora_cuit,
 et4.genero_requerido,
-et4.experiencia_requerida
+et4.experiencia_requerida,
+et4.informatica,
+et4.internet,
+et4.conocimiento_especifico_requerido
 FROM et4
 ),
 et6 AS (
@@ -6530,7 +6760,10 @@ et5.organizacion_empleadora_cp,
 et5.organizacion_empleadora_barrio,
 et5.organizacion_empleadora_cuit,
 et5.genero_requerido,
-et5.experiencia_requerida
+et5.experiencia_requerida,
+et5.informatica,
+et5.internet,
+et5.conocimiento_especifico_requerido
 FROM et5
 ),
 etf AS (
@@ -6589,7 +6822,10 @@ et6.organizacion_empleadora_cp,
 et6.organizacion_empleadora_barrio,
 et6.organizacion_empleadora_cuit,
 et6.genero_requerido,
-et6.experiencia_requerida
+et6.experiencia_requerida,
+et6.informatica,
+et6.internet,
+et6.conocimiento_especifico_requerido
 FROM et6
 ),
 -- 2.2.-- Se estandarizan los campos apto_discapacitado, estado, grado_de_estudio, edad minima, edad maxima, modalidad_trabajo, sector_productivo
@@ -6601,7 +6837,7 @@ etf.descripcion,
 etf.fecha_publicacion,
 etf.estado AS estado_origen,
 CASE
-    WHEN etf.estado LIKE 'Vigente' OR etf.estado LIKE 'en_curso' THEN 'ABIERTO'
+    WHEN etf.estado LIKE 'Vigente' OR etf.estado LIKE 'en_curso' OR etf.estado LIKE 'Publicado' THEN 'ABIERTO'
     WHEN etf.estado LIKE 'cancelada'  THEN 'CANCELADO'
     WHEN etf.estado LIKE 'finalizada' THEN 'CERRADO'
     ELSE etf.estado
@@ -6683,7 +6919,10 @@ etf.organizacion_empleadora_cp,
 etf.organizacion_empleadora_barrio,
 etf.organizacion_empleadora_cuit,
 etf.genero_requerido,
-etf.experiencia_requerida
+etf.experiencia_requerida,
+etf.informatica,
+etf.internet,
+etf.conocimiento_especifico_requerido
 FROM etf
 ),
 ecr2 AS (
@@ -6693,7 +6932,7 @@ ecr1.id,
 ecr1.descripcion,
 ecr1.fecha_publicacion,
 CASE
-    WHEN ecr1.base_origen LIKE 'PORTALEMPLEO' THEN 'PORTAL DE EMPLEO'
+    WHEN ecr1.base_origen LIKE 'PORTALEMPLEO' OR ecr1.base_origen LIKE 'ASI' THEN 'PORTAL DE EMPLEO'
     WHEN ecr1.base_origen LIKE 'CRMEMPLEO' THEN 'IMPULSO A LA INSERCIÃN LABORAL'
     WHEN ecr1.base_origen LIKE 'CRMSL' THEN 'ACTIVÃ TU POTENCIAL LABORAL'
 END programa,
@@ -6752,7 +6991,10 @@ ecr1.organizacion_empleadora_cp,
 ecr1.organizacion_empleadora_barrio,
 ecr1.organizacion_empleadora_cuit,
 ecr1.genero_requerido,
-ecr1.experiencia_requerida
+ecr1.experiencia_requerida,
+ecr1.informatica,
+ecr1.internet,
+ecr1.conocimiento_especifico_requerido
 FROM ecr1
 ),
 ecr3 AS (
@@ -6808,7 +7050,10 @@ ecr2.organizacion_empleadora_cp,
 ecr2.organizacion_empleadora_barrio,
 ecr2.organizacion_empleadora_cuit,
 ecr2.genero_requerido,
-ecr2.experiencia_requerida
+ecr2.experiencia_requerida,
+ecr2.informatica,
+ecr2.internet,
+ecr2.conocimiento_especifico_requerido
 FROM ecr2
 )
 SELECT *
@@ -6817,7 +7062,7 @@ FROM ecr3
 
 
 
--- Copy of 2023.07.07 step 21 - staging registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.07.21 step 21 - staging registro_laboral_formal(Vcliente).sql 
 
 
 
@@ -7043,7 +7288,7 @@ WITH aa_ab AS (
 		sb.descripcion AS descripcion_situacion_baja,
 		sb.situacion_de_revista,
 		ab.remuneracion_bruta
-	FROM "caba-piba-raw-zone-db"."afip_agip_altas_bajas" ab
+	FROM "caba-piba-staging-zone-db"."afip_agip_altas_bajas" ab
 		LEFT JOIN "caba-piba-raw-zone-db".afip_agip_codigos_movimientos cm ON (ab.codigo_de_movimiento = cm."cÃ³digo")
 		LEFT JOIN "caba-piba-raw-zone-db".afip_agip_tipo_contratacion tc ON (
 			TRY_CAST(ab.codigo_modalidad_de_contratato AS INT) = TRY_CAST(tc."cÃ³digo" AS INT)
@@ -7300,6 +7545,7 @@ a.descripcion_modalidad_contratacion,
 a.codigo_de_actividad,
 a.descripcion_actividad,
 a.origen_descripcion_actividad,
+r.fecha_de_movimiento_origen,
 CAST(NULL AS VARCHAR) id_candidato,
 a.descripcion_de_puesto_desempeniado,
 CAST(NULL AS VARCHAR) oportunidad_laboral_id,
@@ -7345,6 +7591,7 @@ FROM
 		lf.cuit_del_empleador,
 		lf.fecha_inicio_de_relacion_laboral AS fecha_inicio,
 		lf.fecha_fin_de_relacion_laboral AS fecha_fin,
+		lf.fecha_de_movimiento_origen,
 		lf.modalidad_contratacion AS modalidad_de_trabajo,
 		lf.remuneracion_bruta AS remuneracion_moneda_corriente,
 		CAST(NULL AS DECIMAL) AS remuneracion_moneda_constante
@@ -7358,6 +7605,7 @@ FROM
 		lf.cuit_del_empleador,
 		lf.fecha_inicio_de_relacion_laboral,
 		lf.fecha_fin_de_relacion_laboral,
+		lf.fecha_de_movimiento_origen,
 		lf.modalidad_contratacion,
 		lf.remuneracion_bruta
 
@@ -7372,6 +7620,7 @@ FROM
 		rf_sin_oportunidad.cuit_del_empleador,
 		rf_sin_oportunidad.fecha_inicio_de_relacion_laboral AS fecha_inicio,
 		rf_sin_oportunidad.fecha_fin_de_relacion_laboral AS fecha_fin,
+		rf_sin_oportunidad.fecha_de_movimiento_origen,
 		rf_sin_oportunidad.modalidad_contratacion AS modalidad_de_trabajo,
 		rf_sin_oportunidad.remuneracion_bruta AS remuneracion_moneda_corriente,
 		CAST(NULL AS DECIMAL) AS remuneracion_moneda_constante
@@ -7383,6 +7632,7 @@ FROM
 		rf_sin_oportunidad.cuit_del_empleador,
 		rf_sin_oportunidad.fecha_inicio_de_relacion_laboral,
 		rf_sin_oportunidad.fecha_fin_de_relacion_laboral,
+		rf_sin_oportunidad.fecha_de_movimiento_origen,
 		rf_sin_oportunidad.modalidad_contratacion,
 		rf_sin_oportunidad.remuneracion_bruta
 ) registros
@@ -7390,7 +7640,7 @@ FROM
 
 
 
--- Copy of 2023.07.07 step 22 - staging organizaciones (Vcliente).sql 
+-- Copy of 2023.07.21 step 22 - staging organizaciones(Vcliente).sql 
 
 
 
@@ -7452,7 +7702,7 @@ FROM rlf_op2
 
 
 
--- Copy of 2023.07.07 step 23 - consume organizaciones (Vcliente).sql 
+-- Copy of 2023.07.21 step 23 - consume organizaciones (Vcliente).sql 
 
 
 
@@ -7475,7 +7725,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_organizaciones"
 
 
 
--- Copy of 2023.07.07 step 24 - consume oportunidad_laboral (Vcliente).sql 
+-- Copy of 2023.07.21 step 24 - consume oportunidad_laboral(Vcliente).sql 
 
 
 
@@ -7506,6 +7756,9 @@ DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_labora
 DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral_idiomas`;
 --</sql>--
 
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_oportunidad_laboral_conocimientos`;
+--</sql>--
 
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" AS
@@ -7603,7 +7856,10 @@ SELECT
 	ol.duracion_practica_formativa,
 	ol.sector_productivo,
 	org.razon_social AS organizacion,
-	org.id_organizacion
+	org.id_organizacion,
+	ol.informatica,
+	ol.internet,
+	ol.conocimiento_especifico_requerido
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral" ol
 LEFT JOIN ol_organizaciones org ON (ol.id=org.id_old AND ol.base_origen=org.base_origen AND org.orden_duplicado=1)
 JOIN "caba-piba-staging-zone-db"."tbp_typ_def_programa" p ON (UPPER(p.nombre_programa)=ol.programa)
@@ -7629,22 +7885,49 @@ GROUP BY
 	ol.duracion_practica_formativa,
 	ol.sector_productivo,
 	org.razon_social,
-	org.id_organizacion
+	org.id_organizacion,
+	ol.informatica,
+	ol.internet,
+	ol.conocimiento_especifico_requerido
 --</sql>--
 
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_idiomas" AS
 WITH
-oportunidad_laboral_idiomas AS ( SELECT row_number() OVER () AS oportunidad_laboral_idiomas_id, oportunidad_laboral_id AS id_oportunidad_laboral, idioma_requerido FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_idiomas" oli JOIN
-											"caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.id_old=oli.oportunidad_laboral_id)
-											)
+oportunidad_laboral_idiomas AS (
+	SELECT
+		row_number() OVER () AS id_oportunidad_laboral_idiomas,
+		ol.id_oportunidad_laboral,
+		oli.idioma_requerido
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_idiomas" oli
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.id_old=oli.oportunidad_laboral_id AND ol.base_origen = oli.base_origen)
+	)
 SELECT *
 FROM oportunidad_laboral_idiomas
 --</sql>--
 
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_conocimientos" AS
+WITH
+oportunidad_laboral_conocimientos AS (
+	SELECT
+		row_number() OVER () AS id_oportunidad_laboral_conocimientos,
+		--olc.informatica_conocimiento_id,
+		--ol.id_oportunidad_laboral,
+		--olc.informatica_id,
+		--olc.conocimiento_id,
+		olc.tipo_conocimiento,
+		olc.descripcion_conocimiento
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_conocimientos" olc
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.id_old=olc.oportunidad_laboral_id AND ol.base_origen = olc.base_origen)
+	)
+SELECT *
+FROM oportunidad_laboral_conocimientos
+--</sql>--
 
 
--- Copy of 2023.07.07 step 25 - consume sector_productivo (Vcliente).sql 
+
+-- Copy of 2023.07.21 step 25 - consume sector_productivo(Vcliente).sql 
 
 
 
@@ -7700,7 +7983,7 @@ GROUP BY 1,2
 --portal_empleo_mtr_industry_sectors
 inds AS (
 SELECT
-isec.code AS codigo_mtr,
+isec.id AS id_mtr,
 CASE
     WHEN TRY_CAST(isec.code AS INT) IN (1143) THEN 'ABASTECIMIENTO Y LOGISTICA'
     WHEN TRY_CAST(isec.code AS INT) IN (558,1773,701) THEN 'ADMINISTRACION, CONTABILIDAD Y FINANZAS'
@@ -7722,6 +8005,7 @@ CASE
     WHEN TRY_CAST(isec.code AS INT) IN (2889,2890,2891) THEN 'SECTOR PUBLICO'
     WHEN TRY_CAST(isec.code AS INT) IN (49) THEN 'SEGUROS'
     WHEN TRY_CAST(isec.code AS INT) IN (32) THEN 'TECNOLOGIA, SISTEMAS Y TELECOMUNICACIONES'
+	WHEN TRY_CAST(isec.code AS INT) IN (659) THEN 'PRENSA Y MEDIOS DE COMUNICACIÃN'
 END sector_productivo
 FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_industry_sectors" isec
 ),
@@ -7735,13 +8019,17 @@ ORDER BY sector_productivo
 )
 SELECT
 row_number() OVER () AS id_sector_productivo,
-sector_productivo
+sp.sector_productivo,
+array_join(array_agg(inds.id_mtr ), ',') ids_mtr_portal_empleo
 FROM sp
+LEFT JOIN inds ON (sp.sector_productivo=inds.sector_productivo)
+GROUP BY
+sp.sector_productivo
 --</sql>--
 
 
 
--- Copy of 2023.07.07 step 26 - consume_registro_laboral_formal (Vcliente).sql 
+-- Copy of 2023.07.21 step 26 - consume_registro_laboral_formal(Vcliente).sql 
 
 
 
@@ -7759,6 +8047,7 @@ SELECT
 	cuit_del_empleador,
 	fecha_inicio,
 	fecha_fin,
+	fecha_de_movimiento_origen,
 	modalidad_de_trabajo,
 	remuneracion_moneda_corriente,
 	remuneracion_moneda_constante
@@ -7769,6 +8058,7 @@ GROUP BY
 	cuit_del_empleador,
 	fecha_inicio,
 	fecha_fin,
+	fecha_de_movimiento_origen,
 	modalidad_de_trabajo,
 	remuneracion_moneda_corriente,
 	remuneracion_moneda_constante
@@ -7801,7 +8091,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.07 step 27 - staging postulaciones (Vcliente).sql 
+-- Copy of 2023.07.21 step 27 - staging postulaciones(Vcliente).sql 
 
 
 
@@ -8073,7 +8363,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.07 step 28 - consume postulaciones (Vcliente).sql 
+-- Copy of 2023.07.21 step 28 - consume postulaciones(Vcliente).sql 
 
 
 
@@ -8109,7 +8399,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_postulaciones" p
 
 
 
--- Copy of 2023.07.07 step 29 - staging experiencia_laboral (Vcliente).sql 
+-- Copy of 2023.07.21 step 29 - staging experiencia_laboral(Vcliente).sql 
 
 
 
@@ -8127,7 +8417,9 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_postulaciones" p
 		CAST(j.task_description AS VARCHAR) AS descripcion_empleo,
 		CAST(j.position AS VARCHAR) AS posicion,
 		CASE WHEN j.end_date IS NULL THEN '0' ELSE '1' END trabajo_actual,
-		CAST(cv.candidate_id AS VARCHAR) AS id_candidato
+		CAST(cv.candidate_id AS VARCHAR) AS id_candidato,
+		CAST(j.industry_id AS VARCHAR) AS industry_id,
+		CAST(j.area_id AS VARCHAR) AS area_id
 	FROM "caba-piba-raw-zone-db"."portal_empleo_jobs" j
 		JOIN "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv ON (j.curriculum_id=cv.id)
 		JOIN  "caba-piba-raw-zone-db"."portal_empleo_candidates" c ON (c.id=cv.candidate_id)
@@ -8140,7 +8432,9 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_postulaciones" p
 		CAST(j.task_description AS VARCHAR),
 		CAST(j.position AS VARCHAR),
 		CASE WHEN j.end_date IS NULL THEN '0' ELSE '1' END,
-		CAST(cv.candidate_id AS VARCHAR)
+		CAST(cv.candidate_id AS VARCHAR),
+		CAST(j.industry_id AS VARCHAR),
+		CAST(j.area_id AS VARCHAR)
 	UNION
 	SELECT
 		'CRMEMPLEO' base_origen,
@@ -8152,7 +8446,9 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_postulaciones" p
 		CAST(el.descripcion_de_tareas__c AS VARCHAR),
 		CAST(el.puesto__c AS VARCHAR),
 		CASE WHEN CAST(el.trabajo_actual__c AS VARCHAR) = 'false' THEN '0' ELSE '1' END,
-		CAST(el.postulante__c AS VARCHAR)
+		CAST(el.postulante__c AS VARCHAR),
+		CAST(NULL AS VARCHAR),
+		CAST(NULL AS VARCHAR)
 	FROM "caba-piba-raw-zone-db"."crm_empleo_experiencia_laboral__c" el
 	INNER JOIN "caba-piba-raw-zone-db"."crm_empleo_entrevista__c" e ON (
 		el.postulante__c = e.postulante__c
@@ -8179,7 +8475,9 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_postulaciones" p
 		CAST(ecc.description AS VARCHAR),
 		CAST(ecc.puesto AS VARCHAR),
 		CASE WHEN CAST(ecc.trabaja_actualmente AS VARCHAR) = 'false' THEN '0' ELSE '1' END,
-		CAST(cc.id_c  AS VARCHAR)
+		CAST(cc.id_c  AS VARCHAR),
+		CAST(NULL AS VARCHAR),
+		CAST(NULL AS VARCHAR)
 	FROM "caba-piba-raw-zone-db"."crm_sociolaboral_re_experiencia_laboral" ecc
 	JOIN  "caba-piba-raw-zone-db"."crm_sociolaboral_re_experiencia_laboral_contacts_c" c ON (c.re_experiencia_laboral_contactsre_experiencia_laboral_idb = ecc.id)
 	JOIN  "caba-piba-raw-zone-db"."crm_sociolaboral_contacts_cstm" cc ON (cc.id_c = c.re_experiencia_laboral_contactscontacts_ida)
@@ -8210,7 +8508,9 @@ descripcion_empleo,
 posicion,
 UPPER(TRIM(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE("posicion", '[\\\\|_-]', ' '), ',|/', ' y '), '[^a-zA-Z0-9Ã¡Ã©Ã­Ã³ÃºÃÃÃÃÃÃ±Ã ]', ''), ' +', ' '), '\+', ' '), '1/2', 'medio '), '3Âº', '3ER '), '^ ', ''), ' $'))) posicion_limpia,
 trabajo_actual,
-id_candidato
+id_candidato,
+industry_id,
+area_id
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral_1" )
 SELECT
 	base_origen,
@@ -8271,15 +8571,17 @@ SELECT
 		OR empresa_limpia IN ('OTRAS EXPERIENCIAS','OTRAS TAREAS','OTRAS ÃREAS','OTRO','OTROS','OTROS OFICINISTAS','OTROS TRABAJOS ANTERIORES')
 		OR empresa_limpia IN ('01 Y 08 Y 2006', '01 Y 2008', '0KM', '100 BANCO', '1127811047', '16 12', '1810', '1816', '1EN1', '2 A SA', '2 AS', '2000', '20006', '2015', '2015 2019', '2019', '2080', '214', '2211', '225', '24CON', '257', '3080', '314', '365', '451', '6720', '747', 'A 1500', 'A 53', 'A COAST AUDIOVISUAL FREELANCE', 'A24', 'ABOGADA EN FORMA INDEPENDIENTE', 'ABOGADA FREE LANCE', 'ABOGADA INDEPENDIENTE', 'ABOGADA INDEPENDIENTE Y DOCENTE UBA', 'ABOGADA PARTICULAR', 'ABOGADO ASOCIADO INDEPENDIENTE', 'ABOGADO FREELANCER', 'ABOGADO INDEPENDIENTE', 'ABOGADO PARTICULAR', 'ABOGADOS INDEPENDIENTES', 'ABRIL GOMEZ FOTOGRAFÃA INDEPENDIENTE', 'ACOMPAÃAMIENTO DOMICILIARIO', 'ACOMPAÃANTE NO TERAPÃUTICO PARTICULAR', 'ACTIVIDAD EN FORMA INDEPENDIENTE', 'ACTIVIDAD FREE LANCE', 'ACTIVIDAD INDEPENDIENTE', 'ACTIVIDAD POR CUENTA PROPIA', 'ACTIVIDAD PROFESIONAL INDEPENDIENTE', 'ACTIVIDADES FREELANCE', 'ACTIVIDADES PARTICULARES DE LA PROFESION', 'ADM CEN DE BARRIOS MILITARES DE BUENOS AIRES', 'ADMINISTRATIVA FREELANCE', 'ADMINISTRATIVO FREE LANCE', 'AE PHONE INDEPENDIENTE', 'AGENCIA DOS PUNTOS DIARIO EL SOL FREELANCE', 'AGRONE SECXTOR32 FREELANCE DISEÃADOR SEMISENIOR', 'AGUSTIN HIGINIO FREELANCE', 'AKIROS FREELANCE TÃCNICO EN ELECTRÃNICA', 'ALBAÃIL', 'ALBAÃILERIA', 'ALBAÃILERÃA', 'ALEGA SOCIEDAD DE POLICÃA PARTICULAR', 'ALMACEN DE BARRIO', 'ALMACEN DE BARRIO FAMILIAR', 'ALMACEN DE BARRIO MANYULA', 'ALMACENES PARTICULARES', 'ALMACÃN DE BARRIO', 'ALMACÃN PARTICULAR', 'ALMACÃS Y KIOSCO DE BARRIO', 'AMA DE CASA Y NIÃERA', 'AMBULANCIA PARTICULAR', 'ANDERSCH INGENIERIA SRL FREELANCE', 'ANGEL PARTICULAR', 'APOYO ESCOLAR PARTICULAR', 'AQUITECTO EN PARTICULAR', 'ARBITRO INDEPENDIENTE', 'ARGENCHINO INDEPENDIENTE', 'ARGENTINIAN EMPANADAS PROYECTO INDEPENDIENTE', 'ARMADO Y REPARACIÃN DE PC INDEPENDIENTE', 'ARMD SRL INTERNACION DOMICILIARIA', 'ARQ PARTICULAR', 'ARQ UITECTO INDEPENDIENTE', 'ARQTA SILVIA NAYA FREELANCE', 'ARQTO GABRIEL OMAR BARUDI FREELANCE', 'ARQUITECTA FREELANCE', 'ARQUITECTA INDEPENDIENTE', 'ARQUITECTA JR FREELANCE', 'ARQUITECTA PARTICULAR', 'ARQUITECTA PROYECTISTA FREELANCE', 'ARQUITECTO EN INDEPENDIENTE', 'ARQUITECTO EN LIBRE EJERCICIO FREELANCE', 'ARQUITECTO FREE LANCE', 'ARQUITECTO FREELANCE', 'ARQUITECTO FREELANCER', 'ARQUITECTO INDEPENDIENTE', 'ARQUITECTO INDEPENDIENTE HOMEOFFICE', 'ARQUITECTO INDEPENDIENTE ORLANDO DÃVILA', 'ARQUITECTURA FREELANCE', 'ARQUITECTURA FREELANCER', 'ARREGLO DE PC POR CUENTA PROPIA', 'ARTEREX PROYECTO INDEPENDIENTE', 'ARTISTA INDEPENDIENTE', 'ASEGURADORA INDEPENDIENTE', 'ASESOR INDEPENDIENTE', 'ASESOR TÃCNICO CONSULTOR FREELANCE', 'ASESORA INDEPENDIENTE', 'ASESORÃA INDEPENDIENTE', 'ASISTENCIA DE CASAS PARTICULARES', 'ASISTENCIA DOMICILIARIA', 'ASISTENCIA DOMICILIARIA PARTICULAR', 'ASISTENCIA PRIVADA ODONTOLOGICA', 'ASISTENCIA PRIVADA ODONTOLÃGICA', 'ASISTENTE CONTABLE PARTICULAR', 'ASOCIADO INDEPENDIENTE DE HERBALIFE', 'AT Y PARTICULAR', 'ATENCION DOMICILIARIA', 'ATENCION DOMICILIARIO', 'ATENCION PARTICULAR', 'ATENCIÃN AL CLIENTE FREELANCE', 'ATENCIÃN DOMICILIARIA ADULTOS MAYOREA', 'ATENCIÃN MÃDICA DOMICILIARIA', 'ATENCIÃN PARTICULAR', 'AUTOCADISTA INDEPENDIENTE', 'AUTOGESTIVO Y INDEPENDIENTE', 'AUTONOMA FREELANCE', 'AUTONOMO FREE LANCE', 'AUTONOMO INDEPENDIENTE', 'AUTÃNOMA Y POR CUENTA PROPIA', 'AUTÃNOMO FREELANCE', 'AUXILIAR DE CASA PARTICULARES', 'AUXILIAR DE CASAS PARTICULARES', 'AYUDANTE DE CONTADOR FREELANCE', 'AYUDAR SALUD INTERNACIÃN DOMICILIARIA', 'BAJO CONTRATISTA E INDEPENDIENTE', 'BANKHOUSE SA Y NEGOCIOS INMOBILIARIOS FREELANCE', 'BAR INDEPENDIENTE', 'BARBERO POR MI CUENTA', 'BARMANAGER FREELANCE', 'BARRIO CERRADO', 'BARRIO CERRADO LA HERRADURA PINAMAR', 'BARRIO CERRADO SOBRE RUTA 2', 'BARRIO CHINO', 'BARRIO LA BOCA', 'BARRIO LA PODEROSA', 'BARRIO NORTE', 'BARRIO NUEVO ACOSTA', 'BARRIO NUEVO BARRIO TRICOLOR', 'BARRIO PAMI PALMIRO VALONI', 'BARRIO PAMPA AMBA', 'BARRIO PARQUE FUTBOL CLUB SA', 'BARRIO PRIVADO CANNING', 'BARRIO PRIVADO CORTIJO', 'BARRIO PRIVADO SOL LELOIR', 'BARRIO PRIVADO TERRALAGOS', 'BARRIO QUINTA FERRE Y PROV CORRIENTES', 'BARRIO SANTA MARIA NORTE', 'BARRIO SEPTIEMBRE SA', 'BARRIO UNIVRSITARIO', 'BAZAR Y REGALERÃA BARRIO CHINO', 'BIBLIOTECA PARTICULAR', 'BILINGUAL FREELANCE', 'BOLIVIA HOSPITAL Y PARTICULAR', 'BORDER CREATIVA FREELANCE', 'BRANDING Y MARKETING FREELANCE', 'CADETE EN SERVICIOS DE CADETERÃA PARTICULAR', 'CADETE FREELANCE EN CADETE CON MOTO', 'CADETE INDEPENDIENTE EN MOTO', 'CADISTA 2D FREELANCE', 'CADISTA FREE LANCE', 'CADISTA FREELANCE', 'CADISTA INDEPENDIENTE', 'CAFETERIA DE BARRIO', 'CAMPEONATO ALTO NONO', 'CAMPEONATO MUNDIAL DE MOTOCICLISMO MOTO GP', 'CAPACITACIÃN FREELANCE', 'CARNICERÃA', 'CARPINTERIA', 'CARPINTERÃA FREELANCE', 'CASA DE FAMILIA NIÃERA', 'CASA DE FAMILIA PARTICULAR', 'CASA DE PARTICULAR', 'CASA PARTICULAR', 'CASA PARTICULAR ACASUSSO SRA MARIA VIRGINIA', 'CASA PARTICULAR BARRIO SAN BENITO BENAVIDEZ', 'CASA PARTICULAR EN PARAGUAY', 'CASA PARTICULAR FAMILIAR', 'CASA PARTICULAR FLORIDA', 'CASA PARTICULAR GRAND BOURG', 'CASA PARTICULAR LOS POLVORINES', 'CASA PARTICULAR MONSEÃOR MIGUEL DE ANDREA', 'CASA PARTICULAR SAN MIGUEL Y BUENOS AIRES', 'CASA PARTICULAR TALAR DE PACHECO', 'CASA PARTICULAR TORTUGUITAS', 'CASA PARTICULAR VICTORIA SAN ISIDRO', 'CASA PARTICULAR Y LAPRIDA', 'CASA PARTICULARES', 'CASA PARTICULARES Y CLINICAS EH HOSPITALES', 'CASAS DE FAMILIA Y EDIFICIOS Y OFICINAS', 'CASAS DE FAMILIA Y OFICINA', 'CASAS DE FAMILIA Y OFICINAS', 'CASAS PARTICULAR', 'CASAS PARTICULARES', 'CASAS PARTICULARES BOSQUES', 'CASAS PARTICULARES FAMILIARES', 'CASAS PARTICULARES Y CAFÃ BAR ZURICH', 'CASAS PARTICULARES Y DEPARTAMENTOS', 'CASAS PARTICULARES Y EVENTOS', 'CASAS Y OFICINAS', 'CASES PARTICULARES', 'CASO PARTICULAR', 'CASO PARTICULAR EN DOMICILIO', 'CATERING PARTICULAR', 'CEA Y PARTICULAR', 'CENTRO DE DÃA CISAM Y CONSULTORIO PARTICULAR', 'CENTRO DE ESTUDIANTE DE INGENIERÃA', 'CENTRO DE ESTUDIANTES', 'CENTRO DE ESTUDIANTES CBC', 'CENTRO DE ESTUDIANTES DE ARTES VISUALES', 'CENTRO DE ESTUDIANTES DE CIENCIAS ECONÃMICAS', 'CENTRO DE ESTUDIANTES DE CIENCIAS MÃDICAS', 'CENTRO DE ESTUDIANTES DE CIENCIAS SOCIALES CECSO', 'CENTRO DE ESTUDIANTES DE CIENCIAS SOCIALES UBA', 'CENTRO DE ESTUDIANTES DE CS POL Y RRII UCA', 'CENTRO DE ESTUDIANTES DE EXACTAS', 'CENTRO DE ESTUDIANTES DE INGENIERIA ELECTRONICA', 'CENTRO DE ESTUDIANTES DE INGENIERÃA ELECTRÃNICA', 'CENTRO DE ESTUDIANTES DE LA UNA', 'CENTRO DE ESTUDIANTES DE LA UNQUI', 'CENTRO DE ESTUDIANTES DE PSICOLOGÃA', 'CENTRO DE ESTUDIANTES DE UNIVERSIDAD', 'CENTRO DE ESTUDIANTES DE VETERINARIA', 'CENTRO DE ESTUDIANTES EN UNQ', 'CENTRO DE ESTUDIANTES EOS27', 'CENTRO DE ESTUDIANTES FACULTAD DE INGENIERÃA', 'CENTRO DE ESTUDIANTES PSICOLOGIA CEP', 'CENTRO DE ESTUDIANTES UCA DERECHO ROSARIO', 'CENTRO DE ESTUDIANTES UNQ', 'CENTRO EDUCATIVO INDEPENDIENTE', 'CENTRO ESTUDIANTIL FADU', 'CENTRO ESTUDIANTIL NO OFICIAL', 'CENTRO PSICOPESPACIOS Y DE FORMA INDEPENDIENTE', 'CERRAJERÃA', 'CERVECERIA', 'CERVECERÃA', 'CHRISTIAN VELEZ FREELANCE', 'CHURRERÃA', 'CINE INDEPENDIENTE MON AMOUR', 'CLASE PARTICULARES', 'CLASES COMO PROFESOR PARTICULAR', 'CLASES DE APOYO INDEPENDIENTE', 'CLASES PARTICULAR DE INGLES', 'CLASES PARTICULARE DE MUSICA', 'CLASES PARTICULARES', 'CLASES PARTICULARES DE APOYO ESCOLAR', 'CLASES PARTICULARES DE INGLES', 'CLASES PARTICULARES DE INGLÃS', 'CLASES PARTICULARES DE INGLÃS FREELANCE', 'CLASES PARTICULARES DE LENGUA Y LITERATURA', 'CLASES PARTICULARES DE MANERA INDEPENDIENTE', 'CLASES PARTICULARES DE MATEMÃTICA', 'CLASES PARTICULARES DE MÃSICA', 'CLASES PARTICULARES DE PIANO', 'CLASES PARTICULARES DE PLASTICA', 'CLASES PARTICULARES DE QUÃMICA', 'CLASES PARTICULARES DIBUJO Y PINTURA', 'CLASES PARTICULARES EN MI DOMICILIO', 'CLASES PARTICULARES INDEPENDIENTE', 'CLASES PARTICULARES INGLÃS', 'CLASES PARTICULARES MATEMÃTICAS', 'CLASES PARTICULARES SECUNDARIO Y UNIVERSITARIO', 'CLASES PARTICULARES TODOS LOS NIVELES', 'CLASES PARTICULARES Y DE APOYO ESCOLAR', 'CLASES PARTICULARES Y GRUPALES', 'CLIENTE PARTICULAR', 'CLIENTES PARTICULARES', 'CLINICA MEDICA PARTICULAR', 'CLUB DE BARRIO', 'COARQ FREELANCE', 'COCINA PROPIA', 'CODESAR Y PARTICULAR', 'COLEGIO PARTICULAR MIXTO IBEMA', 'COLEGIO PARTICULAR TÃCNICO CUISSINE', 'COMERCIANTE INDEPENDIENTE', 'COMERCIO DE BARRIO', 'COMERCIO ELECTRÃNICO FREE LANCE', 'COMERCIO INDEPENDIENTE', 'COMERCIO PARTICULAR', 'COMITENTE PARTICULAR MDP', 'COMMUNITY MANAGER FREE LANCE', 'COMMUNITY MANAGER FREELANCE', 'COMO ANTES', 'COMPAÃIA 360 Y INDEPENDIENTE', 'COMPAÃÃA INDEPENDIENTE CASTADIVA', 'COMPUTACIÃN INDEPENDIENTE', 'COMUNICADORA FREELANCE', 'CONFECCIÃN DE ROPA INDEPENDIENTE', 'CONGRESOS MÃDICOS FREELANCE', 'CONSTRUCCION INDEPENDIENTE', 'CONSTRUCCIONES INDEPENDIENTES', 'CONSTRUCTOR INDEPENDIENTE', 'CONSTRUCTOR INDEPENDIENTE GERMÃN CHICO UBALDE', 'CONSTRUCTOR Y PROYECTISTA INDEPENDIENTE', 'CONSTRUCTORA DIPCA CASA PROPIA BIENES Y RAICES', 'CONSTRUCTORA INDEPENDIENTE', 'CONSULTOR ECONOMÃCO INDEPENDIENTE', 'CONSULTOR EMPRENDEDOR PROFESIONAL INDEPENDIENTE', 'CONSULTOR FREELANCE', 'CONSULTOR INDEPENDIENTE', 'CONSULTOR IT FREELANCE', 'CONSULTOR IT INDEPENDIENTE', 'CONSULTOR PARTICULAR', 'CONSULTOR PROFESIONAL INDEPENDIENTE DE SISTEMAS', 'CONSULTOR TI FREELANCE', 'CONSULTOR Y FREELANCER EN COMUNICACIONES Y MEDIOS', 'CONSULTORA DE RRHH INDEPENDIENTE', 'CONSULTORA FREELANCE', 'CONSULTORA INDEPENDIENTE', 'CONSULTORA PRIVADA', 'CONSULTORA PRIVADA DE FINANZAS', 'CONSULTORA PROPIA', 'CONSULTORAS PRIVADAS', 'CONSULTORES AMBIENTALES INDEPENDIENTES', 'CONSULTORES INDEPENDIENTES', 'CONSULTORIA FREE LANCE', 'CONSULTORIA INDEPENDIENTE', 'CONSULTORIA INDEPENDIENTE FREELANCE', 'CONSULTORIA IT INDEPENDIENTE', 'CONSULTORIO CLÃNICA PRIVADA', 'CONSULTORIO CLÃNICA PRIVADA FIBROCEMENTO', 'CONSULTORIO DE MEDICINA PRIVADA', 'CONSULTORIO MEDICO PARTICULAR', 'CONSULTORIO MÃDICA PARTICULAR', 'CONSULTORIO MÃDICO INDEPENDIENTE', 'CONSULTORIO MÃDICO PARTICULAR', 'CONSULTORIO MÃDICO PARTICULAR DR LUIS TROMBETTA', 'CONSULTORIO MÃDICO PARTICULAR DR ROMERO', 'CONSULTORIO MÃDICO PARTICULAR PAMI', 'CONSULTORIO MÃDICO TOCO GINECOLÃGICO PARTICULAR', 'CONSULTORIO ODONTOLGICO PARTICULAR', 'CONSULTORIO ODONTOLOGICO PARTICULAR', 'CONSULTORIO ODONTOLÃGICO PARTICULAR', 'CONSULTORIO PARTICULAR', 'CONSULTORIO PARTICULAR BELLA VISTA', 'CONSULTORIO PARTICULAR DE GINECOLOGÃA', 'CONSULTORIO PARTICULAR DE ODONTOLOGÃA', 'CONSULTORIO PARTICULAR DE PSIQUIATRIA', 'CONSULTORIO PARTICULAR DOCOTR PATOCCI', 'CONSULTORIO PARTICULAR DOCTOR CARRANO', 'CONSULTORIO PARTICULAR DR ARIEL RANTZ', 'CONSULTORIO PARTICULAR DR CASSAGNET ENRIQUE', 'CONSULTORIO PARTICULAR DR RUBÃN MORA', 'CONSULTORIO PARTICULAR DR TARNOVSKY', 'CONSULTORIO PARTICULAR DRA ANA GARAY', 'CONSULTORIO PARTICULAR DRA DIANA VACCA', 'CONSULTORIO PARTICULAR DRA MALDONADO', 'CONSULTORIO PARTICULAR DRA MASCARINI ANALIA', 'CONSULTORIO PARTICULAR ELDA MARTA PALACIOS', 'CONSULTORIO PARTICULAR GINECOLÃGICO', 'CONSULTORIO PARTICULAR INDEPENDIENTE', 'CONSULTORIO PARTICULAR KINESIOLOGIA', 'CONSULTORIO PARTICULAR LIC MÃNICA RUSSO', 'CONSULTORIO PARTICULAR NUTRICIÃN', 'CONSULTORIO PARTICULAR ODONTOLOGICO', 'CONSULTORIO PARTICULAR PSICOLOGICO', 'CONSULTORIO PEDIÃTRICO PARTICULAR', 'CONSULTORIO PEDRIATRICO PARTICULAR DRA UNGARO', 'CONSULTORIO PROFESIONAL INDEPENDIENTE', 'CONSULTORIO PSICOLOGICO PARTICULAR', 'CONSULTORIO Y CLÃNICA PRIVADA', 'CONSULTORIOS BARRIO NORTE', 'CONSULTORÃA FREE LANCE', 'CONSULTORÃA INDEPENDIENTE', 'CONSULTORÃA INDEPENDIENTE EN REDES SOCIALES', 'CONSULTORÃA PARTICULAR', 'CONSULTORÃA PRIVADA DE ENERGÃA', 'CONSUTORIO MÃDICO PARTICULAR', 'CONTADOR INDEPENDIENTE', 'CONTADOR INDEPENDIENTE Y MAURICIO ACOSTA', 'CONTADOR PUBLICO INDEPENDIENTE', 'CONTADOR PÃBLICO INDEPENDIENTE', 'CONTADORA INDEPENDIENTE', 'CONTADORA PARTICULAR', 'CONTADORA PUBLICA INDEPENDIENTE', 'CONTADORA PÃBLICA INDEPENDIENTE', 'CONTADORES INDEPENDIENTES', 'CONTADURÃA PRIVADA', 'CONTRATISTA INDEPENDIENTE', 'CONTRATISTA PARTICULAR', 'CONTRATISTACUENTA PROPIA', 'CONTRATO INDEPENDIENTE', 'CONVENIO ENTRE FADU Y GCBA BARRIO 31', 'CONVENIO GBA FADU Y VTV BARRIO 31', 'COOPERATIVA PROPIA', 'COORDINADA POR LIC PARTICULAR', 'CORMI CUENTA', 'CORRECTORA LITERARIA FREELANCE', 'CORREDOR DE MAT ELÃCTRICOS PARTICULAR', 'CORREDOR INMOBILIARIO INDEPENDIENTE', 'CORREDOR TEXTIL INDEPENDIENTE', 'CORRIENTE VILLERA INDEPENDIENTE', 'CORTOMETRAJE INDEPENDIENTE', 'COSULTORIO MÃDICO PARTICULAR', 'CREADOR AUDIOVISUAL INDEPENDIENTE', 'CROSS INFORMATICA FREELANCE', 'CUENTA PROPIA', 'CUENTA PROPIA CON AMIGOS', 'CUENTA PROPIA CONTADOR', 'CUENTAPROPIA', 'CUETA PROPIA', 'CUIDADO', 'CUIDADO A DOMICILIO', 'CUIDADO AL ADULTO MAYOR', 'CUIDADO DE ABUELOS', 'CUIDADO DE ADULTO MAYOR', 'CUIDADO DE ADULTOS MAYORES', 'CUIDADO DE ANCIANO', 'CUIDADO DE ANCIANOS', 'CUIDADO DE INFANTES', 'CUIDADO DE MENORES', 'CUIDADO DE NIÃO', 'CUIDADO DE NIÃOS', 'CUIDADO DE NIÃOS DE MANERA PARTICULAR', 'CUIDADO DE NIÃOS INDEPENDIENTE', 'CUIDADO DE NIÃOS NIÃERA PEDAGOGICA', 'CUIDADO DE NIÃOS VARRIAL', 'CUIDADO DE NIÃOS Y LIMPIEZA GENERAL DEL HOGAR', 'CUIDADO DE NIÃXS', 'CUIDADO DE PACIENTES A DOMICILIO', 'CUIDADO DE PERSONA', 'CUIDADO DE PERSONA MAYOR', 'CUIDADO DE PERSONA MAYOR EN HOGAR', 'CUIDADO DE PERSONAS', 'CUIDADO DE PERSONAS DE LA TERCERA EDAD', 'CUIDADO DE PERSONAS ESPECIALES', 'CUIDADO DE PERSONAS MAYORES', 'CUIDADO DE PERSONAS NIÃOS', 'CUIDADO DE PERSONAS Y LIMPIEZA', 'CUIDADO DEL ADULTO Y EL ANCIANO PRACTICAS', 'CUIDADO DOMICILIARIO', 'CUIDADO DOMICILIARIOS', 'CUIDADO EN CASA PARTICULAR', 'CUIDADO EN DOMICILIO', 'CUIDADO EN DOMICILIO PARTICULAR', 'CUIDADO INFANTIL', 'CUIDADO TERAPEUTICO', 'CUIDADO Y ACOMPAÃAMIENTO', 'CUIDADO Y ACOMPAÃAMIENTO DE ADULTOS MAYORES', 'CUIDADO Y ACOMPAÃANTE DE ADULTO MAYOR', 'CUIDADO Y ASISTENCIA DE PERSONAS', 'CUIDADO Y ATENCION DE PERSONA MAYOR DE EDAD', 'CUIDADO Y CADETERIA PARA PERSONA MAYOR', 'CUIDADODEADULTOMAYOR', 'CUIDADOR', 'CUIDADOR DE PERSONAS NIÃERA', 'CUIDADOR DOMICILIARIO', 'CUIDADOR DOMICILIARIO POR CUENTA PROPIA', 'CUIDADOR PARTICULAR DOMICIIARIO', 'CUIDADOR TRABAJO AUTÃNOMO', 'CUIDADOR Y A DE NIÃOS', 'CUIDADORA', 'CUIDADORA A DOMICILIO', 'CUIDADORA ADULTOS MAYORES PARTICULAR', 'CUIDADORA ASISTENCIAL', 'CUIDADORA DE ADULTO MAYOR', 'CUIDADORA DE ADULTO MAYOR Y MENORES DE EDAD', 'CUIDADORA DE ADULTOS', 'CUIDADORA DE CHICOS', 'CUIDADORA DE MAYORES DE EDAD', 'CUIDADORA DE NENES Y ADULTOS', 'CUIDADORA DE NIÃA ESPECIAL AUTISTA', 'CUIDADORA DE NIÃOS', 'CUIDADORA DE PACIENTES A DOMICILIO', 'CUIDADORA DE PERROS', 'CUIDADORA DE PERSOMA MAYORES', 'CUIDADORA DE PERSONA', 'CUIDADORA DE PERSONA MAYOR', 'CUIDADORA DE PERSONAS', 'CUIDADORA DOMICILIARIA', 'CUIDADORA DOMICILIO', 'CUIDADORA ELIAS BUCAY JORGE BUCAY HIJO', 'CUIDADORA GERIATRICA PARTICULAR', 'CUIDADORA INDEPENDIENTE', 'CUIDADORA PARTICULAR', 'CUIDADORA PERSONAL CASA DE FAMILIA', 'CUIDADORAS', 'CUIDADORES DE ADULTO MAYOR', 'CUIDADORES Y AUXILIARES', 'CUIDADOS A DOMICILIO', 'CUIDADOS DE ADULTOS MAYOR', 'CUIDADOS DE ADULTOS MAYORES', 'CUIDADOS DE MENORES', 'CUIDADOS DE NIÃOS', 'CUIDADOS DE SALUD DOMICILIARIOS', 'CUIDADOS DEL ADULTO MAYOR', 'CUIDADOS DOMICILIARIO', 'CUIDADOS DOMICILIARIOS', 'CUIDADOS DOMICILIARIOS BETA', 'CUIDADOS DOMICILIARIOS PALIATIVOS', 'CUIDADOS DOMICILIARIOS SRL', 'CUIDADOS DOMICILIRIARIOS', 'CUIDADOS DOMICIRIARIOS', 'CUIDADOS PARTICULARES A PERSONAS ADULTAS', 'CUIDAR A UNA PERSONA MAYOR', 'CUIDAR PERSONAS MAYORES', 'CUPERTINO FREELANCE', 'CURSO INDEPENDIENTE DE FOTOGRAFÃA', 'CURSOS PARTICULARES', 'CÃTEDRA SAGGESE PARTICULAR UNA VISUALES', 'CÃNSULTORIO PARTICULAR', 'DAVK EMPRENDIMIENTO INDEPENDIENTE', 'DE CASAS Y OFICINAS', 'DE FORMA INDEPENDIENTE', 'DE FORMA PARTICULAR', 'DE MANERA INDEPENDIENTE', 'DE TODO UN POCO', 'DEE DEE DESIGN PROYECTO INDEPENDIENTE', 'DEISUR DUEÃO Y PERSONA QUE LACREO EMPRESA', 'DEL ESTADO', 'DEPARTAMENTO PARTICULAR', 'DEPENDENCIA PROPIA', 'DESARROLLADOR FREELANCE', 'DESARROLLADOR FREELANCER', 'DESARROLLADOR INDEPENDIENTE', 'DESARROLLO FREELANCE', 'DESARROLLO INDEPENDIENTE', 'DESARROLLO PERSONAL', 'DESARROLLO PERSONAL CONSULTORES DP Y CA', 'DESCONOCIDA Y PROPIA', 'DESDE 1981 A 2010', 'DESEMPEÃO INDEPENDIENTE', 'DESPENSA INDEPENDIENTE', 'DESPENSA Y FIAMBRERIA', 'DESPENSA Y FIAMBRERÃA', 'DESPENSA Y JUGUETERIA', 'DEVELOPER FREE LANCER', 'DG DISEÃO MARCA PERSONAL', 'DI ROSSA INDUMENTARIA FEMENINA MARCA PROPIA', 'DIBUJANTE FREE LANCE', 'DIBUJANTE FREELANCE', 'DIBUJANTE PARTICULAR', 'DIBUJANTE Y RENDERISTA FREELANCE', 'DIBUJANTE Y RENDERISTA INDEPENDIENTE', 'DIBUJO TECNICO FREELANCER', 'DICTADO DE CLASES PARTICULARES DE INGLÃS', 'DIRECCIÃN DE PERSONAL EJECUTIVO REGIONAL VZLA', 'DISEÃADOR DE INTERIORES FREELANCE', 'DISEÃADOR FREELANCE', 'DISEÃADOR GRAFICO FREELANCE', 'DISEÃADOR GRÃFICO FREELANCE', 'DISEÃADOR GRÃFICO FREELANCER', 'DISEÃADOR GRÃFICO INDEPENDIENTE', 'DISEÃADOR GRÃFICO SR INDEPENDIENTE', 'DISEÃADOR INDEPENDIENTE', 'DISEÃADOR MULTIMEDIAL FREELANCE', 'DISEÃADOR WEB FREELANCE', 'DISEÃADORA DE INTERIORES INDEPENDIENTE', 'DISEÃADORA FREELANCE', 'DISEÃADORA GRAFICA INDEPENDIENTE', 'DISEÃADORA GRÃFICA EN DISEÃO FREELANCE', 'DISEÃADORA GRÃFICA FREELANCE', 'DISEÃADORA INDEPENDIENTE', 'DISEÃADORA Y Y DIR DE ARTE FREELANCE', 'DISEÃO DE INTERIORES INDEPENDIENTE', 'DISEÃO DE VIVIENDA PARTICULAR', 'DISEÃO FREE LANCE', 'DISEÃO FREELANCE', 'DISEÃO GRAFICO FREELANCE', 'DISEÃO GRÃFICO E ILUSTRACIÃN FREELANCE', 'DISEÃO GRÃFICO FREELANCE', 'DISEÃO INDEPENDIENTE', 'DISEÃO INTERIOR FREELANCE', 'DISEÃO WEB FREELANCE', 'DISEÃORA GRÃFICA FREELANCE', 'DISEÃOS GRÃFICOS INDEPENDIENTES FREELANCE', 'DISTINTAS EMPRESAS DOMICILIARIAS', 'DISTRIBUIDORA INDEPENDIENTE', 'DIVERSAS EMPRESAS TEXTILES Y UNIPERSONAL', 'DOCENCIA EN OFICINA DE EMPLEOS', 'DOCENTE PARTICULAR', 'DOCUMENTACIÃN DE OBRA FREE LANCE', 'DOMICILIARIA', 'DOMICILIARIO', 'DOMICILIARIO Y INSTITUCIONAL', 'DOMICILIO PARTICULAR', 'DOMICILIO PERSONAL', 'DOMICILIO PERSONAL Y', 'DOÃA ÃRSULA SELECCIÃN DE PERSONAL DOMÃSTICO', 'DP PERSONAL DE EVENTOS', 'DSIEÃADORA FREELANCE', 'DURANTE', 'EDICIÃN FREELANCE', 'EDIFICIO PARTICULAR', 'EDUCACIÃN PARTICULAR', 'EJERCICIO INDEPENDIENTE', 'EJERCICIO INDEPENDIENTE DE LA PROFESION', 'EJERCICIO INDEPENDIENTE DE LA PROFESIÃN', 'EJERCICIO INDEPENDIENTEMENTE DE LA PROFESIÃN', 'EJERCICIO PARTICULAR', 'EJERCICIO PROFESIONAL INDEPENDIENTE', 'EKSPRESA FREELANCE', 'EL MERCADO EN TU BARRIO', 'ELECTRICISTA DOMICILIARIO', 'ELECTRICISTA INDEPENDIENTE', 'ELECTRICISTA OFICIAL CUENTA PROPIA', 'ELECTRICISTA PARTICULAR', 'ELECTRICISTA POR CUENTA PROPIA', 'ELECTRISISTA PARTICULAR', 'ELENCO DE TEATRO INDEPENDIENTE', 'ELLA', 'ELLA Y YO', 'ELÃCTRICISTA PARTICULAR', 'EMERGENCIAS DOMICILIARIAS', 'EMMESOL SERVICIOS DOMICILIARIOS', 'EMPLEADA DE CASAS PARTICULARES', 'EMPLEADA DE LIMPIEZA Y NIÃERA', 'EMPLEADA DOMESTICA PARTICULAR', 'EMPLEADA DOMESTICA Y NIÃERA', 'EMPLEADA DOMESTICADOMICILIO PARTICULAR', 'EMPLEADA DOMÃSTICA DE CASAS PARTICULARES', 'EMPLEADA PARTICULAR', 'EMPLEADA POR CUENTA PROPIA EN PARTICULAR', 'EMPLEADO DE MENSAJERIA', 'EMPLEADO EN CUENTA PROPIA', 'EMPLEADO INDEPENDIENTE', 'EMPLEADOR INDEPENDIENTE', 'EMPLEADOR PARTICULAR', 'EMPLEADORA PARTICULAR', 'EMPLEDA PARTICULAR', 'EMPLEO DE FORMA INDEPENDIENTE', 'EMPLEO EN CUENTA PROPIA', 'EMPLEO FREE LANCE', 'EMPLEO FREELANCE', 'EMPLEO INDEPENDIENTE', 'EMPREDIMIENTO DE LENCERIA PROPIO', 'EMPREDIMIENTO PERSONAL', 'EMPRENDEDOR INDEPENDIENTE', 'EMPRENDEDOR PARTICULAR', 'EMPRENDIEMINTO PERSONAL', 'EMPRENDIENDO DE INDUMENTARIA FEMENIA', 'EMPRENDIMIENTO BARRIAL', 'EMPRENDIMIENTO DE ESTAMPERÃA Y EN BORDADO', 'EMPRENDIMIENTO DE INDUMENTARIA', 'EMPRENDIMIENTO DE INDUMENTARIA LOLA JUNCO', 'EMPRENDIMIENTO DE LENCERIA', 'EMPRENDIMIENTO DE MARROQUINERÃA', 'EMPRENDIMIENTO DE PASTELERIA', 'EMPRENDIMIENTO DE PASTELERÃA', 'EMPRENDIMIENTO DE REPOSTERÃA', 'EMPRENDIMIENTO DE VENTA DE INDUMENTARIA', 'EMPRENDIMIENTO EN FORMA INDEPENDIENTE', 'EMPRENDIMIENTO FAMILIAR DE INDUMENTARIA', 'EMPRENDIMIENTO FREELANCE', 'EMPRENDIMIENTO INDEPENDIENTE', 'EMPRENDIMIENTO INDEPENDIENTE DE COSMÃTICA NATURAL', 'EMPRENDIMIENTO INDEPENDIENTE ECOMERCE', 'EMPRENDIMIENTO INDUMENTARIA', 'EMPRENDIMIENTO INDUMENTARIA MULTIMARCAS FEMENINA', 'EMPRENDIMIENTO PARTICULAR', 'EMPRENDIMIENTO PASTELERIA', 'EMPRENDIMIENTO PERSONAL', 'EMPRENDIMIENTO PERSONAL BELS DESIGN', 'EMPRENDIMIENTO PERSONAL BENEDITA ACCESORIOS', 'EMPRENDIMIENTO PERSONAL CARNICERÃA Y FIAMBRERIA', 'EMPRENDIMIENTO PERSONAL COMERCIO', 'EMPRENDIMIENTO PERSONAL CULINARIO', 'EMPRENDIMIENTO PERSONAL DE ASESORÃA DE IMAGEN', 'EMPRENDIMIENTO PERSONAL DE COMIDA', 'EMPRENDIMIENTO PERSONAL DE DISEÃO GRÃFICO', 'EMPRENDIMIENTO PERSONAL ECOMMERCE', 'EMPRENDIMIENTO PERSONAL EL MUNDO DE NANANAN', 'EMPRENDIMIENTO PERSONAL GESTORÃA DEL AUTOMOTOR', 'EMPRENDIMIENTO PERSONAL HANA MÃNDEZ', 'EMPRENDIMIENTO PERSONAL ROTISERÃA', 'EMPRENDIMIENTO PERSONAL RUBRO TELEFONÃA MÃVIL', 'EMPRENDIMIENTO PERSONAL TIA FLOR INDUMENTARIA', 'EMPRENDIMIENTOS PERSONAL', 'EMPRESA DE INTERNACION DOMICILIARIA', 'EMPRESA DE INTERNACIÃN DOMICILIARIA', 'EMPRESA DE SEGURIDAD PRIVADA', 'EMPRESA INDEPENDIENTE', 'EMPRESA INDEPENDIENTE VENTA DE PRODUCTOS NATURALES', 'EMPRESA PARTICULAR', 'EMPRESA PERSONAL', 'EMPRESA PRIVADA', 'EMPRESA PRIVADA DE INTERNACIÃN DOMICILIARIA', 'EMPRESA PRIVADA DE PASAJEROS', 'EMPRESA PROPIA', 'EMPRESA PROPIA AUTONOMA', 'EMPRESA PROPIA DE PASTELERÃA', 'EMPRESA UNIPERSONAL', 'EMPRESAPROPIA', 'EMPRESAS DE CUIDADOS DOMICILIARIOS', 'EMPRESAS DE ENFERMERÃA DOMICILIARIA', 'EMPRESAS DE INTERNACION DOMICILIARIA', 'EMPRESAS DOMICILIARIA EN INTERNACIÃN', 'EMPRESAS VARIAS', 'EMPRESAS Y OFICINAS EN CABA', 'EN CASA SERVICIO DE ASISTENCIA DOMICILIARIA', 'EN CASAS PARTICULARES', 'EN FORMA INDEPENDIENTE', 'EN FORMA PARTICULAR', 'EN HOGARES PARTICULARES', 'EN LOCAL DE RECUERDOS EN EL BARRIO LA BOCA', 'EN UN CALL CENTER DEL BARRIO', 'EN UN LOCAL DE CAFETERÃA DE SUS PADRES', 'ENCASA CUIDADOS DOMICILIARIOS', 'ENENFERMERA DOMICILIARIA AUTÃNOMA', 'ENFERMERA DOMICILIARIA', 'ENFERMERA PARTICULAR', 'ENFERMERIA', 'ENFERMERIA AUTONOMA', 'ENFERMERIA DOMICILIARIA', 'ENFERMERIA MODERNA', 'ENFERMERIA MOFERNA', 'ENFERMERÃA', 'ENFERMERÃA DOMICILIARIA', 'ENFERMERÃA Y CUIDADOR', 'ENNEASTUDIO INDEPENDIENTE', 'ENPERSONA', 'ENSEÃANZA PARTICULAR', 'ENSEÃANZA PARTICULAR DE INGLÃS', 'ENSEÃANZA PERSONALIZADA', 'ENTREGAS PERSONALES SRL CORREO PRIVADO', 'ENTRENADOR PERSONAL', 'ENTRENAMIENTO PERSONALIZADOS', 'ENTRENAMIENTOS PERSONALIZADOS', 'ENTRENAMIENTOS PERSONALIZADOS ARRETTINO', 'EQUIPO DE ABOGADOS INDEPENDIENTE', 'ERAS', 'ES 22 DE 19', 'ES24', 'ESCRITORA FREELANCE', 'ESCUELA PARTICULAR INCORPORADA N 1115 SAN JOSE', 'ESCUELA PARTICULAR JOSÃ MARÃA LUIS MORA', 'ESCUELA PRIVADA', 'ESPACIO INDIGO Y EMPRENDIMIENTO PERSONAL', 'ESTADO', 'ESTAMPERIA', 'ESTUDIO ARQUITECTURA INDEPENDIENTE', 'ESTUDIO CONTABLE INDEPENDIENTE', 'ESTUDIO CONTABLE PARTICULAR', 'ESTUDIO DE ARQUITECTURA INDEPENDIENTE', 'ESTUDIO DE DISEÃO FREE LANCE', 'ESTUDIO DE INGENIERIA', 'ESTUDIO DE INGENIERÃA', 'ESTUDIO DFE ARQUITECTURA PERSONAL', 'ESTUDIO EDGARDO VILLAFAÃE FREE LANCE', 'ESTUDIO INDEPENDIENTE', 'ESTUDIO JURIDICO INDEPENDIENTE', 'ESTUDIO JURIDICO PARTICULAR', 'ESTUDIO JURÃDICO PARTICULAR', 'ESTUDIO PARTICULAR', 'ESTUDIO PARTICULAR DRALUCERO', 'ESTUDIOS JURIDICOS PARTICULARES', 'EU PRODUCTORA INDEPENDIENTE', 'EVENTOS PARTICULARES', 'FABRICA DE TEXTIL INDEPENDIENTE', 'FACTURACION MEDICA PARTICULAR', 'FAENA PROPIA', 'FAENA PROPIA SAS', 'FAMILIA PARTICULAR', 'FAMILIAR INDEPENDIENTE', 'FAMILIAS PARTICULAR', 'FAMILIAS PARTICULARES', 'FEDERACIÃN DE ESTUDIANTES DE CIENCIAS POLÃTICAS', 'FEDERACIÃN DE ESTUDIANTES DE DERECHO DE VENEZUELA', 'FEDERACIÃN DE ESTUDIANTES UCA', 'FEDERAL CERVECERIA INDEPENDIENTE', 'FEFYM COMITÃ INDEPENDIENTE DE ÃTICA', 'FERIANTE', 'FERIANTE TODO BLANCO', 'FERIAS', 'FERIAS AMERICANAS', 'FERIAS ARTESANALES', 'FERIAS COMERCIALES', 'FERIAS DE LA CIUDAD', 'FERIAS DE LA CUIDAD', 'FERRETERIA', 'FERRETERIA PROPIA', 'FERRETERÃA', 'FESTIVAL DE CINE INDEPENDIENTE DE EL PALOMAR', 'FESTIVAL DE CINE LIMA INDEPENDIENTE', 'FIAMBRERIA', 'FIAMBRERRIA', 'FIAMBRERÃA', 'FIVERR FREELANCE PAGE WWWFIVERRCOM', 'FLETE POR CUENTA PROPIA', 'FLETES PARTICULARES', 'FLORENCIA SAPUCCAI PARTICULAR', 'FM INDEPENDIENTE', 'FORMA INDEPENDIENTE', 'FOTOCOPIADORA CENTRO DE ESTUDIANTES DE DERECHO', 'FOTOCOPIADORA COLEGIO NORMAL 1', 'FOTOCOPIADORA DE LA FACULTAD DE CS MÃDICAS UNLP', 'FOTOCOPIADORA DE LA UNIVERSIDAD DE BUENOS AIRES', 'FOTOCOPIADORA EN ESCUELAS PRIMARIAS Y SECUNDARIAS', 'FOTOCOPIADORA FACULTAD DE DERECHO', 'FOTOCOPIADORA FULL TIME', 'FOTOCOPIADORA FYL UBA', 'FOTOCOPIADORA UBA', 'FOTOCOPIADORA UNIVERSIDAD UMET', 'FOTOCOPIADORA UNLP', 'FOTOCOPIADORA Y LIBRERIA EL ESTUDIANTE', 'FOTOGRAFA FREELANCE', 'FOTOGRAFA INDEPENDIENTE', 'FOTOGRAFIA FREELANCE', 'FOTOGRAFIA INDEPENDIENTE', 'FOTOGRAFO FREELANCE', 'FOTOGRAFO INDEPENDIENTE', 'FOTOGRAFO Y DISEÃADOR MULTIMEDIA FREELANCE', 'FOTOGRAFÃA FREE LANCE', 'FOTOGRAFÃA FREELANCE', 'FOTOGRAFÃA INDEPENDIENTE', 'FOTOGRAFÃA PROFESIONAL FREELANCE', 'FOTÃGRAFA FREELANCE', 'FOTÃGRAFA FREELANCER', 'FOTÃGRAFA INDEPENDIENTE', 'FOTÃGRAFIA INDEPENDIENTE', 'FOTÃGRAFO FREE LANCE', 'FOTÃGRAFO FREELANCE', 'FOTÃGRAFO FREELANCER', 'FOTÃGRAFO INDEPENDIENTE', 'FOTÃGRAFO Y REALIZADOR AUDIOVISUAL FREELANCE', 'FREE LANCE', 'FREE LANCE CONGRESOS', 'FREE LANCE ESTUDIO3PORCIENTO', 'FREE LANCE INDEPENDIENTE', 'FREE LANCE PLANOS EN AUTOCAD', 'FREE LANCE PROYECTO SOCIAL', 'FREE LANCE SECTOR DISEÃO GRÃFICO', 'FREE LANCE TIENDA PROPIA', 'FREE LANCE TRABAJADORA POR CUENTA PROPIA', 'FREE LANCER', 'FREE LANCER WEB', 'FREELANCE', 'FREELANCE A PEDIDO', 'FREELANCE ARQUITECTO INDEPENDIENTE', 'FREELANCE ARQUITECTURA', 'FREELANCE COMUNICACIONES CORPORATIVAS', 'FREELANCE CONSULTOR', 'FREELANCE DESIGNER', 'FREELANCE DEVELOPER', 'FREELANCE DISEÃO', 'FREELANCE DISEÃO GRÃFICO', 'FREELANCE DISEÃO Y COMUNICACIÃN', 'FREELANCE EMPRENDEDOR DISEÃO', 'FREELANCE EN MERCADOLIBRE', 'FREELANCE EN PUBLICIDAD Y DISEÃO', 'FREELANCE ESTILIST ROX', 'FREELANCE ESTUDIO PROPIO', 'FREELANCE ESTUDIOS ARQ TAVOLARO', 'FREELANCE INDEPENDIENTE', 'FREELANCE JUNIOR EN DISEÃO Y COMUNICACIN', 'FREELANCE LACICLA', 'FREELANCE PARA CARTELLONE', 'FREELANCE PARA DIVERSAS PRODUCTORAS AUDIOVISUALES', 'FREELANCE PARA ESTUDIOS GOTIKA', 'FREELANCE PARA UTE ILUBAIRES APCO LIHUE', 'FREELANCE PARTICULARES Y FABRICAS Y COMERCIOS', 'FREELANCE PHOTOGRAPHER', 'FREELANCE PROPIO', 'FREELANCE PROYECTO RETOR', 'FREELANCE PUBLICIDAD', 'FREELANCE PUERTO RICO', 'FREELANCE RRHH Y RRLL', 'FREELANCE TELETRABAJO', 'FREELANCE Y ALCALDÃA DE JAMUNDI', 'FREELANCE Y EMPRENDEDORA', 'FREELANCE Y INDEPENDIENTE', 'FREELANCE Y REMOTO', 'FREELANCE Y SECTOR PRIVADO', 'FREELANCE Y SELF EMPLOYED', 'FREELANCER', 'FREELANCER DOCENTE UNIVERSITARIO VENEZUELA', 'FREELANCER EN MARKETING DIGITAL', 'FREELANCER PÃGINAS WEB', 'FREELANCER Y INDEPENDIENTE', 'FREELANCERCOM', 'FREELANCERS', 'FRESH MARKETING EMPRENDIMIENTO INDEPENDIENTE', 'FRUTERIA Y VERDULERIA', 'FULL PR FREELANCE', 'GABINETE PARTICULAR', 'GALERIA DE ARTE', 'GALERIA DE ROPA', 'GALERÃA', 'GAME SERVERS ARGENTINA FREELANCE', 'GENESIS FREELANCE', 'GESTIONES ADUANERAS FREE LANCE', 'GESTIÃN INDEPENDIENTE', 'GESTOR FREELANCE', 'GESTOR PARTICULAR', 'GESTORA INDEPENDIENTE', 'GESTORIA FREELANCE', 'GESTORIA INDEPENDIENTE', 'GESTORIA PARTICULAR', 'GESTORIA Y CONSULTORIA INDEPENDIENTE', 'GESTORÃA', 'GESTORÃA DEL AUTOMOTOR OFICINA PROPIA', 'GESTORÃA INDEPENDIENTE', 'GESTORÃA MUNICIPAL FREELANCE', 'GMG CLASES PARTICULARES', 'GOMERIA', 'GRUPO ESE ARQTA LUISA ENTENZA FREELANCE', 'GUIA DE TURISMO FREE LANCE', 'GUÃA DE TURISMO FREE LANCE', 'HAMBURGUESERÃA', 'HAMBURGUSERIA', 'HAS', 'HELADERIAS', 'HELADERÃA', 'HELADERÃA ARTESANAL', 'HELADERÃA Y CAFETERIA', 'HELADERÃA Y CAFETERÃA', 'HERNÃNDEZ CARLOS CONTRATO PARTICULAR', 'HERRERÃA INDEPENDIENTE', 'HOGAR GERIATRICO', 'HOGAR PARTICULAR', 'HOGAR VILLALOBOSCASA PARTICULAR', 'HOGARES PARTICULARES', 'HOLY RAINBOW MARCA PROPIA', 'HONORABLE CONCEJO DELIBERANTE FREELANCE', 'HOSPITAL FIORITO Y CONSULTORIO PARTICULAR', 'HOSPITAL Y CASAS PARTICULARES', 'HOSPITALES Y HOGARES Y PARTICULARES Y OTROS', 'ILUSTRADORA FREELANCE', 'IMPRENTA INDEPENDIENTE', 'IMPRESIÃN 3D INDEPENDIENTE', 'INDEPENDIENTE', 'INDEPENDIENTE ARQ MARLY TORRES', 'INDEPENDIENTE AUTÃNOMO', 'INDEPENDIENTE BIRNA', 'INDEPENDIENTE CA', 'INDEPENDIENTE CENTRO DE MANICURIA', 'INDEPENDIENTE DE MERLO', 'INDEPENDIENTE EMPRENDEDOR', 'INDEPENDIENTE EMPRENDIMIENTO GASTRONÃMICO', 'INDEPENDIENTE EN TALLERES DE CHAPA Y PINTURA', 'INDEPENDIENTE EN TIENDA DE MODA', 'INDEPENDIENTE FREE LANCE', 'INDEPENDIENTE FREELANCE', 'INDEPENDIENTE KATERSTUDIO', 'INDEPENDIENTE LIBRE EJERCICIO', 'INDEPENDIENTE MMO', 'INDEPENDIENTE MONOTRIBUTISTA', 'INDEPENDIENTE MONOTRIBUTO ACTIVO', 'INDEPENDIENTE MYSTERY SHOPPER', 'INDEPENDIENTE PELUQUERIA CENTRO SPA', 'INDEPENDIENTE VENEZUELA', 'INDEPENDIENTE X2', 'INDEPENDIENTE Y CENTROS CULTURALES', 'INDEPENDIENTE Y EMPRESAS', 'INDEPENDIENTE Y EMPRESAS Y CONTINUA', 'INDEPENDIENTE Y FREE LACNCE', 'INDEPENDIENTE Y FREE LANCE', 'INDEPENDIENTE Y FREE LANCER', 'INDEPENDIENTE Y FREELANCE', 'INDEPENDIENTE Y FREELANCER', 'INDEPENDIENTE Y HOLOS CAPITAL', 'INDEPENDIENTE Y VENEZUELA', 'INDEPENDIENTEANTEPROYECTO PLAZA SECA', 'INDEPENDIENTEFREELANCE', 'INDEPENDIENTEMENTE', 'INDEPENDIENTEOFICINAS DE AEROTERRA', 'INDEPENDIENTEREMODELACIÃNPALERMO', 'INDEPENDIENTES', 'INDEPENDIENTEVIVIENDA UNIFAMILIAR', 'INDUMENTARIA', 'INDUMENTARIA INDEPENDIENTE', 'INDUMENTARIA PROPIA FEMENINA', 'INDUMENTARIAS', 'INDUSTRIAL', 'INFORMATICA VARIAS', 'INGENIERO CIVIL INDEPENDIENTE', 'INGENIERO FREELANCE CARACAS VENEZUELA', 'INGENIERO INDEPENDIENTE', 'INGLÃS PARTICULAR', 'INMIBILIARIA', 'INMOBILIARIA', 'INMOBILIARIA INDEPENDIENTE', 'INMOBILIARIAS Y OFICINAS', 'INMOBILIRIAS', 'INMOVILIARIA', 'INSTALACION DE MATERIAL PUBLICITARIO', 'INSTALADOR INDEPENDIENTE DE CCTV', 'INSTITO ZABALA PARTICULAR', 'INSTITUTO DE CLASES PARTICULARES', 'INSTITUTO EDITORIAL', 'INSTITUTO PARTICULAR', 'INSTITUTO PARTICULAR DE INGLÃS', 'INSTITUTO PARTICULAR DE INGLÃS PATRICIA CODUTTI', 'INSTITUTO PRIVADO DE INGLÃS PARTICULAR', 'INSTITUTOS DE ENSEÃANZA Y FREELANCE', 'INSTITUTOS PRIVADOS Y POR CUENTA PROPIA', 'INSTRUCTOR DE INGLÃS PARTICULAR', 'INTERNACION DOMICILARIA', 'INTERNACION DOMICILIARIA', 'INTERNACIONES DOMICILIARIAS', 'INTERNACIÃN DOMICILIARIA', 'INTERNACIÃN DOMICILIARIA Y GOBIERNO DE LA CIUDAD', 'INTERNACIÃN DOMIXILIARIA', 'INTERPRETE FREELANCER', 'JARDINERIA EN CASAS PARTICULARES', 'JARDINERIA INDEPENDIENTE', 'JARDINERÃA POR CUENTA PROPIA', 'JOYERIA', 'JOYERÃA', 'JUEGUETERÃA', 'JUGETERIA', 'JUGUETERIA', 'KALINKA FREELANCE', 'KARINA MILEWICZ FREELANCE', 'KINESIOLOGA PARTICULAR', 'KIOSCO BARRIAL', 'KIOSCO CAFETERIA', 'KIOSCO LIBRERIA', 'KIOSCO Y FERIA', 'KIOSCO Y LIBRERIA', 'KIOSCO Y VERDULERIA EN CASA PARTICULAR', 'KIOSKO FLORISTERÃA', 'KIOSKO JUGUETERÃA', 'KIOSKO LIBRERIA', 'KIOSKO LIBRERÃA', 'KRIF CONSULTORIO PARTICULAR', 'LA 100', 'LA PARTICULAR DE VIRGINIO', 'LA PROPIA', 'LABOR INDEPENDIENTE', 'LAS 4 A', 'LAVANDERIA', 'LAVANDERÃA', 'LENCERIA', 'LENCERÃA', 'LIBRE EJERCICIO PROFESIONAL FREELANCE', 'LIBRERÃA', 'LIBRERÃA Y JUGUETERÃA', 'LIBRERÃA Y KIOSCO', 'LIC EN NUTRICION PARTICULAR', 'LIMPIEZA CASA PARTICULAR', 'LIMPIEZA DE CASA PARTICULAR', 'LIMPIEZA DE CASAS PARTICULAR', 'LIMPIEZA DE CASAS PARTICULARES', 'LIMPIEZA DE OFICINA', 'LIMPIEZA DE OFICINAS', 'LIMPIEZA DE OFICINAS TUCUMÃN 540', 'LIMPIEZA DOMICILIARIA', 'LIMPIEZA DOMICILIARIA Y DAMA DE COMPAÃÃA', 'LIMPIEZA EN CASA PARTICULARES', 'LIMPIEZA EN CASA PARTICULARES DIFERENTES LUGARES', 'LIMPIEZA EN CASAS DE FAMILIA Y OFICINAS', 'LIMPIEZA EN CASAS PARTICULARES', 'LIMPIEZA EN LOCALES Y OFICINA', 'LIMPIEZA EN OFICINA', 'LIMPIEZA EN OFICINAS', 'LIMPIEZA EN OFICINAS Y EDIFICIOS', 'LIMPIEZA PARTICULAR', 'LIMPIEZA POR CUENTA PROPIA', 'LIMPIEZA Y CASA PARTICULAR', 'LIMPIEZA Y NIÃERA', 'LIMPIEZAS DE OFICINAS', 'LISTA ROJA CLUB ATLÃTICO INDEPENDIENTE', 'LITIGO EN FORMA INDEPENDIENTE', 'LOCAL DE BARRIO', 'LOCAL DE INDUMENTARIA', 'LOCAL DE INDUMENTARIA DE MUJER', 'LOCAL DE INDUMENTARIA FAMILIAR', 'LOCAL DE INDUMENTARIA FEMENINA', 'LOCAL DE INDUMENTARIA GENERAL', 'LOCAL DE INDUMENTARIA INFANTIL', 'LOCAL DE INDUMENTARIA MASCULINA', 'LOCAL DE INDUMENTARIA UNISEX', 'LOCAL DE INDUMENTARIA Y TEXTIL', 'LOCAL DE INDUMMENTARIA', 'LOCAL DE LENCERIA', 'LOCAL DE LENCERIA CORDOBA CPAITAL', 'LOCAL DE LENCERIA EMPRENDIMIENTO PROPIO', 'LOCAL DE LENCERÃA', 'LOCAL DE PIZZERÃA Y ROTICERÃA', 'LOCAL DE PRODUCCIÃN DE INDUMENTARIA', 'LOCAL DE REGALERIA E INDUMENTARIA FEMENINA', 'LOCAL DE ROPA EN GALERÃA TRES ELEFANTES', 'LOCAL DE ROPA INDEPENDIENTE', 'LOCAL DE ROPA INDUMENTARIA FEMENINA', 'LOCAL DE ROPA Y JUGUETERÃA Y BAZAR', 'LOCAL DE VENTA DE LENCERÃA', 'LOCAL ELSA DE ROPA Y ARREGLOS DE INDUMENTARIA', 'LOCAL EN GALERIA', 'LOCAL INDUMENTARIA', 'LOCAL INDUMENTARIA FEMENINA', 'LOCAL LENCERÃA', 'LOCAL MARIA', 'LOCAL PARTICULAR', 'LOCAL PARTICULAR DE INDUMENTARIA FEMENINA', 'LOCAL PERFUMERIA Y LIMPIEZA', 'LOCALES COMERIALES', 'LOS TESOROS DE LUDIVINA PROYECTO INDEPENDIENTE', 'LOTERIA', 'LOTERÃA', 'LÃDICA MENTE FREE LANCE', 'MAESTRA DE APOYO ESCOLAR INDEPENDIENTE SENIOR', 'MAESTRA PARTICULAR', 'MAESTRO DE CLASES PARTICULARES AUTÃNOMO', 'MAESTRO MAYOR DE OBRA INDEPENDIENTE', 'MAESTRO MAYOR DE OBRAS INDEPENDIENTE', 'MANDATARIO FREELANCE', 'MANERA INDEPENDIENTE', 'MANTENIMIENTO EN CASAS PARTICULARES Y EDIFICIOS', 'MANTENIMIENTO INDEPENDIENTE', 'MAQUILLADORA INDEPENDIENTE', 'MAQUILLADORA PROFESIONAL FREELANCE', 'MARCA PROPIA', 'MARCAS INDEPENDIENTES', 'MARIA', 'MARIANISTA', 'MARIANO', 'MARIAS', 'MARROQUINERIA', 'MARROQUINERÃA', 'MARTINA FIERRO PROYECTO INDEPENDIENTE', 'MARÃA S', 'MARÃAS', 'MASAJISTA INDEPENDIENTE', 'MASAJISTA PARTICULAR', 'MASAJISTA PARTICULAR FREELANCE', 'MASSALIN PARTICULARES', 'MASSALIN PARTICULARES SA', 'MASSALIN PARTICULARES SRL', 'MATERIA', 'MATERIAL', 'MATERIALES DE LA CONSTRUCCIÃN', 'MATERIALES PARA LA CONSTRUCCIÃN', 'MATRICERIA', 'MAXI FRUIT VERDULERÃA', 'MAXI KIOSCO LIBRERÃA DANIEL', 'MAXI QUIOSCO Y LIBRERÃA', 'MAXIKIOSCO HELADERÃA', 'MAXIKIOSCO LA HISTORIA', 'MAXIKIOSCO LIBRERIA', 'MAXIKIOSCO LIBRERÃA', 'MAXIKIOSCO MARIANI', 'MAXIKIOSCO MIRIAM', 'MAXIKIOSCO Y CAFETERIA', 'MAXIKIOSCO Y LIBRERIA', 'MAXIKIOSCO Y LIBRERIA LA VIA', 'MAXIKIOSCO Y PERFUMERIA', 'MAXIKIOSCO Y TABAQUERIA PRIMERA JUNTA', 'MAXIKIOSKO MARIANA', 'MAXIKIOSKO Y LIBRERIA', 'MAXIQUIOSCO ADRIAN', 'MAXIQUIOSCO LIBRERIA', 'MAYORISTA DE ARTÃCULOS DE FERRETERÃA LUQUE', 'MAYORISTA DE ARTÃCULOS DE LIBRERÃA Y ARTÃSTICA', 'MAYORISTA DE INDUMENTARIA FABRICANTES ARGENTINOS', 'MAYORISTA LAS MARIAS', 'MAYORISTA MARIANA', 'MAYORISTA MARIANITA', 'MEDICA LEGISTA PRIVADA', 'MEDICA PRIVADA', 'MEDICINA DOMICILIARIA', 'MEDICINA ESTETICA LASER', 'MEDICINA ESTÃTICA', 'MEDICINA ESTÃTICA LÃSER', 'MEDICINA ESTÃTICA MATISSE DE TANIA SILVA', 'MEDICO INDEPENDIENTE', 'MEDICO PARTICULAR', 'MEDICOS PARTICULARES', 'MENAJERIA', 'MENSAJERIA EMPRESARIAL', 'MENSAJERIA EN MOTO', 'MENSAJERÃA DE MOTOS', 'MENSAJERÃA ENCOMIENDAS EN CORREO PRIVADO', 'MERCADO PARTICULAR', 'MERCERIA', 'MERCERIA Y BAZAR', 'MERCERÃA', 'MI PROPIA EMPRESA', 'MICRO EMPRENDIMIENTO DE REPOSTERÃA Y PANADERÃA', 'MICRO EMPRENDIMIENTO FREELANCE', 'MICRO EMPRENDIMIENTO INDEPENDIENTE', 'MICROEMPRENDIMIENTO DE INDUMENTARIA', 'MICROEMPRENDIMIENTO DE JOYERÃA', 'MICROEMPRENDIMIENTO PROPIO INDUMENTARIA', 'MINERIA', 'MODALIDAD FREELANCE', 'MODALIDAD INDEPENDIENTE', 'MODALIDAD PARTICULAR', 'MODELO FREELANCE', 'MONICA B SNYDERS CONTADORA INDEPENDIENTE', 'MONOTRIBUTISTA INDEPENDIENTE EN POR CUENTA PROPIA', 'MOTO MENSAJERIA', 'MOTOMENSAJERIA', 'MOTOMENSAJERIA EV', 'MOTOMENSAJERIA INDEPENDIENTE', 'MOTOMENSAJERÃA', 'MOTOVINTRABAJO POR CUENTA PROPIA', 'MSM EMPRESA INDEPENDIENTE', 'MUEBLERIA', 'MUEBLERIA PARTICULAR', 'MUEBLERÃA', 'MÃDICA GIMÃNEZ', 'MÃDICA PARTICULAR', 'MÃDICAL HOUSE', 'MÃDICO DR CLAUDIO ALE', 'MÃDICO NUTRICIONISTA DR NORBERTO PEDEVILLA', 'MÃDICO PARTICULAR', 'NADA', 'NEGOCIO BARRIAL', 'NEGOCIO COMERCIAL FAMILIAR', 'NEGOCIO DE AGROINSUMOS', 'NEGOCIO DE ARTESANÃAS', 'NEGOCIO DE BARRIO', 'NEGOCIO DE BEBIDAS', 'NEGOCIO DE CAMISAS', 'NEGOCIO DE COLECCIONISMO', 'NEGOCIO DE COMIDAS LA FAMILIA', 'NEGOCIO DE COMPONENTES ELECTRONICOS', 'NEGOCIO DE COMPUTACION', 'NEGOCIO DE COMPUTACIÃN', 'NEGOCIO DE DECORACION', 'NEGOCIO DE DIARIOS Y REVISTAS', 'NEGOCIO DE ELECTRICIDAD', 'NEGOCIO DE EMPRENDIMIENTO FAMILIAR', 'NEGOCIO DE ESTETICA', 'NEGOCIO DE FAMILIA', 'NEGOCIO DE INDUMENTARIA FEMENINA', 'NEGOCIO DE PRODUCTOS REGIONALES Y NATURALES', 'NEGOCIO DE ROPA', 'NEGOCIO DE ROPA DE DAMA Y NIÃOS', 'NEGOCIO DE ROPA DE HOMBRE CASA BIRMIGAN', 'NEGOCIO DE ROPA DEL ORIENTE', 'NEGOCIO DE ROPA INFANTIL', 'NEGOCIO DE ROPA LUISANA', 'NEGOCIO DE VENTA DE CALZADO DE DAMA', 'NEGOCIO DE VENTA MAYORISTA', 'NEGOCIO DEL BARRIO', 'NEGOCIO DESPENSA', 'NEGOCIO EMPRENDEDOR', 'NEGOCIO EN AVELLANEDA', 'NEGOCIO EN FLORES', 'NEGOCIO EN LA AV AVELLANEDA', 'NEGOCIO ESCOLAR', 'NEGOCIO FAMILIAR', 'NEGOCIO FAMILIAR ALMACEN', 'NEGOCIO FAMILIAR ALMACÃN', 'NEGOCIO FAMILIAR CIBER LOCUTORIO', 'NEGOCIO FAMILIAR DE ENTRETENIMIENTO', 'NEGOCIO FAMILIAR DE INDUMENTARIA', 'NEGOCIO FAMILIAR DE PANIFICADOS', 'NEGOCIO FAMILIAR DE POLIRUBRO', 'NEGOCIO FAMILIAR INDEPENDIENTE', 'NEGOCIO FAMILIAR KIOSCO JUAREZ', 'NEGOCIO FAMILIAR MARÃA', 'NEGOCIO FAMILIAR MINI SUPER', 'NEGOCIO FAMILIAR MÃXICO', 'NEGOCIO FAMILIAR Y TIENDA', 'NEGOCIO FAMILIAR Y VENTA DE AUTOPARTES', 'NEGOCIO FRUTAS VERDURAS Y LIMPIEZA', 'NEGOCIO INDEPENDIENTE', 'NEGOCIO LA NELLY', 'NEGOCIO LOCAL', 'NEGOCIO MACKA', 'NEGOCIO PARTICULAR', 'NEGOCIO PARTICULAR 2013 2015', 'NEGOCIO PEQUEÃO', 'NEGOCIO PERSONAL', 'NEGOCIO POLI RUBRO', 'NEGOCIO POLIRRUBRO', 'NEGOCIO PROPIO', 'NEGOCIO PROPIO KIOSCO MONOTRIBUTO', 'NEGOCIO PROPIO PERSONAL', 'NEGOCIO VENTA DE PRODUCTOS CONGELADOS', 'NEGOCIOPYME', 'NEGOCIOS', 'NEGOCIOS DE ROPA', 'NEGOCIOS FAMILIARES', 'NEGOCIOS FAMILIARES COMERCIOS', 'NEGOCIOS FRIGORÃFICOS DEL NORTE', 'NEGOCIOS PUNTA DEL ESTE URUGUAY', 'NEGOCIOS Y CASAS DE FAMILIAS', 'NINGUNA PARTICULAR', 'NINGUNA TRABAJO INDEPENDIENTE', 'NIÃERA', 'NIÃERA A DOMICILIO', 'NIÃERA BABY SITTER', 'NIÃERA DE BAUTISTA', 'NIÃERA DE FORMA INDEPENDIENTE', 'NIÃERA DE JOAQUÃN', 'NIÃERA DE LOURDES', 'NIÃERA DE NIÃAS MENORES DE 10 AÃOS', 'NIÃERA DE NIÃOS Y AS', 'NIÃERA DOMESTICA', 'NIÃERA EN CASA DE FAMILIA', 'NIÃERA EN EL BARRIO', 'NIÃERA EN NIÃOS DE 4 Y 10 AÃOS', 'NIÃERA EN VARIAS OCASIONES', 'NIÃERA FRANQUERA', 'NIÃERA INDEPENDIENTE', 'NIÃERA MEDIO TIEMPO', 'NIÃERA PARA MÃLTIPLES CLIENTES', 'NIÃERA PARTICULAR', 'NIÃERA PARTICULAR SITLY', 'NIÃERA PEDAGÃGICA', 'NIÃERA PERSONAL', 'NIÃERA Y AMA DE CASA', 'NIÃERA Y APOYO ESCOLAR', 'NIÃERA Y CUIDADO DE PERSONAS DE LA TERCERA EDAD', 'NIÃERA Y CUIDADORA', 'NIÃERA Y EMPLEADA DOMESTICA', 'NIÃERA Y EMPLEADA DOMÃSTICA', 'NIÃERA Y LIMPIEZA', 'NIÃERA Y PLANILLERA Y CURSO DE PELUQUERÃA', 'NIÃERAS DULCE NANA', 'NO HAY 2 SIN 3', 'NO TENGO', 'NO TIENE', 'NO TUVE', 'NOSOTRAS', 'NOTARIA 37', 'NOTARIA 42', 'NOTARIA PUBLICA CUARTA DE MARACAY', 'NOTARIA PUBLICA TERCERA', 'NOTARIA PÃBLICA SAIME VENEZUELA', 'NOTARÃA PÃBLICA DE ANACO', 'NOTARÃA PÃBLICA DE SAN DIEGO DEL ESTADO CARABOBO', 'NUESTRO', 'OBRAS PARTICULARES', 'OCUPACIONES VARIAS', 'ODONTOLOGIA PRIVADA', 'OFIC DE INGENIERÃA STAMBUL', 'OFICER LIBRERIAS COMERCIAL Y ESCOLAR', 'OFICIAL HERRERIA Y CARPINTERIA', 'OFICIAL LEGAL PROPIA', 'OFICINA', 'OFICINA 1 GALERÃA DE ARTE', 'OFICINA CENTRAL INMOBILIARIA', 'OFICINA COMARCAL AGRARIA SIERRA MORENA', 'OFICINA COMERCIAL', 'OFICINA CONGRESO', 'OFICINA CONSULAR', 'OFICINA CONTABLE', 'OFICINA CONTABLE MARIA DANIELA YAYES', 'OFICINA CONTABLE PARTICULAR', 'OFICINA DE ABOGADOS', 'OFICINA DE ARQUITECTURA', 'OFICINA DE CONTADORA', 'OFICINA DE EMPLEO', 'OFICINA DE INGENIERÃA HELICOIDAL Y CA', 'OFICINA DE PROTECCIÃN', 'OFICINA DE RENAULT', 'OFICINA DE SEGUROS', 'OFICINA DE SEGUROS Y GESTORÃA', 'OFICINA DE TURISMO', 'OFICINA DE VENTA', 'OFICINA EN CASA', 'OFICINA PARTICULAR', 'OFICINA PARTICULAR DE SEGUROS', 'OFICINA PARTICULAR LIC RICARDO ESTEVES', 'OFICINA PRIVADA', 'OFICINA PROPIA', 'OFICINA TECNICA DE INGENIERÃA PEMEGAS', 'OFICINA TRIBUTARIA GOBIERNO DE ESPAÃA', 'OFICINA TÃCNICA', 'OFICINAS', 'ORGANIZADORA DE EVENTOS INDEPENDIENTE', 'OS5', 'OSDOP OBRA SOCIAL DE LOS DOCENTES PARTICULARES', 'OSDOPOSOCIAL DE DOCENTES PARTICULARES', 'OTRA', 'OTRAS', 'PAGOS Y TRANSF CASAS PARTICULARES', 'PAGOS Y TRANSFERENCIAS DE CASAS PARTICULARES', 'PANADERIA', 'PANADERIA FAMILIAR', 'PANADERIA INDEPENDIENTE', 'PANADERIA PROPIA', 'PANADERIAS', 'PANADERÃA', 'PANADERÃA DE BARRIO', 'PANADERÃA ERVIN PANIFICACION PROPIA', 'PANADERÃA PROPIA', 'PANADRIA', 'PANCHERIA', 'PANCHERÃA', 'PAPELERIA', 'PAPELERIAS', 'PARA ARQUITECTA INDEPENDIENTE', 'PARDO AUDIOVISUAL FREELANCE', 'PARTICULAR', 'PARTICULAR ARQ FLAVIA COTTITTO', 'PARTICULAR AYUDANTE PINTURA', 'PARTICULAR BELLEGGIA', 'PARTICULAR CARPINTERIA', 'PARTICULAR CASA DE FAMILIA', 'PARTICULAR COTILLON', 'PARTICULAR CUIDADORA', 'PARTICULAR DE CONTABILIDAD Y MATEMÃTICA', 'PARTICULAR DEPARTAMENTO DE 2 AMBIENTES', 'PARTICULAR E INDEPENDIENTE CABA Y CONURBANO', 'PARTICULAR EDELAP SA', 'PARTICULAR EN CASA DE FAMILIA', 'PARTICULAR EN DOMICILIO', 'PARTICULAR EN ESCUELA', 'PARTICULAR ES POR RECOMENDACION', 'PARTICULAR ESTUDIO JURIDICO', 'PARTICULAR FAMILIA SHMIDEL', 'PARTICULAR FAMILIAR', 'PARTICULAR FREELANCE', 'PARTICULAR GRACIELA ERBRSFELD', 'PARTICULAR INDEPENDIENTE MONOTRIBUTISTA', 'PARTICULAR INFORMÃTICA Y TECNOLOGÃA', 'PARTICULAR MARISOL', 'PARTICULAR MARROQUINERIA', 'PARTICULAR OFICINAS', 'PARTICULAR ONG', 'PARTICULAR POR UN AMIGO', 'PARTICULAR SRA ALEJANDRA', 'PARTICULAR TEXTIL', 'PARTICULAR VENTA DE INDUMENTARIA ONLINE', 'PARTICULAR VENTA POR INTERNET', 'PARTICULAR Y', 'PARTICULAR Y AGENCIA', 'PARTICULAR Y CONSORCIO DE EMPLEADOS', 'PARTICULAR Y CONTRATISTA', 'PARTICULAR Y EMPRESAS', 'PARTICULAR Y ESTUDIOS ZONALES', 'PARTICULAR Y FAMILIA BASSUEL DUNCAN', 'PARTICULAR Y INTERNACIÃN DOMICILIARIA', 'PARTICULAR Y POR HORA', 'PARTICULAR Y VENTA DE VIANDAS CONSTITUCIÃN', 'PARTICULAR ZULMA RAMIREZ', 'PARTICULARCONSTRUCCION EN SECO', 'PARTICULARES', 'PARTICULARES VARIOS', 'PARTICULARESCBH ASSIST Y SIRPLAST', 'PARTICULARMENTE', 'PASEO CANINO PARTICULAR', 'PASSEADOR DE PERROSPARTICULAR', 'PASTELERIA', 'PASTELERÃA FREELANCE', 'PCI PROYECTO DE CINE INDEPENDIENTE', 'PELUQERIA', 'PELUQUERIA', 'PELUQUERIA CANINA', 'PELUQUERIA PROPIA', 'PELUQUERIA UNISEX', 'PELUQUERIAS', 'PELUQUERÃA', 'PELUQUERÃA CANINA', 'PELUQUERÃA INDEPENDIENTE', 'PELUQUERÃA UNISEX', 'PELUQUERÃAS Y FREELANCE', 'PERFUMERIA', 'PERFUMERÃA', 'PERIODISTA INDEPENDIENTE', 'PERIÃDICO INDEPENDIENTE EL HERALDO', 'PERSONA INDEPENDIENTE', 'PERSONA PARTICULAR', 'PERSONAL DE CASAS PARTICULARES', 'PERSONAL TRAINER INDEPENDIENTE', 'PESCADERIA', 'PESCADERÃA', 'PHILIP MORRIS LATAM Y MASSALIN PARTICULARES', 'PHP Y VARIAS FREELANCE', 'PIEZZERIA', 'PINTOR INDEPENDIENTE', 'PINTURERIA', 'PINTURERIAS', 'PIZZERIA', 'PIZZERÃA', 'PIZZZERIA', 'PLATERIA', 'PLEGARIA', 'PLOMERIA', 'PLOMERIA EN GENERAL PARTICULAR', 'PLOMERÃA', 'PODOLOGA PARTICULAR', 'POLLERIA', 'POLLERÃA', 'POR CONTRATO Y CUENTA PROPIA', 'POR CUENTA PROPIA', 'POR CUENTA PROPIA AUTÃNOMO', 'POR CUENTA PROPIA RELACIÃN DE DEPENDENCIA', 'POR MI CUENTA', 'POR MI CUENTA GESTORIA', 'PORFESIONAL INDEPENDIENTE', 'PORTERIA', 'PORTERÃA', 'PORTERÃA DE UN EDIFICIO PARTICULAR', 'PRACTICA PROFECIONAL', 'PRACTICA PROFESIONAL', 'PRACTICA PROFESIONAL DE LA UBA', 'PRACTICA PROFESIONAL EN CET', 'PRACTICA PROFESIONAL FADU UBA', 'PRACTICA PROFESIONAL UBA', 'PRACTICANTE EN FUNDACIÃN PAREMAI FRACTAL', 'PRACTICAS DE ENSEÃANZA EN ESCUELAS DE UAI', 'PRACTICAS FORMATIVAS', 'PRACTICAS HOSPITALARIAS', 'PRACTICAS PROFESIONALISANTES', 'PRACTICAS PROFESIONALIZANTES', 'PRACTICAS PROFEZIONALIZANTES', 'PRESTACIONES DOMICILIARIA', 'PRESTACIONES DOMICILIARIAS', 'PRESTACIONES ELECTRICAS', 'PRESTACIONES ELÃCTRICAS', 'PRESTACIONES MÃDICAS', 'PRESTACIONES ODONTOLOGICAS', 'PRESTACIONES PARA BNA COMO MONOTRIBUTISTA', 'PRESTACIÃN DOMICILIARIA', 'PRINTSTORE PROPIA', 'PRIVADA', 'PRIVADA ACOMPAÃANTE TERAPÃUTICO', 'PRIVADA CASA', 'PRIVADA DE VENTAS', 'PRIVADO CASA PARTICULAR', 'PRIVILEGE BURZACO INDEPENDIENTE', 'PROCURACION INDEPENDIENTE', 'PRODUCTOR ASESOR INDEPENDIENTE', 'PRODUCTOR AUDIOVISUAL FREE LANCE', 'PRODUCTOR INDEPENDIENTE', 'PRODUCTORA INDEPENDIENTE', 'PRODUCTORA INDEPENDIENTE MORKAN', 'PRODUCTORA INTEGRAL FREELANCE', 'PROFESIONAL FREELANCER', 'PROFESIONAL INDEPENDIENTE', 'PROFESIONAL INDEPENDIENTE FREELANCE', 'PROFESIONAL INDEPENDIENTE GABSER SA', 'PROFESIONAL INDEPENDIENTE VENEZUELA', 'PROFESOR DE INGLÃS PARTICULAR', 'PROFESOR INDEPENDIENTE', 'PROFESOR PARTICULAR', 'PROFESOR PARTICULAR DE APOYO', 'PROFESOR PARTICULAR DE COMPUTACIÃN', 'PROFESOR PARTICULAR DE INGLES', 'PROFESOR PARTICULAR DE INGLÃS', 'PROFESOR PARTICULAR DE MATEMATICAS', 'PROFESOR Y DOCENTE PARTICULAR', 'PROFESORA DE INGLES PARTICULAR', 'PROFESORA DE INGLÃS PARTICULAR', 'PROFESORA PARTICULAR', 'PROFESORA PARTICULAR A DOMICILIO', 'PROFESORA PARTICULAR DE IDIOMA INGLÃS', 'PROFESORA PARTICULAR DE INGLES', 'PROFESORA PARTICULAR DE INGLÃS', 'PROFESORA PARTICULAR INDEPENDIENTE', 'PROFRESORA PARTICULAR DE MATEMÃTICA', 'PROGRAMADOR POR CUENTA PROPIA', 'PROMOTORA FREE LANCER', 'PROPIA', 'PROPIA AMBMASAJES TERAPIA1', 'PROPIA COMERCIO', 'PROPIA FREELANCE', 'PROPIA Y NEGOCIO PERSONAL', 'PROPIO Y FREELANCE', 'PROYECTO FREE LANCE', 'PROYECTO INDEPENDIENTE', 'PROYECTO PERSONAL INDEPENDIENTE', 'PROYECTO RADIAL INDEPENDIENTE', 'PROYECTOS CON INGENIERIA', 'PROYECTOS CON INGENIERÃA', 'PROYECTOS DE INGENIERÃA MULTIDISCIPLINARIOS', 'PROYECTOS E INGENIERÃA FERSA', 'PROYECTOS EMPRESARIALES DE SALUD ADMINISTRADOS', 'PROYECTOS FREE LANCE', 'PROYECTOS INDEPENDIENTES', 'PROYECTOS INDEPENDIENTES DE INGENIERA', 'PROYECTOS INDUSTRIALES SA', 'PRÃCTICA PRE PROFESIONAL FAUBA', 'PRÃCTICA PROFESIONAL EXTERNA EN ÃPTICA', 'PRÃCTICA UNIVERSITARIA EN PJN', 'PRÃCTICAS DE ENFERMERÃA', 'PRÃCTICAS DOCENTES', 'PRÃCTICAS HOSPITALARIAS', 'PRÃCTICAS LABORALES EMPRESA SOYUZ DE AVELLANEDA', 'PRÃCTICAS PROFESIONALES UNIVERSIDAD DE PALERMO', 'PRÃCTICAS PROFESIONALIZANTES', 'PRÃCTICAS PROFESIONALIZANTES DE IMPO Y EXPO', 'PRÃCTICAS PROFESIONAS I Y III', 'PSICOLOGA PARTICULAR', 'PSICÃLOGA PARTICULAR', 'PSICÃLOGO CLÃNICO PARTICULAR', 'PSICÃLOGO PARTICULAR', 'PUBLICIDAD FREELANCE', 'PUBLICITARIA FREELANCE', 'QUESERÃA', 'RADIOS INDEPENDIENTES', 'REALICE PRÃCTICAS EN EL FIORITO Y WILDE Y EVITA', 'REALIZADOR AUDIOVISUAL INDEPENDIENTE', 'RECEPCION FREELANCE SALON', 'RECLUTADORA FREELANCE', 'RECRUITER FREELANCE', 'REDACCIÃN FREELANCE', 'REDACTOR FREELANCE', 'REDACTORA INDEPENDIENTE', 'REENDERISTA FREELANCE', 'REFORMAS PARTICULARES', 'REFRIGERACION DIMA FREELANCE', 'REGALARÃA Y BAZAR', 'REGALERIA', 'REGALERÃA', 'REGALOS EMPRESARIALES', 'REGISTRO NOTARIAL', 'RELACIÃN DE AIRE ACONDICIONADO INDEPENDIENTE', 'RELOJERÃA', 'REMIERIA', 'REMIS PARTICULAR', 'REMISERIA', 'REMISERIA PARTICULAR', 'REMISERÃA', 'REMODELACIÃN Y AMPLIACIÃN PARTICULAR', 'RENDERISTA FREELANCE', 'RENDERISTA Y CADISTA FREELANCE', 'REPARACIÃN DE PC FREELANCE', 'REPARADOR DE PCS EN FORMA INDEPENDIENTE', 'REPRESENTANTE DE VENTAS INDEPENDIENTE', 'RESIDENCIA', 'RESIDENCIA UNIVERSITARIA', 'RESIDENCIA UNIVERSITARIA ALMA', 'RESIDENCIA UNIVERSITARIA DE EXTRANJEROS CRISTAL', 'RESIDENCIA UNIVERSITARIA ENTIS', 'RESIDENCIA UNIVERSITARIA LA CASA DEL GIRASOL', 'RESIDENCIA UNIVERSITARIA LARBEL', 'RESIDENCIA UNIVERSITARIA MY HOUSE', 'RESIDENCIA UNIVERSITARIA UADE', 'RESIDENCIA UNIVERSITARIA UNIVERSIS', 'RESIDENCIA UNIVERSITARIA VEDRUNA', 'RESPONSABLE EN VENTAS FREELANCE', 'RESTAURADORA EDILICIA INDEPENDIENTE', 'RESTAURANTE Y PANADERÃA PARTICULAR', 'REVENTA INDEPENDIENTE', 'ROTICERIA', 'ROTICERÃA', 'ROTISERIA', 'ROTISERIA PROPIA Y DESDE 2007 A 2009', 'ROTISERÃA', 'RUBEN APARICIOABOGADO PARTICULAR', 'SALON DE FIESTA LOS LEALES Y HOGAR PARTICULAR', 'SALON UNISEX', 'SANDWICHERIA', 'SANTA MARIA', 'SANTA MARÃA', 'SANTA VICTORIA', 'SANTORIA', 'SASTRERIA', 'SCS Y TECNICO PARTICULAR', 'SEC EXTENSIÃN UNIVERSITARIA FADU Y UBA', 'SECR OBRAS PARTICULARES MUN DE RIVADAVIA', 'SECRETARIA PERSONAL', 'SECRETARIA PRIVADA', 'SECRETARÃA GENERAL', 'SECUNDARIA PUBLICA', 'SECUNDARIA Y UTU', 'SEGURIDAD PRIVADA', 'SEGURO Y GESTORÃA', 'SELECTORA FREE LANCE', 'SELECTORA FREELANCE', 'SEORIGINAL INDEPENDIENTE', 'SERVICE SERGIO GOLER TRABAJO INDEPENDIENTE', 'SERVICIO DE CASAS PARTICULARES', 'SERVICIO DE CATERING INDEPENDIENTE', 'SERVICIO DE NIÃERA', 'SERVICIO JURÃDICO INDEPENDIENTE', 'SERVICIO JURÃDICO PROFESIONAL INDEPENDIENTE', 'SERVICIO PARTICULAR', 'SERVICIO TÃCNICO FREELANCE', 'SERVICIOS INDEPENDIENTE', 'SERVICIOS INFORMATICOS PARTICULARES', 'SERVICIOS PARTICULAR', 'SERVICIOS PARTICULARES', 'SERVICIOS PROFESIONALES INDEPENDIENTE', 'SEÃORIAL', 'SIEMPRE EN PARTICULARES', 'SIN EMPRESA Y Y TRABAJOS PARTICULARES', 'SINDICATO DEL HIELO Y MERCADOS PARTICULARES', 'SOMMELIER FREELANCE', 'SOPORTE IT FREELANCE', 'SOPORTE TÃCNICO FREELANCE', 'SOPORTE TÃCNICO IT INDEPENDIENTE', 'SPORTCASES CHARLAS MOTIVACIONALES FREELANCER', 'SUDIDEAS PRODUCTORA DE CINE INDEPENDIENTE', 'SUSANA COSIMI VIVIENDA PARTICULAR', 'SWISSTECH Y FREELANCE', 'TALLER DE CARTERAS PARTICULAR', 'TALLER DE ZAPATOS PARTICULAR', 'TALLER INDEPENDIENTE DE TAPICERIA', 'TALLER PARTICULAR', 'TALLER PARTICULAR DE CARPINTERIA', 'TALLERES DE COSTURA INDEPENDIENTE', 'TAREAS FREELANCE DE DISEÃO GRÃFICO', 'TAREAS PROFESIONALES EN FORMA INDEPENDIENTE', 'TARJETA PLATA PRÃCTICAS LABORALES NO RENTADAS', 'TAXISTA INDEPENDIENTE', 'TEATRO INDEPENDIENTE', 'TECNICO EN INFORMATICA INDEPENDIENTE', 'TECNICO FREE LANCE', 'TECNICO INDEPENDIENTE', 'TECNICO PARTICULAR', 'TECNICO REPARADOR DE PC INDEPENDIENTE', 'TERAPIA INDIVIDUAL EN CONSULTORIO PARTICULAR', 'TINTORERIA', 'TRABAJA POR CUENTA PROPIA', 'TRABAJADOR INDEPENDIENTE', 'TRABAJADOR INDEPENDIENTE Y FAMILIAR', 'TRABAJADORA INDEPENDIENTE', 'TRABAJE EN MODO FREELANCE CON VARIAS EMPRESAS', 'TRABAJO AUTÃNOMO INDEPENDIENTE', 'TRABAJO DE FOMRA INDEPENDIENTE', 'TRABAJO DE FORMA INDEPENDIENTE', 'TRABAJO DE FORMA INDEPENDIENTE COMO ESTILISTA', 'TRABAJO DE MANERA INDEPENDIENTE', 'TRABAJO DE URBANISMO INDEPENDIENTE', 'TRABAJO ELÃCTRICOS DOMICILIARIOS PARTICULAR', 'TRABAJO EN CASA PARTICULAR', 'TRABAJO EN FORMA INDEPENDIENTE', 'TRABAJO EVENTUAL POR CUENTA PROPIA', 'TRABAJO FREE LANCE', 'TRABAJO FREELANCE', 'TRABAJO INDEPENDIENTE', 'TRABAJO INDEPENDIENTE DE ARREGLO DE PCS', 'TRABAJO INDEPENDIENTE DE MECANICA EN GENERAL', 'TRABAJO INDEPENDIENTE EN MAXIQUIOSCO', 'TRABAJO INDEPENDIENTE EN PARAGUAY', 'TRABAJO INDEPENDIENTE EN SALON DE BELLEZA', 'TRABAJO INDEPENDIENTE GESTION', 'TRABAJO INDEPENDIENTE Y INTERNACIONAL', 'TRABAJO INDEPENDIENTE Y PROYECTISTA', 'TRABAJO INFORMAL DE MANERA PARTICULAR', 'TRABAJO PARTICULAR', 'TRABAJO PARTICULAR DISCONTINUO', 'TRABAJO PARTICULAR EN EVENTOS', 'TRABAJO PARTICULAR FREELANCE', 'TRABAJO POR CUENTA PROPIA', 'TRABAJO POR CUENTA PROPIA EN VENTAS', 'TRABAJO POR CUENTA PROPIA Y SELF EMPLOYED', 'TRABAJO POR CUYENTRA PROPIA', 'TRABAJO POR MI CUENTA', 'TRABAJO POR MI CUENTA MONOTRIBUTISTA', 'TRABAJO PROFESIONAL INDEPENDIENTE', 'TRABAJOS EN CASAS PARTICULARES', 'TRABAJOS EN GENERAL INDEPENDIENTE', 'TRABAJOS EVENTUALES INDEPENDIENTES', 'TRABAJOS FREE LANCE', 'TRABAJOS FREELANCE', 'TRABAJOS INDEPENDIENTE ELETRICIDAD DOMICILIARIA', 'TRABAJOS INDEPENDIENTES', 'TRABAJOS INDEPENDIENTES DE ELEC', 'TRABAJOS INDEPENDIENTES OBRA NUEVA Y REFACCION', 'TRABAJOS PARTICULARES', 'TRABAJOS PARTICULARES DE PLOMERIA', 'TRABAJOS POR MI CUENTA', 'TRADER FREELANCE', 'TRADUCCION FREELANCE', 'TRADUCCIONES EN FORMA FREELANCE', 'TRADUCCIÃNES PARTICULARES DE INGLÃS', 'TRADUCTOR INDEPENDIENTE', 'TRADUCTOR INDEPENDIENTE FREELANCE', 'TRANSPORTE ESCOLAR INDEPENDIENTE', 'TRANSPORTE INDEPENDIENTE', 'TRANSPORTISTA PARTICULAR PARA FROSINONE FRIO SA', 'TRÃMITES DEL AUTOMOTOR SC NEGOCIO FAMILIAR', 'TUS CLASES PARTICULARES', 'TUTOR PARTICULAR DE INGLÃS', 'TUTORIAS PARTICULARES', 'TÃCNICO FREELANCE', 'TÃCNICO INDEPENDIENTE', 'TÃCNICO INFORMÃTICO FREE LANCER', 'TÃCNICO INFORMÃTICO POR CUENTA PROPIA', 'TÃCNICO POR CUENTA PROPIA', 'UNIFINANZAS EMPRESA DE NEGOCIOS INMOBILIARIOS', 'UPWORK FREELANCE COMPANY', 'VENDEDOR INDEPENDIENTE INDUMENTARIA TEXTIL', 'VENDEDORA INDEPENDIENTE', 'VENTA AMBULANTE INDEPENDIENTE', 'VENTA DE ARTICULOS DE PERFUMERIA', 'VENTA DE CALZADO GALERIA ONCE', 'VENTA DE COMIDA INDEPENDIENTE', 'VENTA DE EQUIPOS ELECTRÃNICOS FREELANCE', 'VENTA DE FORMA INDEPENDIENTE', 'VENTA DE INDUMENTARIA', 'VENTA DE INDUMENTARIA EN TRAPITO ABSORBENTE', 'VENTA DE INDUMENTARIA FEMENINA', 'VENTA DE INDUMENTARIA FEMENINA Y ACCESORIOS', 'VENTA DE INDUMENTARIA FEMENINA Y MASCULINA', 'VENTA DE INDUMENTARIA MILITAR', 'VENTA DE INDUMENTARIA ONA GO', 'VENTA DE INDUMENTARIA Y NEGOCIO FAMILIAR', 'VENTA DE LENCERÃA POR INTERNET 2019 PRESENTE', 'VENTA DE MARROQUINERIA', 'VENTA DE NDUMENTARIA FEMENINA', 'VENTA DE PASAJES INDEPENDIENTES', 'VENTA DE PRENDAS INDEPENDIENTE', 'VENTA DE ROPA VARRIAL', 'VENTA EN FERIAS', 'VENTA FREELANCE', 'VENTA INDEPENDIENTE', 'VENTA INDEPENDIENTE DE COSMETICOS POR CATALOGO', 'VENTAS ACEITE COMESTIBLE INDUMENTARIA INFORMAL', 'VENTAS DE INDUMENTARIAS', 'VENTAS INDEPENDIENTE', 'VENTAS INDEPENDIENTES', 'VENTAS PARTICULAR', 'VERDULERIA', 'VERDULERIA NEGOCIO PROPIO', 'VERDULERÃA', 'VERDULERÃA NEGOCIO FAMILIAR', 'VERDULERÃA PROPIA', 'VERLUDERIA', 'VESTUARISTA FREELANCE', 'VETERINARIA', 'VEYERINARIA', 'VIDRIERIA', 'VISUALIZACIÃN ARQUITECTÃNICA FREE LANCE', 'YOLANDA TERESA PERONACE', 'ZAPATARIA', 'ZAPATERIA', 'ZONA DOMICILIARIA', 'ZURKOWSKA MARCA PROPIA')
 	THEN 0
-	ELSE 1 END AS empresa_valida
+	ELSE 1 END AS empresa_valida,
+	industry_id,
+	area_id
 FROM aux
 -- se numera el group by en lugar de nombrarlo para reducir el tamaÃ±o del script
-GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 --</sql>--
 
 
 
--- Copy of 2023.07.07 step 30 - consume sector_estrategico(Vcliente).sql 
+-- Copy of 2023.07.21 step 30 - consume sector_estrategico(Vcliente).sql 
 
 
 
@@ -8305,7 +8607,7 @@ ORDER BY 2
 
 
 
--- Copy of 2023.07.07 step 31 - consume match_sector_estrategico_sector_productivo (Vcliente).sql 
+-- Copy of 2023.07.21 step 31 - consume match_sector_estrategico_sector_productivo(Vcliente).sql 
 
 
 
@@ -8565,7 +8867,7 @@ FROM spf
 
 
 
--- Copy of 2023.07.07 step 32 - staging organizacion_actividad (Vcliente).sql 
+-- Copy of 2023.07.21 step 32 - staging organizacion_actividad (Vcliente).sql 
 
 
 
@@ -8591,7 +8893,7 @@ FROM c
 
 
 
--- Copy of 2023.07.07 step 33 - consume actividad_area_de_interes (Vcliente).sql 
+-- Copy of 2023.07.21 step 33 - consume actividad_area_de_interes(Vcliente).sql 
 
 
 
@@ -8659,7 +8961,7 @@ GROUP BY 1, 2, 3
 
 
 
--- Copy of 2023.07.07 step 34 - staging curriculum (Vcliente).sql 
+-- Copy of 2023.07.21 step 34 - staging curriculum(Vcliente).sql 
 
 
 
@@ -8795,7 +9097,7 @@ nivel_educactivo_pe_ponderado AS (
 			i.id = af.id
 			AND instruction_type LIKE 'ACADEMIC_FORMATION'
 		)
-		JOIN "caba-piba-raw-zone-db"."portal_empleo_education_level_status" ls ON (af.education_level_id = ls.id)
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_education_level_status" ls ON (i.education_level_status_id = ls.id)
 		JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_education_level" el ON (af.education_level_id = el.id)
 ),
 nivel_educactivo_pe_ordenado AS (
@@ -8813,8 +9115,9 @@ nivel_educactivo_pe AS (
 )
 SELECT CAST(cv.id AS VARCHAR) cod_origen,
 	'PORTALEMPLEO' base_origen,
-	COALESCE(CAST(ja.application_date AS timestamp), CAST(cv.insert_into_dl_timestamp AS timestamp)) AS fecha_publicacion,
+	MAX(i.start_date) AS fecha_publicacion,
 	-- assumption ultima fecha de postulacion es la ultima fecha de publicacion del cv
+	COALESCE(CAST(ja.application_date AS timestamp), MIN(i.end_date)) AS fecha_ultima_modificacion,
 	UPPER(ct.name) capacidades_diferentes,
 	cv.presentation presentacion,
 	cv.goals metas,
@@ -8840,8 +9143,8 @@ SELECT CAST(cv.id AS VARCHAR) cod_origen,
 	END nacionalidad_broker,
 	ta.name disponibilidad,
 	m.name modalidad,
-	ne.nivel_capacitacion AS nivel_educativo,
-	ne.estado AS nivel_educativo_estado,
+ 	ne.nivel_capacitacion AS nivel_educativo,
+ 	ne.estado AS nivel_educativo_estado,
 	CONCAT(
 		(
 			CASE
@@ -8868,7 +9171,9 @@ FROM "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv
 INNER JOIN "caba-piba-raw-zone-db"."portal_empleo_candidates" c ON (c.id = cv.candidate_id)
 	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_academic_formations" af ON (af.curriculum_id = cv.id)
 	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_education_level_status" eds ON (eds.id = af.education_level_id)
-	LEFT JOIN nivel_educactivo_pe ne ON (ne.cv_id = CAST(cv.id AS VARCHAR))
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_instructions" i ON (
+			i.id = af.id AND instruction_type LIKE 'ACADEMIC_FORMATION')
+ 	LEFT JOIN nivel_educactivo_pe ne ON (ne.cv_id = CAST(cv.id AS VARCHAR))
 	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_condition_types" ct ON (ct.id = cv.condition_type_id)
 	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_time_availability" ta ON (ta.id = cv.availability_id)
 	LEFT JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_working_modalities" m ON (m.id = modality_id)
@@ -8898,8 +9203,8 @@ GROUP BY cv.id,
 	END,
 	ta.name,
 	m.name,
-	ne.nivel_capacitacion,
-	ne.estado,
+ 	ne.nivel_capacitacion,
+ 	ne.estado,
 	CONCAT(
 		(
 			CASE
@@ -8922,12 +9227,15 @@ GROUP BY cv.id,
 		)
 	),
 	dr.code || '|' || dr.value,
-	COALESCE(CAST(ja.application_date AS timestamp), CAST(cv.insert_into_dl_timestamp AS timestamp))
+	CAST(ja.application_date AS timestamp),
+	i.start_date,
+	i.end_date
 UNION
 SELECT e.id,
 	'CRMEMPLEO',
 	COALESCE(MAX(e.fecha_de_entrevista__c), CURRENT_DATE) fecha_publicacion,
 	-- assumption ultima fecha de entrevista es la ultima fecha de publicacion del cv
+	e.lastmodifieddate AS fecha_ultima_modificacion,
 	NULL capacidades_diferentes,
 	NULL presentacion,
 	e.resumen_de_la_entrevista__c metas,
@@ -8965,12 +9273,14 @@ GROUP BY e.id,
 	b.id,
 	b.genero,
 	CAST(b.login2_id AS VARCHAR),
-	el.isdeleted
+	el.isdeleted,
+	e.lastmodifieddate
 UNION
 SELECT COALESCE(ecc.id, NULL),
 	'CRMSL',
 	COALESCE(MAX(ecc.active_date), MAX(NULL), CURRENT_DATE) fecha_publicacion,
 	-- assumption ultima fecha de entrevista es la ultima fecha de publicacion del cv
+	ecc.date_modified AS fecha_ultima_modificacion,
 	CASE
 		WHEN cc.tipo_discapacidad_c = 'Motriz' THEN 'MOTOR'
 		WHEN cc.tipo_discapacidad_c = 'Nada' THEN NULL
@@ -9041,12 +9351,13 @@ GROUP BY ecc.id,
 	CASE WHEN ne.nivel_educativo IS NOT NULL AND LENGTH(TRIM(TRY_CAST(ne.nivel_educativo AS VARCHAR)))>0 THEN
 	'GRADUADO' ELSE CAST(NULL AS VARCHAR) END,
 	cc.tipo_discapacidad_c,
-	cc.cuil2_c
+	cc.cuil2_c,
+	ecc.date_modified
 --</sql>--
 
 
 
--- Copy of 2023.07.07 step 35 - consume curriculum (Vcliente).sql 
+-- Copy of 2023.07.21 step 35 - consume curriculum(Vcliente).sql 
 
 
 
@@ -9134,6 +9445,7 @@ cv_con_duplicados AS (
 	vec.id_vecino,
 	cv.modalidad,
 	TRY_CAST(cv.fecha_publicacion AS DATE) fecha_publicacion,
+	TRY_CAST(c.fecha_ultima_modificacion AS DATE) fecha_ultima_modificacion,
 	cv.disponibilidad,
 	cv.presentacion,
 	cv.estado,
@@ -9164,6 +9476,7 @@ FROM
 		AND cv.tipo_doc_broker = vec.tipo_doc_broker
 		AND CAST(cv.documento_broker AS VARCHAR) = vec.documento_broker
 	)
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum" c ON CAST(c.documento_broker AS VARCHAR) = vec.documento_broker
 WHERE cv.orden_duplicado = 1
 GROUP BY
 	cv.base_origen || cv.cod_origen,
@@ -9172,6 +9485,7 @@ GROUP BY
 	vec.id_vecino,
 	cv.modalidad,
 	TRY_CAST(cv.fecha_publicacion AS DATE),
+	TRY_CAST(c.fecha_ultima_modificacion AS DATE),
 	cv.disponibilidad,
 	cv.presentacion,
 	cv.estado,
@@ -9189,6 +9503,7 @@ SELECT  id,
 	id_vecino,
 	modalidad,
 	fecha_publicacion,
+	fecha_ultima_modificacion,
 	disponibilidad,
 	presentacion,
 	estado,
@@ -9203,128 +9518,7 @@ WHERE orden_duplicado_vecino = 1
 
 
 
--- Copy of 2023.07.07 step 36 - consume experiencia_laboral (Vcliente).sql 
-
-
-
--- Crear tabla def de experiencia laboral dentro del cv
---<sql>--
-DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cv_experiencia_laboral`;
---</sql>--
-
---<sql>--
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cv_experiencia_laboral" AS
-WITH el AS (
-SELECT
-	cv.id AS id_curriculum,
-	e.id_old,
-	e.base_origen,
-	e.fecha_desde AS fecha_inicio,
-	e.fecha_hasta AS fecha_fin,
-	e.empresa_limpia AS empresa,
-	e.posicion_limpia AS puesto,
-	e.descripcion_empleo
-FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral" e
-JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (e.id_cv_old=cv.id_old)
-GROUP BY
-	cv.id,
-	e.id_old,
-	e.base_origen,
-	e.fecha_desde,
-	e.fecha_hasta,
-	e.empresa_limpia,
-	e.posicion_limpia,
-	e.descripcion_empleo
-),
-empresas_validas AS (
-	SELECT UPPER(empresa_limpia) AS empresa,
-		ARRAY_JOIN(ARRAY_SORT(SPLIT(UPPER(empresa_limpia), ' ')), ' ') AS empresa_ordenada,
-		length(empresa_limpia) longitud,
-		id_old,
-		base_origen,
-		descripcion_empleo
-	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral"
-	WHERE empresa_valida = 1
-	GROUP BY empresa_limpia, id_old, base_origen, descripcion_empleo
-),
-organizaciones AS (
-	SELECT id_organizacion,
-		UPPER(COALESCE(razon_social_new, razon_social_old)) AS razon_social,
-		ARRAY_JOIN(ARRAY_SORT(SPLIT(UPPER(COALESCE(razon_social_new, razon_social_old)), ' ')), ' ') AS razon_social_ordenada,
-		length(COALESCE(razon_social_new, razon_social_old)) longitud
-	FROM "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones"
-),
-experiencias_empresas AS (
-SELECT
-	el.empresa,
-	el.id_old,
-	el.base_origen,
-	org.razon_social,
-	org.id_organizacion,
-	el.descripcion_empleo,
-	ROW_NUMBER() OVER(
-		PARTITION BY
-		el.empresa_ordenada,
-		org.razon_social_ordenada,
-		el.id_old,
-		el.base_origen
-		ORDER BY (
-				(
-					CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
-						levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
-					)
-				) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
-			) DESC
-	) AS "orden_duplicado"
-FROM empresas_validas el
-	JOIN organizaciones org ON (
-		(
-			(
-				CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
-					levenshtein_distance(el.empresa, org.razon_social) AS DOUBLE
-				)
-			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
-		) >= 0.99
-		OR
-		(
-			(
-				CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
-					levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
-				)
-			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
-		) >= 0.99
-	)
-)
-SELECT
-	el.base_origen||el.id_old AS id,
-	el.id_curriculum,
-	el.id_old,
-	el.base_origen,
-	el.fecha_inicio,
-	el.fecha_fin,
-	el.empresa AS organizacion,
-	org.id_organizacion,
-	el.puesto,
-	el.descripcion_empleo
-FROM el
-LEFT JOIN experiencias_empresas org
-ON (el.id_old = org.id_old AND	el.base_origen = org.base_origen AND org.orden_duplicado=1)
-GROUP BY
-	el.base_origen||el.id_old,
-	el.id_curriculum,
-	el.id_old,
-	el.base_origen,
-	el.fecha_inicio,
-	el.fecha_fin,
-	el.empresa,
-	org.id_organizacion,
-	el.puesto,
-	el.descripcion_empleo
---</sql>--
-
-
-
--- Copy of 2023.07.07 step 37 - consume tipo_formacion (Vcliente).sql 
+-- Copy of 2023.07.21 step 36 - consume tipo_formacion(Vcliente).sql 
 
 
 
@@ -9340,7 +9534,7 @@ ORDER BY value
 
 
 
--- Copy of 2023.07.07 step 38 - staging formacion_academica (Vcliente).sql 
+-- Copy of 2023.07.21 step 37 - staging formacion_academica(Vcliente).sql 
 
 
 
@@ -9478,7 +9672,7 @@ ORDER BY cl4.descripcion
 
 
 
--- Copy of 2023.07.07 step 39 - consume formacion_academica (Vcliente).sql 
+-- Copy of 2023.07.21 step 38 - consume formacion_academica(Vcliente).sql 
 
 
 
@@ -9646,7 +9840,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.07 step 40 - staging conocimientos_aptitudes (Vcliente).sql 
+-- Copy of 2023.07.21 step 39 - staging conocimientos_aptitudes(Vcliente).sql 
 
 
 
@@ -10059,7 +10253,7 @@ FROM cl4
 
 
 
--- Copy of 2023.07.07 step 41 -consume conocimientos_aptitudes (Vcliente).sql 
+-- Copy of 2023.07.21 step 40 -consume conocimientos_aptitudes(Vcliente).sql 
 
 
 
@@ -10269,7 +10463,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.07 step 42 - staging areas_de_interes (Vcliente).sql 
+-- Copy of 2023.07.21 step 41 - staging areas_de_interes(Vcliente).sql 
 
 
 
@@ -10300,49 +10494,55 @@ DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_curriculum_areas_d
 
 
 --<sql>--
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_areas_de_interes" AS
-WITH
-areas_de_interes AS (
--- Se obtienen las Ã¡reas de interÃ©s a partir de la tabla "portal_empleo_mtr_interest_areas"
--- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
-SELECT CAST(ia.id AS VARCHAR) id, CAST(ia.name AS VARCHAR) descripcion FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_areas_de_interes" AS WITH areas_de_interes AS (
+	-- Se obtienen las Ã¡reas de interÃ©s a partir de la tabla "portal_empleo_mtr_interest_areas"
+	-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+	SELECT CAST(ia.id AS VARCHAR) id,
+		'PORTALEMPLEO' base_origen,
+		CAST(ia.name AS VARCHAR) descripcion
+	FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
 )
-SELECT * FROM areas_de_interes
+SELECT *
+FROM areas_de_interes
 --</sql>--
 
 --<sql>--
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_areas_de_interes" AS
-WITH
-oportunidad_laboral_areas_de_interes AS (
--- Se unen dos tablas relacionadas, "portal_empleo_mtr_interest_areas" y "portal_empleo_job_offers", para
--- obtener las Ã¡reas de interÃ©s de una oferta laboral en particular. El resultado estÃ¡ limitado a 10 registros.
--- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
-SELECT CAST(jo.id AS VARCHAR) oportunidad_laboral_id, CAST(ia.id AS VARCHAR) areas_de_interes_id FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
-JOIN "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo
-ON (ia.id=jo.area_id)
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_areas_de_interes" AS WITH oportunidad_laboral_areas_de_interes AS (
+	-- Se unen dos tablas relacionadas, "portal_empleo_mtr_interest_areas" y "portal_empleo_job_offers", para
+	-- obtener las Ã¡reas de interÃ©s de una oferta laboral en particular. El resultado estÃ¡ limitado a 10 registros.
+	-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+	SELECT CAST(jo.id AS VARCHAR) id_oportunidad_laboral,
+		'PORTALEMPLEO' base_origen,
+		CAST(ia.id AS VARCHAR) id_areas_de_interes
+	FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_job_offers" jo ON (ia.id = jo.area_id)
 )
-SELECT * FROM oportunidad_laboral_areas_de_interes
+SELECT *
+FROM oportunidad_laboral_areas_de_interes
 --</sql>--
 
 
 --<sql>--
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_areas_de_interes" AS
-WITH
-curriculum_areas_de_interes AS (
--- Se unen varias tablas, incluyendo "portal_empleo_mtr_interest_areas", "portal_empleo_preferences_area",
--- "portal_empleo_candidate_preferences", "portal_empleo_candidates" y portal_empleo_curriculum_vitaes, para obtener las Ã¡reas de interÃ©s de un postulante.
--- AREAS DE INTERES DEL POSTULANTE, POR EJEMPLO 'AdministraciÃ³n', 'AtenciÃ³n al Cliente', 'Asistente', 'Caja', 'AlmacÃ©n / DepÃ³sito / ExpediciÃ³n'
-SELECT CAST(cv.id AS VARCHAR) curriculum_id, CAST(ia.id AS VARCHAR) areas_de_interes_id FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
-JOIN "caba-piba-raw-zone-db"."portal_empleo_preferences_area" pa ON (ia.id=pa.area_id)
-JOIN "caba-piba-raw-zone-db"."portal_empleo_candidate_preferences" cp ON (cp.id=pa.candidate_preference_id)
-JOIN "caba-piba-raw-zone-db"."portal_empleo_candidates" ca ON (ca.id=cp.candidate_id)
-JOIN "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv ON (cv.candidate_id=ca.id))
-SELECT * FROM curriculum_areas_de_interes
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_areas_de_interes" AS WITH curriculum_areas_de_interes AS (
+	-- Se unen varias tablas, incluyendo "portal_empleo_mtr_interest_areas", "portal_empleo_preferences_area",
+	-- "portal_empleo_candidate_preferences", "portal_empleo_candidates" y portal_empleo_curriculum_vitaes, para obtener las Ã¡reas de interÃ©s de un postulante.
+	-- AREAS DE INTERES DEL POSTULANTE, POR EJEMPLO 'AdministraciÃ³n', 'AtenciÃ³n al Cliente', 'Asistente', 'Caja', 'AlmacÃ©n / DepÃ³sito / ExpediciÃ³n'
+	SELECT CAST(cv.id AS VARCHAR) id_curriculum,
+		CAST(ia.id AS VARCHAR) id_areas_de_interes,
+		'PORTALEMPLEO' base_origen
+	FROM "caba-piba-raw-zone-db"."portal_empleo_mtr_interest_areas" ia
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_preferences_area" pa ON (ia.id = pa.area_id)
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_candidate_preferences" cp ON (cp.id = pa.candidate_preference_id)
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_candidates" ca ON (ca.id = cp.candidate_id)
+		JOIN "caba-piba-raw-zone-db"."portal_empleo_curriculum_vitaes" cv ON (cv.candidate_id = ca.id)
+)
+SELECT *
+FROM curriculum_areas_de_interes
 --</sql>--
 
 
 
--- Copy of 2023.07.07 step 43 - consume areas_de_interes (Vcliente).sql 
+-- Copy of 2023.07.21 step 42 - consume areas_de_interes(Vcliente).sql 
 
 
 
@@ -10373,40 +10573,181 @@ DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_curriculum_areas_d
 
 
 --<sql>--
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" AS
-WITH
-areas_de_interes AS (
--- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
-SELECT row_number() OVER () AS areas_de_interes_id, id AS id_old, descripcion AS descripcion FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_areas_de_interes")
-SELECT * FROM areas_de_interes
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" AS WITH areas_de_interes AS (
+	-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+	SELECT row_number() OVER () AS id_areas_de_interes,
+		id AS id_old,
+		base_origen,
+		descripcion AS descripcion
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_areas_de_interes"
+)
+SELECT *
+FROM areas_de_interes
 --</sql>--
 
 
 --<sql>--
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_areas_de_interes" AS
-WITH
-oportunidad_laboral_areas_de_interes AS (
--- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
-SELECT row_number() OVER () AS oportunidad_laboral_areas_de_interes_id, ol.id_oportunidad_laboral, ai.areas_de_interes_id FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_areas_de_interes" olai
-JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (olai.areas_de_interes_id=ai.id_old)
-JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.id_old=olai.oportunidad_laboral_id))
-SELECT * FROM oportunidad_laboral_areas_de_interes
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_areas_de_interes" AS WITH oportunidad_laboral_areas_de_interes AS (
+	-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+	SELECT row_number() OVER () AS id_oportunidad_laboral_areas_de_interes,
+		ol.id_oportunidad_laboral,
+		ai.id_areas_de_interes
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_areas_de_interes" olai
+		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (olai.id_areas_de_interes = ai.id_old AND olai.base_origen = ai.base_origen)
+		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.id_old = olai.id_oportunidad_laboral AND ol.base_origen = ai.base_origen)
+)
+SELECT *
+FROM oportunidad_laboral_areas_de_interes
 --</sql>--
 
 --<sql>--
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum_areas_de_interes" AS
-WITH
-curriculum_areas_de_interes AS (
--- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
-SELECT row_number() OVER () AS curriculum_areas_de_interes_id, cv.id AS curriculum_id, ai.areas_de_interes_id FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_areas_de_interes" cvai
-JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (cvai.areas_de_interes_id=ai.id_old)
-JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (cv.id_old=cvai.curriculum_id))
-SELECT * FROM curriculum_areas_de_interes
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum_areas_de_interes" AS WITH curriculum_areas_de_interes AS (
+	-- AREAS DE INTERES DE LA OFERTAS LABORALES, POR EJEMPLO: 'InformÃ¡tica / IT / Sistemas', 'AtenciÃ³n al Cliente', 'Gastronomia'
+	SELECT row_number() OVER () AS id_curriculum_areas_de_interes,
+		cv.id AS id_curriculum,
+		ai.id_areas_de_interes
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_areas_de_interes" cvai
+		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (cvai.id_areas_de_interes = ai.id_old AND cvai.base_origen = ai.base_origen)
+		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (cv.id_old = cvai.id_curriculum AND cv.base_origen = ai.base_origen)
+)
+SELECT *
+FROM curriculum_areas_de_interes
 --</sql>--
 
 
 
--- Copy of 2023.07.07 step 44 - consume vecinos-nivel-educativo (Vcliente).sql 
+-- Copy of 2023.07.21 step 43 - consume experiencia_laboral(Vcliente).sql 
+
+
+
+-- Crear tabla def de experiencia laboral dentro del cv
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_cv_experiencia_laboral`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_cv_experiencia_laboral" AS
+WITH el AS (
+SELECT
+	cv.id AS id_curriculum,
+	e.id_old,
+	e.base_origen,
+	e.fecha_desde AS fecha_inicio,
+	e.fecha_hasta AS fecha_fin,
+	e.empresa_limpia AS empresa,
+	e.posicion_limpia AS puesto,
+	e.descripcion_empleo,
+	ai.id_areas_de_interes,
+	sp.id_sector_productivo
+FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral" e
+JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (e.id_cv_old=cv.id_old)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (e.area_id = ai.id_old AND ai.base_origen=e.base_origen)
+LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_sector_productivo" sp ON (CAST(e.industry_id AS VARCHAR) IN (sp.ids_mtr_portal_empleo) AND e.base_origen = 'PORTALEMPLEO')
+GROUP BY
+	cv.id,
+	e.id_old,
+	e.base_origen,
+	e.fecha_desde,
+	e.fecha_hasta,
+	e.empresa_limpia,
+	e.posicion_limpia,
+	e.descripcion_empleo,
+	ai.id_areas_de_interes,
+	sp.id_sector_productivo
+),
+empresas_validas AS (
+	SELECT UPPER(empresa_limpia) AS empresa,
+		ARRAY_JOIN(ARRAY_SORT(SPLIT(UPPER(empresa_limpia), ' ')), ' ') AS empresa_ordenada,
+		length(empresa_limpia) longitud,
+		id_old,
+		base_origen,
+		descripcion_empleo
+	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_cv_experiencia_laboral"
+	WHERE empresa_valida = 1
+	GROUP BY empresa_limpia, id_old, base_origen, descripcion_empleo
+),
+organizaciones AS (
+	SELECT id_organizacion,
+		UPPER(COALESCE(razon_social_new, razon_social_old)) AS razon_social,
+		ARRAY_JOIN(ARRAY_SORT(SPLIT(UPPER(COALESCE(razon_social_new, razon_social_old)), ' ')), ' ') AS razon_social_ordenada,
+		length(COALESCE(razon_social_new, razon_social_old)) longitud
+	FROM "caba-piba-staging-zone-db"."tbp_typ_def_organizaciones"
+),
+experiencias_empresas AS (
+SELECT
+	el.empresa,
+	el.id_old,
+	el.base_origen,
+	org.razon_social,
+	org.id_organizacion,
+	el.descripcion_empleo,
+	ROW_NUMBER() OVER(
+		PARTITION BY
+		el.empresa_ordenada,
+		org.razon_social_ordenada,
+		el.id_old,
+		el.base_origen
+		ORDER BY (
+				(
+					CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+						levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
+					)
+				) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+			) DESC
+	) AS "orden_duplicado"
+FROM empresas_validas el
+	JOIN organizaciones org ON (
+		(
+			(
+				CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+					levenshtein_distance(el.empresa, org.razon_social) AS DOUBLE
+				)
+			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+		) >= 0.99
+		OR
+		(
+			(
+				CAST(greatest(el.longitud, org.longitud) AS DOUBLE) - CAST(
+					levenshtein_distance(el.empresa_ordenada, org.razon_social_ordenada) AS DOUBLE
+				)
+			) / CAST(greatest(el.longitud, org.longitud) AS DOUBLE)
+		) >= 0.99
+	)
+)
+SELECT
+	el.base_origen||el.id_old AS id,
+	el.id_curriculum,
+	el.id_old,
+	el.base_origen,
+	el.fecha_inicio,
+	el.fecha_fin,
+	el.empresa AS organizacion,
+	org.id_organizacion,
+	el.puesto,
+	el.descripcion_empleo,
+	el.id_areas_de_interes,
+	el.id_sector_productivo
+FROM el
+LEFT JOIN experiencias_empresas org
+ON (el.id_old = org.id_old AND	el.base_origen = org.base_origen AND org.orden_duplicado=1)
+GROUP BY
+	el.base_origen||el.id_old,
+	el.id_curriculum,
+	el.id_old,
+	el.base_origen,
+	el.fecha_inicio,
+	el.fecha_fin,
+	el.empresa,
+	org.id_organizacion,
+	el.puesto,
+	el.descripcion_empleo,
+	el.id_areas_de_interes,
+	el.id_sector_productivo
+--</sql>--
+
+
+
+-- Copy of 2023.07.21 step 44 - consume vecinos-nivel-educativo(Vcliente).sql 
 
 
 
@@ -10493,15 +10834,15 @@ LEFT JOIN nivel_educactivo_pe_ordenado c ON (v.id_vecino=c.id_vecino AND c.orden
 
 -- 2- Eliminar y recrear tabla
 -- 1.- Crear tabla tbp_typ_def_vecino con nivel educativo
---<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_vecino_ne`;--</sql>--
+--<sql>--DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_vecino_nivel_educativo`;--</sql>--
 --<sql>--
-CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_vecino_ne" AS
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_vecino_nivel_educativo" AS
 SELECT * FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino_ne"
 --</sql>--
 
 
 
--- Copy of 2023.07.07 step 45 - consume organizacion_actividad (Vcliente).sql 
+-- Copy of 2023.07.21 step 45 - consume organizacion_actividad(Vcliente).sql 
 
 
 

@@ -1,0 +1,248 @@
+2023-07-21:
+En "step 04 - staging capacitacion asi.sql" se actualiza el campo "capacitacion_id" por "id_capacitacion".
+En "step 05 - staging capacitacion.sql" se actualiza el campo "capacitacion_id" por "id_capacitacion".
+En "step 06 - consume capacitacion.sql" se actualiza el campo "capacitacion_id" por "id_capacitacion".
+En "step 15 - consume edicion capacitacion.sql" se cambia clave "capacitacion_id" por "id_capacitacion".
+En "step 17 - consume cursada.sql" se cambia clave "capacitacion_id" por "id_capacitacion".
+En "step 20 - staging oportunidad_laboral.sql" se ingesta la informacion de la tabla "caba-piba-raw-zone-db"."ofertas_laborales_view"
+En "step 20 - staging oportunidad_laboral.sql" se crea la tabla "tbp_typ_tmp_oportunidad_laboral_conocimientos" que conecta las oportunidades laborales con los conocimientos de informatica requeridos para cubrir la vacante. Ademas se agregan los campos "internet", "informatica" y "conocimiento_especifico_requerido" en la tabla "tbp_typ_tmp_oportunidad_laboral", asumiendo que hacen referencia a requisitos de conocimiento sobre internet e informatica.
+En "step 24 - consume oportunidad_laboral.sql" se crea la tabla "tbp_typ_def_oportunidad_laboral_conocimientos".
+En "step 21 - staging registro_laboral_formal.sql" se agrega el campo "fecha_de_movimiento_origen" y se cambia nombre de tabla "caba-piba-raw-zone-db"."afip_agip_altas_bajas" por "caba-piba-staging-zone-db"."afip_agip_altas_bajas".
+En "step 24 - consume oportunidad_laboral.sql" se corrige un error en la tabla "tbp_typ_def_oportunidad_laboral_idiomas" para que la clave foranea a oportunidad laboral sea la clave primaria de "tbp_typ_def_oportunidad_laboral" y no la clave primaria de "tbp_typ_tmp_oportunidad_laboral".
+En "step 26 - consume registro_laboral_formal.sql" se agrega el campo "fecha_de_movimiento_origen".
+En "step 34 - staging curriculum.sql" se agrega campo fecha de ultima actualizacion de curriculum.
+En "step 35 - consume curriculum.sql" se agrega campo fecha de ultima actualizacion de curriculum.
+En "step 44 - consume vecinos-nivel-educativo.sql" se cambia nombre de tabla de "tbp_typ_def_vecino_ne" a "tbp_typ_def_vecino_nivel_educativo".
+
+Se reordenan los scripts:
+se cambia el nombre de "step 36 - consume experiencia_laboral.sql a 2023.07.21.sql" a "step 43 - consume experiencia_laboral.sql a 2023.07.21.sql"
+Y se le reduce en 1 a los steps 
+"step 37 - consume tipo_formacion.sql"
+"step 38 - staging formacion_academica.sql"
+"step 39 - consume formacion_academica.sql"
+"step 40 - staging conocimientos_aptitudes.sql"
+"step 41 -consume conocimientos_aptitudes.sql"
+"step 42 - staging areas_de_interes.sql"
+"step 43 - consume areas_de_interes.sql"
+
+quedando 
+"step 36 - consume tipo_formacion.sql"
+"step 37 - staging formacion_academica.sql"
+"step 38 - consume formacion_academica.sql"
+"step 39 - staging conocimientos_aptitudes.sql"
+"step 40 -consume conocimientos_aptitudes.sql"
+"step 41 - staging areas_de_interes.sql"
+"step 42 - consume areas_de_interes.sql"
+
+
+2023-07-07:
+En "step 07 - staging vecinos.sql" se agregan validaciones para que el DNI no sea vacio ni nulo en los casos faltantes.
+En "step 08 - consume vecinos.sql" se agregan validaciones para que el DNI no sea vacio ni nulo en los casos faltantes.
+En "step 15 - consume edicion capacitacion.sql" se agrega la clave primaria de "tbp_typ_def_capacitacion".
+En "step 16 - staging cursada.sql" se agregan validaciones para que el DNI no sea vacio ni nulo en los casos faltantes
+En "step 17 - consume cursada.sql" se agrega la clave primaria de "tbp_typ_def_capacitacion" y se agregan validaciones para que el DNI no sea vacio ni nulo en los casos faltantes.
+En "step 16 - staging cursada.sql" se corrige el join con "tbp_typ_tmp_estado_beneficiario_moodle" para que cada edicion capacitacion realizada por un vecino solo tengo asignado un estado beneficiario.
+En "step 16 - staging cursada.sql" para cada base origen considerada se agrega el campo id_establecimiento como parte del join con tbp_typ_def_edicion_capacitacion de manera que se identifique correctamente la edicion de capacitacion correspondiente.
+En "step 24 - consume oportunidad_laboral.sql" se corrige un error en la tabla 'tbp_typ_def_oportunidad_laboral_idiomas' para que no existan tuplas con 'idioma_requerido' null.
+En "step 34 - staging curriculum.sql" se actualiza en campo fecha_publicacion para 'PORTALEMPLEO' utilizando fecha de ultima modificación/actualización de CV, ademas se actualiza relacion entre tablas.
+En "step 35 - consume curriculum.sql" se actualiza nombre de campo vecino.
+En "step 36 - consume experiencia_laboral.sql" se agrega la descripcion del empleo.
+Desde "step 04 - staging capacitacion asi.sql" hasta "step 44 - consume vecinos-nivel-educativo.sql" se actualiza y corrige campos en funcion a la ultima convencion de nombres.
+
+Se agregan los scripts:
+step 44 - consume vecinos-nivel-educativo.sql (recrea la tabla de vecinos agregando el nivel educativo y el estado del mismo previamente ponderado)
+step 45 - consume organizacion_actividad.sql (crea la tabla def para organizacion_actividad)
+
+Se agrega el informe final sobre las sugerencias para la implementacion del algoritmo de recomendacion de oportunidades laborales
+
+
+2023-06-23:
+En "step 07 - staging vecinos.sql" se decodifica campo genero_broker para todas las tablas y se actualiza script para tabla temporal IEL 
+En "step 08 - consume vecinos" se decodifica campo genero_broker para todas las tablas y se eliminan espacios en blanco en vecino_id
+En "step 20 - staging oportunidad_laboral.sql" se separan los idiomas requeridos en una nueva entidad, se corrige la descripcion de la oportunidad laboral para evitar que se concatene con el nombre del puesto
+En "step 24 - consume oportunidad_laboral.sql" se separan los idiomas requeridos en una nueva entidad, se corrigen las oportunidades laborales para que esten asociadas a lo sumo a una organizacion
+En "step 34 - staging curriculum.sql" se reordena el orden de los JOIN para la base_origen CRMEMPLEO
+
+Se agregan los scripts:
+step 40 - staging conocimientos_aptitudes.sql
+step 41 - consume conocimientos_aptitudes.sql
+step 42 - staging areas_de_interes.sql
+step 43 - consume areas_de_interes.sql
+
+2023-06-09:
+Se cambia el nombre de los scripts de "entrevista" a "postulaciones"
+
+Se reordenan los scripts:
+Antes
+step 19 - staging oportunidad_laboral.sql
+step 20 - consume oportunidad_laboral.sql
+step 21 - staging registro_laboral_formal.sql
+step 22 - consume sector_productivo.sql
+step 23 - consume_registro_laboral_formal.sql
+step 24 - staging entrevista.sql
+step 25 - consume entrevista.sql
+step 26 - staging organizaciones.sql
+step 27 - staging experiencia_laboral.sql
+step 28 - consume organizaciones.sql
+step 29 - consume sector_estrategico.sql
+step 30 - consume match_sector_estrategico_sector_productivo.sql
+step 31 - staging organizacion_actividad.sql
+step 32 - consume actividad_area_de_interes.sql
+step 33 - consume puestos.sql
+
+Después
+step 19 - consume puestos.sql
+step 20 - staging oportunidad_laboral.sql
+step 21 - staging registro_laboral_formal.sql
+step 22 - staging organizaciones.sql
+step 23 - consume organizaciones.sql
+step 24 - consume oportunidad_laboral.sql
+step 25 - consume sector_productivo.sql
+step 26 - consume_registro_laboral_formal.sql
+step 27 - staging postulaciones.sql
+step 28 - consume postulaciones.sql
+step 29 - staging experiencia_laboral.sql
+step 30 - consume sector_estrategico.sql
+step 31 - consume match_sector_estrategico_sector_productivo.sql
+step 32 - staging organizacion_actividad.sql
+step 33 - consume actividad_area_de_interes.sql
+
+En "step 20 - staging oportunidad_laboral.sql" se agregan los atributos: genero_requerido, experiencia_requerida y idioma_requerido 
+
+En "step 21 - staging registro_laboral_formal.sql"  se cambia el atributo cargo por puesto_id y se limita el resultado a las personas que estan en la tabla de vecinos. Se elimina join con tabla def de oportunidad laboral, para hacerlo en el script de consume. Se reemplaza el atributo oportunidad_laboral_id por oportunidad_laboral_id_old (id de base origen)
+
+En "step 22 - staging organizaciones.sql" se reemplaza el uso de la tabla def de la entidad  registro laboral formal por la tabla tmp
+
+En "step 23 - consume oportunidad_laboral.sql" se agregan los atributos: genero_requerido, experiencia_requerida y idioma_requerido y se agrega la relacion con la entidad organizaciones
+
+En "step 24 - consume organizaciones.sql" se quitan las organizaciones que no tenian cuit y provenian de tbp_typ_tmp_cv_experiencia_laboral_organizacion (tabla temporal con organizaciones de experiencia laboral). Se asocia ademas con la tabla programa
+
+En "step 26 - consume_registro_laboral_formal.sql" se cambia el atributo cargo por puesto_id. Se realiza el join con la tabla def de oportunidad laboral para generar la relacion modelada
+
+En "step 27 - staging postulaciones.sql" y "step 28 - consume postulaciones.sql" se agrega atributo tuvo_entrevista 
+
+En "step 29 - staging experiencia_laboral.sql" se modifica el join con organizaciones para limitar el resultado a los que poseen el orden_duplcado = 1 que significa que en caso que haya mas de una organizacion candidata por nombre, se toma la mas exacta
+
+En "step 34 - staging curriculum.sql" y "step 35 - consume curriculum.sql" se agrega el atributo licencia_conducir
+
+En "step 36 - consume experiencia_laboral.sql" se agrega el atributo organizacion proveniente de la base origen
+
+En "step 39 - consume formacion_academica.sql" se renombra la columna "institucion_educativa" como "organizacion"
+
+2023-05-24:
+Se elimina el script step 21 - staging nomenclador_actividades_economicas.sql dado que el mismo se convirtio en una tabla estatica que debió ser ingestada. Al haber eliminado el mismo, se reordenan los demas scripts reduciendo su step en 1
+
+En "step 05 - staging capacitacion.sql" se agrupan los resultados al crear la tabla  tbp_typ_tmp_moodle_match
+En "step 06 - consume capacitacion.sql" se cambia UNION por UNION DISTINCT al crear la tabla tbp_typ_def_capacitacion_match
+En "step 14 - staging edicion capacitacion.sql" al crear la tabla tbp_typ_tmp_edicion_capacitacion_1 se la seccion que trae informacion de la base origen SIU
+En "step 16 - staging cursada.sql" se cambia la forma de hacer join con edicion_capacitacion para la base origen SIU, dado que ahora el id_old contiene adicionalmente el turno
+
+Se renombra el archivo "step 33 - consume cargos" a "step 33 - consume puestos", se cambia ademas el nombre del atributo cargo a puesto
+
+En "step 34 - staging curriculum.sql" se corrige nivel educativo proveniente de PORTALEMPLEO y se genera una ponderacion para asignar en CV el máximo nivel educativo alcanzado agregando adicionalmente el estado del nivel educativo (ver diccionario de datos)
+
+En "step 35 - consume curriculum.sql" se normaliza el nivel educativo otro/otros por otro y se eliminan los duplicados provenientes de vecinos o de curriculums con mas de un nivel educativo, se prioriza el mismo de acuerdo a la informacion consignada en el diccionario de datos
+
+Se agregan los scripts:
+step 37 - consume tipo_formacion.sql
+step 38 - staging formacion_academica.sql
+step 39 - consume formacion_academica.sql
+
+Las tablas tbp_typ_tmp_data_efectores y tbp_typ_tmp_nomenclador_actividades_economicas ahora son utilizadas desde la capa RAW en los scripts:
+"step 02 - staging establecimiento.sql"
+"step 21 - staging registro_laboral_formal.sql"
+"step 22 - consume sector_productivo.sql"
+"step 30 - consume match_sector_estrategico_sector_productivo.sql"
+"step 32 - consume actividad_area_de_interes.sql"
+
+2023-05-12:
+Se modifica dentro del archivo "creacion de vistas.sql" la vista "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" cambiando las condiciones del WHERE para obtener dni a partir de cuil
+Se modifica el archivo "staging vecinos.sql" cambiando parte de la logica de la tabla "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino_1" para las bases origenes SIU, CRMSL y PORTALEMPLEO
+Se modifica el archivo "staging registro_laboral_formal.sql" validando las fechas de inicio y fin, si cualquiera de ellas es inconsistente en algun registro se las deja en null a ambas
+Se modifica el archivo "consume sector_productivo.sql" agregando/cambiando sectores y actividades incluidas en los mismos
+Se modifica el archivo "consume match_sector_estrategico_sector_productivo.sql" agregando/cambiando sectores y actividades incluidas en los mismos
+Se modifica el archivo "staging organizaciones.sql
+
+Se agrega el archivo "staging nomenclador_actividades_economicas.sql" (step 21)
+Se agrega el archivo "staging organizaciones.sql" (step 27)
+Se agrega el archivo "staging experiencia_laboral.sql" (step 28)
+Se agrega el archivo "consume cargos.sql" (step 34)
+Se agrega el archivo "staging curriculum.sql" (step 35)
+Se agrega el archivo "consume curriculum.sql" (step 36)
+Se agrega el archivo "consume experiencia_laboral.sql" (step 37)
+
+Se reordenaron los steps:
+"consume sector_productivo.sql" de step 21 a 23
+"consume_registro_laboral_formal.sql" de step 23 a 24
+"staging entrevista.sql" de step 24 a 25
+"consume entrevista.sql" de step 25 a 26
+"consume organizaciones .sql" de step 26 a 29
+"consume sector_estrategico.sql" de step 27 a 30
+"consume match_sector_estrategico_sector_productivo.sql" de step 28 a 31
+"staging organizacion_actividad .sql" de step 29 a 32
+"consume actividad_area_de_interes.sql" de step 30 a 33
+
+2023-04-28:
+Se cambian los sectores productivos en los archivo "staging oportunidad_laboral.sql" (step 19) y "consume oportunidad_laboral.sql" (step 20)
+Se agrega el archivo nuevo "consume sector_productivo.sql" (step 21)
+Se reordenan los steps de la entrega del 2023-04-14 agregando el paso mencionado anterioriormente, por lo que el script 21 es el 22, el 22 es el 23 y asi sucesivamente.
+Se agrega el archivo "consume organizaciones.sql" (step 26)
+Se agrega el archivo "consume sector_estrategico.sql" (step 27)
+Se agrega el archivo "consume match_sector_estrategico_sector_productivo.sql" (step 28)
+Se agrega el archivo "staging organizacion_actividad.sql" (step 29)
+Se agrega el archivo "consume actividad_area_de_interes.sql" (step 29)
+
+2023-04-14:
+Se agregó la vista "goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto" en el archivo "creacion_de_vistas.sql" (step 00)
+
+Se modificó el cálculo del estado de beneficiario según el código suministrado por Edgardo Rene Navas en el archivo "staging_estado_beneficiario_sienfo.sql" (step 10)
+
+Se modificó el cálculo del estado de beneficiario según el código modificado entre TBP y Edgardo Rene Navas en el archivo "staging_estado_beneficiario_siu.sql" (step 13)
+
+En el archivo "staging_edicion_capacitacion.sql" (step 14):
+-Se modificó la entidad "Edición Capacitación" para la base_origen SIU, desasociando el concepto de comisión como identificador de la "Edición Capacitación" y reemplazándolo por el indicado en el diccionario de datos
+-A su vez se cambió la forma de determinar la fecha de inicio y fin de dictado, la cantidad de inscriptos, el cupo, el estado y si la inscripción está abierta o no
+
+En el archivo "staging_cursada.sql" (step 16):
+-Se modificó la entidad "Cursada" para la base_origen SIU, desasociando el concepto de comisión como identificador de la "Edición Capacitación" y reemplazándolo por el indicado en el diccionario de datos
+-Se utilizó la asociación anterior para obtener el estado del beneficiario
+
+Se agrega el campo "fecha_egreso" en la entidad "Trayectoria Educativa" en el archivo "consume_trayectoria_educativa.sql" (step 18)
+
+Se renombran los campos con sufijo "_naecba" por "agip_o_naecba" en el archivo "staging_registro_laboral_formal.sql" (step 23)
+
+Se agrega el archivo nuevo "staging_entrevista.sql" (step 25)
+
+Se agrega el archivo nuevo "consume_entrevista.sql" (step 26)
+
+
+2023-03-31:
+Se elimina join con voluntarios de la bases_origen PORTALEMPLEO debido a que es una sección del CV y no una opotunidad laboral en el archivo "staging vecinos.sql" (step 07)
+
+Se cambia la clausula GROUP BY de campos numerados a nombrados en el archivo "consume oportunidad_laboral.sql" (step 20)
+
+En "staging registro_laboral_formal.sql" (step 23):
+-Se cambia la clausula GROUP BY de campos numerados a nombrados
+-Se quita join con voluntarios de la bases_origen PORTALEMPLEO
+-Se quita del select el vecino_id y se lo reemplaza por el broker_id
+-Se modifica la creación de la tabla tbp_typ_tmp_registro_laboral_formal_afip_agip_ab utilizando la nueva tabla nomencladora tbp_typ_tmp_nomenclador_actividades_economicas
+-Se elimina restriccion de 6 meses entre la oportunidad y la contratacion en registro_laboral_formal
+
+En "consume_registro_laboral_formal.sql" (step 24):
+-Se crea tabla N-N para relacionar oportunidad_laboral y registro_laboral_formal
+-Se cambia la clausula GROUP BY de campos numerados a nombrados
+-Se quita del select el vecino_id y se lo reemplaza por el broker_id
+
+
+2023-03-17:
+Se modifica el script de la base_origen CRSML y se agregan datos de las bases_origen PORTALEMPLEO y CRMEMPLREO en el archivo "staging vecinos.sql" (step 07)
+
+En el script que trae informacion de la base_origen CRMSL se modifica el JOIN con vecinos en el archivo "staging cursada.sql" (step 16)
+
+Se agrega el id de la base_origen y se habilita el script de la tabla histórica de CRMEMPLREO en el archivo "staging oportunidad_laboral.sql" (step 19)
+
+Se agrega el id de la base_origen y se agrupan los resultados en el archivo "consume oportunidad_laboral.sql" (step 20)
+
+Se agrega el archivo nuevo "staging registro_laboral_formal.sql" (step 23)
+
+Se agrega el archivo nuevo "consume_registro_laboral_formal.sql" (step 24)
