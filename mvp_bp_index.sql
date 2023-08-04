@@ -1,8 +1,9 @@
--- Copy of 2023.07.21 step 00 - creacion de vistas(Vcliente).sql 
+-- Copy of 2023.08.04 step 00 - creacion de vistas(Vcliente).sql 
 
 
 
 --1. RENAPER sin duplicados
+--<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_view_ciudadanos_renaper_no_duplicates`; --</sql>--
 --<sql>--
 CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."tbp_typ_tmp_view_ciudadanos_renaper_no_duplicates" AS
 
@@ -25,7 +26,9 @@ ROW_NUMBER() OVER(
  ) a
  WHERE a.orden_duplicado=1
  --</sql>--
+
 --2. usuarios CRSML sin duplicados
+--<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates`; --</sql>--
 --<sql>--
   CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."tbp_typ_tmp_view_crm_sociolaboral_contacts_cstm_no_duplicates" AS
 SELECT
@@ -112,7 +115,9 @@ SELECT c.*,
  ) a
  WHERE a.orden_duplicado=1
  --</sql>--
+
 --3. usuarios GOET sin duplicados
+--<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_view_goet_usuarios_no_duplicates`; --</sql>--
 --<sql>--
  CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."tbp_typ_tmp_view_goet_usuarios_no_duplicates" AS
 SELECT
@@ -170,7 +175,9 @@ FROM "caba-piba-raw-zone-db"."goet_usuarios" u
  ) a
  WHERE a.orden_duplicado=1
  --</sql>--
+
 --4. usuarios SIU sin duplicados
+--<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_view_siu_toba_3_3_negocio_mdp_personas_no_duplicates`; --</sql>--
 --<sql>--
  CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."tbp_typ_tmp_view_siu_toba_3_3_negocio_mdp_personas_no_duplicates" AS
   SELECT
@@ -214,7 +221,9 @@ ROW_NUMBER() OVER(
  ) a
  WHERE a.orden_duplicado=1
  --</sql>--
+
 --5. SIENFO FICHAS sin duplicados
+--<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`goayvd_typ_vw_sienfo_fichas`; --</sql>--
 --<sql>--
  CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_vw_sienfo_fichas" AS
 SELECT f1.id_fichas,
@@ -288,7 +297,9 @@ FROM (
 	) f1
 WHERE DUP = 1
 --</sql>--
+
 --6. SIENFO FICHAS PREINSCRIPCION sin duplicados
+--<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`goayvd_typ_vw_sienfo_fichas_preinscripcion`; --</sql>--
 --<sql>--
 CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_vw_sienfo_fichas_preinscripcion" AS
 SELECT
@@ -348,7 +359,9 @@ FROM
 ) t
 WHERE dup = 1
 --</sql>--
+
 --7. VISTA DE SIU QUE SE UTILIZA PARA CALCULO DE ESTADO DE BENEFICIARIO
+--<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`goayvd_typ_tmp_siu_cantidad_materias_plan`; --</sql>--
 --<sql>--
 CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_tmp_siu_cantidad_materias_plan" AS
 SELECT
@@ -361,7 +374,9 @@ SELECT
 FROM
   "caba-piba-raw-zone-db"."siu_toba_3_3_negocio_sga_planes"
 --</sql>--
+
 --8. VISTA NECESARIA PARA CALCULO DE ESTADO DE BENEFICIARIO DE SIENFO
+--<sql>-- DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto`; --</sql>--
 --<sql>--
 CREATE OR REPLACE VIEW "caba-piba-staging-zone-db"."goayvd_typ_sienfo_vw_cantidad_materias_por_trayecto" AS
 WITH carrera_29 AS (
@@ -498,7 +513,7 @@ LEFT JOIN carrera_1_old ON carrera_1_old.carrera = todas.carrera
 
 
 
--- Copy of 2023.07.21 step 01 - consume programa(Vcliente).sql 
+-- Copy of 2023.08.04 step 01 - consume programa(Vcliente).sql 
 
 
 
@@ -529,7 +544,7 @@ LEFT JOIN "caba-piba-raw-zone-db"."api_asi_reparticion" r ON (p.ministerio_id = 
 
 
 
--- Copy of 2023.07.21 step 02 - staging establecimiento(Vcliente).sql 
+-- Copy of 2023.08.04 step 02 - staging establecimiento(Vcliente).sql 
 
 
 
@@ -1067,7 +1082,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_establecimientos_domicilios_estand
 
 
 
--- Copy of 2023.07.21 step 03 - consume establecimiento (Vcliente).sql 
+-- Copy of 2023.08.04 step 03 - consume establecimiento(Vcliente).sql 
 
 
 
@@ -1111,7 +1126,7 @@ ORDER BY tmp.base_origen, tmp.nombre
 
 
 
--- Copy of 2023.07.21 step 04 - staging capacitacion asi(Vcliente).sql 
+-- Copy of 2023.08.04 step 04 - staging capacitacion asi(Vcliente).sql 
 
 
 
@@ -1175,7 +1190,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.07.21 step 05 - staging capacitacion(Vcliente).sql 
+-- Copy of 2023.08.04 step 05 - staging capacitacion(Vcliente).sql 
 
 
 
@@ -1797,7 +1812,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_siu_capacitaciones"
 
 
 
--- Copy of 2023.07.21 step 06 - consume capacitacion (Vcliente).sql 
+-- Copy of 2023.08.04 step 06 - consume capacitacion(Vcliente).sql 
 
 
 
@@ -1909,7 +1924,7 @@ ON (ac.aptitud_id = a.id)
 
 
 
--- Copy of 2023.07.21 step 07 - staging vecinos(Vcliente).sql 
+-- Copy of 2023.08.04 step 07 - staging vecinos(Vcliente).sql 
 
 
 
@@ -2675,7 +2690,7 @@ tmp.base_origen_ok, gu.idusuario
 
 
 
--- Copy of 2023.07.21 step 08 - consume vecinos(Vcliente).sql 
+-- Copy of 2023.08.04 step 08 - consume vecinos(Vcliente).sql 
 
 
 
@@ -2790,7 +2805,7 @@ WHERE documento_broker IS NOT NULL AND LENGTH(TRIM(documento_broker))>0
 
 
 
--- Copy of 2023.07.21 step 09 - staging estado_beneficiario_crmsl (Vcliente).sql 
+-- Copy of 2023.08.04 step 09 - staging estado_beneficiario_crmsl(Vcliente).sql 
 
 
 
@@ -2896,7 +2911,7 @@ FROM resultado
 
 
 
--- Copy of 2023.07.21 step 10 - staging estado_beneficiario_sienfo (Vcliente).sql 
+-- Copy of 2023.08.04 step 10 - staging estado_beneficiario_sienfo(Vcliente).sql 
 
 
 
@@ -3519,7 +3534,7 @@ FROM
 
 
 
--- Copy of 2023.07.21 step 11 - staging estado_beneficiario_goet (Vcliente).sql 
+-- Copy of 2023.08.04 step 11 - staging estado_beneficiario_goet(Vcliente).sql 
 
 
 
@@ -3722,7 +3737,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.21 step 12 - staging estado_beneficiario_moodle (Vcliente).sql 
+-- Copy of 2023.08.04 step 12 - staging estado_beneficiario_moodle(Vcliente).sql 
 
 
 
@@ -3987,7 +4002,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.07.21 step 13 - staging estado_beneficiario_siu(Vcliente).sql 
+-- Copy of 2023.08.04 step 13 - staging estado_beneficiario_siu(Vcliente).sql 
 
 
 
@@ -4217,7 +4232,7 @@ WHERE resultado.orden_duplicado=1
 
 
 
--- Copy of 2023.07.21 step 14 - staging edicion capacitacion(Vcliente).sql 
+-- Copy of 2023.08.04 step 14 - staging edicion capacitacion(Vcliente).sql 
 
 
 
@@ -5141,7 +5156,7 @@ WHERE a.id IS NULL
 
 
 
--- Copy of 2023.07.21 step 15 - consume edicion capacitacion(Vcliente).sql 
+-- Copy of 2023.08.04 step 15 - consume edicion capacitacion(Vclliente).sql 
 
 
 
@@ -5182,7 +5197,7 @@ AND ed.capacitacion_id_new IS NOT NULL
 
 
 
--- Copy of 2023.07.21 step 16 - staging cursada(Vcliente).sql 
+-- Copy of 2023.08.04 step 16 - staging cursada(Vclliente).sql 
 
 
 
@@ -5627,7 +5642,8 @@ LEFT JOIN "caba-piba-staging-zone-db"."tbp_typ_def_edicion_capacitacion" ed ON
 									CAST(pl.periodo_lectivo AS VARCHAR)  || '-' || CAST(est.id AS VARCHAR) || '-' ||
 									CAST(dc.id_modalidad AS VARCHAR) || '-' || CAST(turno_c.turno AS VARCHAR)
 									)
-		AND ed.id_establecimiento = comi.ubicacion
+		--AND ed.id_establecimiento = comi.ubicacion
+		AND ed.id_establecimiento = est.id
 		AND ed.base_origen = 'SIU')
 
 LEFT JOIN
@@ -5719,7 +5735,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.21 step 17 - consume cursada(Vcliente).sql 
+-- Copy of 2023.08.04 step 17 - consume cursada(Vclliente).sql 
 
 
 
@@ -5805,7 +5821,7 @@ WHERE orden = 1
 
 
 
--- Copy of 2023.07.21 step 18 - consume trayectoria_educativa(Vcliente).sql 
+-- Copy of 2023.08.04 step 18 - consume trayectoria_educativa(Vclliente).sql 
 
 
 
@@ -5861,7 +5877,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.21 step 19 - consume puestos(Vcliente).sql 
+-- Copy of 2023.08.04 step 19 - consume puestos(Vclliente).sql 
 
 
 
@@ -5941,7 +5957,7 @@ WHERE codigo='3139'
 
 
 
--- Copy of 2023.07.21 step 20 - staging oportunidad_laboral(Vcliente).sql 
+-- Copy of 2023.08.04 step 20 - staging oportunidad_laboral(Vclliente).sql 
 
 
 
@@ -6837,9 +6853,10 @@ etf.descripcion,
 etf.fecha_publicacion,
 etf.estado AS estado_origen,
 CASE
-    WHEN etf.estado LIKE 'Vigente' OR etf.estado LIKE 'en_curso' OR etf.estado LIKE 'Publicado' THEN 'ABIERTO'
-    WHEN etf.estado LIKE 'cancelada'  THEN 'CANCELADO'
-    WHEN etf.estado LIKE 'finalizada' THEN 'CERRADO'
+    WHEN etf.estado LIKE 'Vigente' OR etf.estado LIKE 'en_curso' OR etf.estado LIKE 'Publicado' OR UPPER(etf.estado) LIKE 'MODIFICADO'
+    OR UPPER(etf.estado) LIKE 'NUEVO' OR UPPER(etf.estado) LIKE 'APROBADO' THEN 'ABIERTO'
+    WHEN etf.estado LIKE 'cancelada' THEN 'CANCELADO'
+    WHEN etf.estado LIKE 'finalizada' OR UPPER(etf.estado) LIKE 'FINALIZADO' THEN 'CERRADO'
     ELSE etf.estado
 END estado,
 etf.apto_discapacitado AS apto_discapacitado_origen,
@@ -7062,7 +7079,7 @@ FROM ecr3
 
 
 
--- Copy of 2023.07.21 step 21 - staging registro_laboral_formal(Vcliente).sql 
+-- Copy of 2023.08.04 step 21 - staging registro_laboral_formal(Vclliente).sql 
 
 
 
@@ -7640,7 +7657,7 @@ FROM
 
 
 
--- Copy of 2023.07.21 step 22 - staging organizaciones(Vcliente).sql 
+-- Copy of 2023.08.04 step 22 - staging organizaciones(Vclliente).sql 
 
 
 
@@ -7702,7 +7719,7 @@ FROM rlf_op2
 
 
 
--- Copy of 2023.07.21 step 23 - consume organizaciones (Vcliente).sql 
+-- Copy of 2023.08.04 step 23 - consume organizaciones(Vclliente).sql 
 
 
 
@@ -7725,7 +7742,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_organizaciones"
 
 
 
--- Copy of 2023.07.21 step 24 - consume oportunidad_laboral(Vcliente).sql 
+-- Copy of 2023.08.04 step 24 - consume oportunidad_laboral(Vclliente).sql 
 
 
 
@@ -7901,6 +7918,9 @@ oportunidad_laboral_idiomas AS (
 		oli.idioma_requerido
 	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_idiomas" oli
 	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.id_old=oli.oportunidad_laboral_id AND ol.base_origen = oli.base_origen)
+	GROUP BY
+		ol.id_oportunidad_laboral,
+		oli.idioma_requerido
 	)
 SELECT *
 FROM oportunidad_laboral_idiomas
@@ -7913,13 +7933,17 @@ oportunidad_laboral_conocimientos AS (
 	SELECT
 		row_number() OVER () AS id_oportunidad_laboral_conocimientos,
 		--olc.informatica_conocimiento_id,
-		--ol.id_oportunidad_laboral,
+		ol.id_oportunidad_laboral,
 		--olc.informatica_id,
 		--olc.conocimiento_id,
 		olc.tipo_conocimiento,
 		olc.descripcion_conocimiento
 	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_conocimientos" olc
 	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.id_old=olc.oportunidad_laboral_id AND ol.base_origen = olc.base_origen)
+	GROUP BY
+		ol.id_oportunidad_laboral,
+		olc.tipo_conocimiento,
+		olc.descripcion_conocimiento
 	)
 SELECT *
 FROM oportunidad_laboral_conocimientos
@@ -7927,7 +7951,7 @@ FROM oportunidad_laboral_conocimientos
 
 
 
--- Copy of 2023.07.21 step 25 - consume sector_productivo(Vcliente).sql 
+-- Copy of 2023.08.04 step 25 - consume sector_productivo(Vclliente).sql 
 
 
 
@@ -8029,7 +8053,7 @@ sp.sector_productivo
 
 
 
--- Copy of 2023.07.21 step 26 - consume_registro_laboral_formal(Vcliente).sql 
+-- Copy of 2023.08.04 step 26 - consume_registro_laboral_formal(Vclliente).sql 
 
 
 
@@ -8042,6 +8066,7 @@ DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_registro_laboral_f
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_registro_laboral_formal" AS
 SELECT
 	MAX(registro_laboral_formal_id) AS id_registro_laboral,
+	base_origen,
 	id_puesto,
 	id_broker,
 	cuit_del_empleador,
@@ -8053,6 +8078,7 @@ SELECT
 	remuneracion_moneda_constante
 FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_registro_laboral_formal_completa"
 GROUP BY
+    base_origen,
 	id_puesto,
 	id_broker,
 	cuit_del_empleador,
@@ -8091,7 +8117,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.21 step 27 - staging postulaciones(Vcliente).sql 
+-- Copy of 2023.08.04 step 27 - staging postulaciones(Vclliente).sql 
 
 
 
@@ -8363,7 +8389,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.21 step 28 - consume postulaciones(Vcliente).sql 
+-- Copy of 2023.08.04 step 28 - consume postulaciones(Vclliente).sql 
 
 
 
@@ -8399,7 +8425,7 @@ FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_postulaciones" p
 
 
 
--- Copy of 2023.07.21 step 29 - staging experiencia_laboral(Vcliente).sql 
+-- Copy of 2023.08.04 step 29 - staging experiencia_laboral(Vclliente).sql 
 
 
 
@@ -8538,8 +8564,11 @@ SELECT
 	    WHEN UPPER(empresa_limpia) LIKE '%ZURICH ARGENTINA%' OR UPPER(empresa_limpia) LIKE '%ZURICH ARGENTINA CÃA DE SEGUROS%' THEN 'ZURICH ARGENTINA COMPAÃÃA DE SEGUROS SA'
 	    WHEN UPPER(empresa_limpia) LIKE '%WHIRLPOOL%' OR UPPER(empresa_limpia) LIKE '%WHIRLPOOL AR%' OR UPPER(empresa_limpia) LIKE '%WHIRLPOOL ARGENTINA%' OR UPPER(empresa_limpia) LIKE '%WHIRLPOOL ARGENTINA SRL%' OR UPPER(empresa_limpia) LIKE '%WHIRLPOOL LAWSA GARANTIA EXTENDIDA%' OR UPPER(empresa_limpia) LIKE '%WHIRLPOOL SA%' OR UPPER(empresa_limpia) LIKE '%WHIRLPOOL SRL%' OR UPPER(empresa_limpia) LIKE '%WHIRPOHOLL%' OR UPPER(empresa_limpia) LIKE '%WHIRPOOL%' OR UPPER(empresa_limpia) LIKE '%WHIRPOOL ARGENTINA%' THEN 'WHIRLPOOL ARGENTINA SA'
 	    WHEN UPPER(empresa_limpia) LIKE '%VOLSKWAGEN ARGENTINA%' OR UPPER(empresa_limpia) LIKE '%VOLSKWAGEN ARNGENTINA%' OR UPPER(empresa_limpia) LIKE '%VOLSKWAGEN SA%' OR UPPER(empresa_limpia) LIKE '%VOLSKWAGEN ALRA%' THEN 'VOLKSWAGEN ARGENTINA SA'
+	    WHEN UPPER(empresa_limpia) LIKE '%1%' OR UPPER(empresa_limpia) LIKE '%33%' OR UPPER(empresa_limpia) LIKE '%214%' OR UPPER(empresa_limpia) LIKE '%257%' OR UPPER(empresa_limpia) LIKE '%225%'OR UPPER(empresa_limpia) LIKE '%314%'OR UPPER(empresa_limpia) LIKE '%220%'OR UPPER(empresa_limpia) LIKE '%220%'OR UPPER(empresa_limpia) LIKE '%365%'OR UPPER(empresa_limpia) LIKE '%451%'OR UPPER(empresa_limpia) LIKE '%747%'OR UPPER(empresa_limpia) LIKE '%1810%'OR UPPER(empresa_limpia) LIKE '%1816%'OR UPPER(empresa_limpia) LIKE '%2015%' OR UPPER(empresa_limpia) LIKE '%2000%' OR UPPER(empresa_limpia) LIKE '%2019%'OR UPPER(empresa_limpia) LIKE '%2080%'OR UPPER(empresa_limpia) LIKE '%2211%'OR UPPER(empresa_limpia) LIKE '%3080%'OR UPPER(empresa_limpia) LIKE '%6720%'OR UPPER(empresa_limpia) LIKE '%20006%'OR UPPER(empresa_limpia) LIKE '%1127811047%' THEN ''
 	    WHEN UPPER(empresa_limpia) LIKE '%2016 EMBAJADA DE LA REPÃBLICA POPULAR CHINA%' THEN 'EMBAJADA DE LA REPUBLICA POPULAR CHINA'
 	    WHEN UPPER(empresa_limpia) LIKE '%365%' OR UPPER(empresa_limpia) LIKE '%365 4K%' OR UPPER(empresa_limpia) LIKE '%365 KIOSCO ARGENTINA%' OR UPPER(empresa_limpia) LIKE '%365 KIOSCO ARGENTINO%' OR UPPER(empresa_limpia) LIKE '%365 KIOSCOS ARFGENTINOS%' OR UPPER(empresa_limpia) LIKE '%365 KIOSCOS ARGENTINOS%' OR UPPER(empresa_limpia) LIKE '%365 KIOSCOS ARGENTINOS Y 4K SA%' OR UPPER(empresa_limpia) LIKE '%365 KIOSKOS%' OR UPPER(empresa_limpia) LIKE '%365 QUIOSCOS ARGENTINOS%' OR UPPER(empresa_limpia) LIKE '%365 Y KIOSCOS ARGENTINOS%' THEN '365 KIOSCOS ARGENTINOS'
+	    WHEN UPPER(empresa_limpia) LIKE '%MAC DONALD%' OR UPPER(empresa_limpia) LIKE '%MAC DONALDS%' OR UPPER(empresa_limpia) LIKE '%MAC DONALS%' OR UPPER(empresa_limpia) LIKE '%MC DONAL%' OR UPPER(empresa_limpia) LIKE '%MC DONAL S%'OR UPPER(empresa_limpia) LIKE '%MC DONALD S%'OR UPPER(empresa_limpia) LIKE '%MC DONALD%'OR UPPER(empresa_limpia) LIKE '%MC DONALD S SUCURSAL OBELISCO%'OR UPPER(empresa_limpia) LIKE '%MC DONALDS%'OR UPPER(empresa_limpia) LIKE '%MC DONALDSS%'OR UPPER(empresa_limpia) LIKE '%MC DONALLDS%'OR UPPER(empresa_limpia) LIKE '%MC DONALLS%'OR UPPER(empresa_limpia) LIKE '%MC DONALS%'OR UPPER(empresa_limpia) LIKE '%MC DONALSD%' OR UPPER(empresa_limpia) LIKE '%MC DONANDS%' OR UPPER(empresa_limpia) LIKE '%MC DONDALDS%'OR UPPER(empresa_limpia) LIKE '%MC DONLADS%'OR UPPER(empresa_limpia) LIKE '%MC DONLASS%'OR UPPER(empresa_limpia) LIKE '%MC DONNALDS%'OR UPPER(empresa_limpia) LIKE '%MCD%'OR UPPER(empresa_limpia) LIKE '%MCDONAL%'OR UPPER(empresa_limpia) LIKE '%MCDONALD%' OR UPPER(empresa_limpia) LIKE '%MCDONALDS%'OR UPPER(empresa_limpia) LIKE '%MCDONALDSS%'OR UPPER(empresa_limpia) LIKE '%MCDONALS%'OR UPPER(empresa_limpia) LIKE '%MCDONLANDS%'OR UPPER(empresa_limpia) LIKE '%MCDONLDS%'OR UPPER(empresa_limpia) LIKE '%MCDONNALDS%' OR UPPER(empresa_limpia) LIKE '%MCDONNALS%' THEN 'MCDONALDS'
+	    WHEN UPPER(empresa_limpia) LIKE '%MAC DONALDS GCBA%' OR UPPER(empresa_limpia) LIKE '%MC DONALDS 2A SA%' OR UPPER(empresa_limpia) LIKE '%MC DONALDS ADIPFA SA%' OR UPPER(empresa_limpia) LIKE '%MC DONALDS AR5%' OR UPPER(empresa_limpia) LIKE '%MC DONALDS ARGENTINA%' OR UPPER(empresa_limpia) LIKE '%MC DONALDS COLEGIALES%' OR UPPER(empresa_limpia) LIKE '%MC DONALDS SA%' OR UPPER(empresa_limpia) LIKE '%MC DONNALDS ARGENTINA%' OR UPPER(empresa_limpia) LIKE '%MCDONALD ARGENTINA%' OR UPPER(empresa_limpia) LIKE '%MCDONALDS 2 A SA%' OR UPPER(empresa_limpia) LIKE '%MCDONALDS 2A SA%'OR UPPER(empresa_limpia) LIKE '%MCDONALDS ARGENTINA%' OR UPPER(empresa_limpia) LIKE '%MCDONALDS SA%'OR UPPER(empresa_limpia) LIKE '%MCDONALS ARGENTINA%' THEN 'MCDONALDS SA'
 	ELSE  empresa_limpia END AS empresa_limpia,
 	UPPER(descripcion_empleo) AS descripcion_empleo,
 	UPPER(posicion) AS posicion,
@@ -8581,7 +8610,7 @@ GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 
 
 
--- Copy of 2023.07.21 step 30 - consume sector_estrategico(Vcliente).sql 
+-- Copy of 2023.08.04 step 30 - consume sector_estrategico(Vclliente).sql 
 
 
 
@@ -8607,7 +8636,7 @@ ORDER BY 2
 
 
 
--- Copy of 2023.07.21 step 31 - consume match_sector_estrategico_sector_productivo(Vcliente).sql 
+-- Copy of 2023.08.04 step 31 - consume match_sector_estrategico_sector_productivo(Vclliente).sql 
 
 
 
@@ -8867,7 +8896,7 @@ FROM spf
 
 
 
--- Copy of 2023.07.21 step 32 - staging organizacion_actividad (Vcliente).sql 
+-- Copy of 2023.08.04 step 32 - staging organizacion_actividad(Vclliente).sql 
 
 
 
@@ -8893,7 +8922,7 @@ FROM c
 
 
 
--- Copy of 2023.07.21 step 33 - consume actividad_area_de_interes(Vcliente).sql 
+-- Copy of 2023.08.04 step 33 - consume actividad_area_de_interes(Vclliente).sql 
 
 
 
@@ -8961,13 +8990,36 @@ GROUP BY 1, 2, 3
 
 
 
--- Copy of 2023.07.21 step 34 - staging curriculum(Vcliente).sql 
+-- Copy of 2023.08.04 step 34 - staging curriculum(Vclliente).sql 
 
 
 
 -- Crear tabla tmp de curriculum
 --<sql>--
 DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_curriculum`;
+--</sql>--
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_tmp_curriculum_sector_productivo`;
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_sector_productivo" AS
+WITH curriculum_sector_productivo AS (
+
+SELECT
+	CAST(s.id AS VARCHAR) AS sector_productivo_id,
+	'PORTAL EMPLEO' base_origen,
+	REGEXP_REPLACE(CONCAT(' ', CAST(ca.doc_number AS VARCHAR)), '[A-Za-z\.\-\,\(\)\@\_\ ]+', '') AS documento_broker,
+	-- sector productivo
+	s.name AS sector_productivo
+	FROM "caba-piba-raw-zone-db"."portal_empleo_candidates" ca
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_candidate_preferences" cp ON (ca.id = cp.candidate_id)
+	JOIN "caba-piba-raw-zone-db"."portal_empleo_mtr_industry_sectors" s ON (cp.sector_id = s.id)
+	WHERE ca.doc_number IS NOT NULL AND CAST(s.id AS VARCHAR) IS NOT NULL
+)
+SELECT *
+FROM curriculum_sector_productivo
 --</sql>--
 
 --<sql>--
@@ -9357,7 +9409,7 @@ GROUP BY ecc.id,
 
 
 
--- Copy of 2023.07.21 step 35 - consume curriculum(Vcliente).sql 
+-- Copy of 2023.08.04 step 35 - consume curriculum(Vclliente).sql 
 
 
 
@@ -9365,6 +9417,11 @@ GROUP BY ecc.id,
 --<sql>--
 DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_curriculum`;
 --</sql>--
+
+--<sql>--
+DROP TABLE IF EXISTS `caba-piba-staging-zone-db`.`tbp_typ_def_curriculum_sector_productivo`;
+--</sql>--
+
 
 --<sql>--
 CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" AS
@@ -9468,7 +9525,8 @@ cv_con_duplicados AS (
 					WHEN 'NN' THEN 9
 					ELSE 10
 				  END
-		) AS "orden_duplicado_vecino"
+		) AS "orden_duplicado_vecino",
+		cv.documento_broker
 FROM
 	"nivel_educactivo_pe_ordenado" cv
 	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec ON (
@@ -9497,28 +9555,48 @@ GROUP BY
 	cv.tipo_doc_broker,
 	cv.documento_broker
 )
-SELECT  id,
-	id_old,
-	base_origen,
-	id_vecino,
-	modalidad,
-	fecha_publicacion,
-	fecha_ultima_modificacion,
-	disponibilidad,
-	presentacion,
-	estado,
-	metas,
-	nivel_educativo,
-	nivel_educativo_estado,
-	tipo_discapacidad,
-	licencia_conducir
-FROM cv_con_duplicados
-WHERE orden_duplicado_vecino = 1
+SELECT  cvd.id,
+	cvd.id_old,
+	cvd.base_origen,
+	cvd.id_vecino,
+	cvd.modalidad,
+	cvd.fecha_publicacion,
+	cvd.fecha_ultima_modificacion,
+	cvd.disponibilidad,
+	cvd.presentacion,
+	cvd.estado,
+	cvd.metas,
+	cvd.nivel_educativo,
+	cvd.nivel_educativo_estado,
+	cvd.tipo_discapacidad,
+	cvd.licencia_conducir
+FROM cv_con_duplicados cvd
+
+WHERE cvd.orden_duplicado_vecino = 1
+--</sql>--
+
+--<sql>--
+CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum_sector_productivo" AS
+WITH curriculum_sector_productivo AS (
+SELECT
+	row_number() OVER () AS id_curriculum_sector_productivo,
+	cv.id AS id_curriculum,
+	cvsp.sector_productivo
+	FROM "caba-piba-staging-zone-db"."tbp_typ_def_vecino" vec
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (cv.id_vecino = vec.id_vecino)
+	JOIN "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_sector_productivo" cvsp ON (cvsp.documento_broker = vec.documento_broker)
+	GROUP BY
+		cv.id,
+		cvsp.sector_productivo
+
+)
+SELECT *
+FROM curriculum_sector_productivo
 --</sql>--
 
 
 
--- Copy of 2023.07.21 step 36 - consume tipo_formacion(Vcliente).sql 
+-- Copy of 2023.08.04 step 36 - consume tipo_formacion(Vclliente).sql 
 
 
 
@@ -9534,7 +9612,7 @@ ORDER BY value
 
 
 
--- Copy of 2023.07.21 step 37 - staging formacion_academica(Vcliente).sql 
+-- Copy of 2023.08.04 step 37 - staging formacion_academica(Vclliente).sql 
 
 
 
@@ -9672,7 +9750,7 @@ ORDER BY cl4.descripcion
 
 
 
--- Copy of 2023.07.21 step 38 - consume formacion_academica(Vcliente).sql 
+-- Copy of 2023.08.04 step 38 - consume formacion_academica(Vclliente).sql 
 
 
 
@@ -9840,7 +9918,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.21 step 39 - staging conocimientos_aptitudes(Vcliente).sql 
+-- Copy of 2023.08.04 step 39 - staging conocimientos_aptitudes(Vclliente).sql 
 
 
 
@@ -10253,7 +10331,7 @@ FROM cl4
 
 
 
--- Copy of 2023.07.21 step 40 -consume conocimientos_aptitudes(Vcliente).sql 
+-- Copy of 2023.08.04 step 40 -consume conocimientos_aptitudes(Vclliente).sql 
 
 
 
@@ -10463,7 +10541,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.21 step 41 - staging areas_de_interes(Vcliente).sql 
+-- Copy of 2023.08.04 step 41 - staging areas_de_interes(Vclliente).sql 
 
 
 
@@ -10542,7 +10620,7 @@ FROM curriculum_areas_de_interes
 
 
 
--- Copy of 2023.07.21 step 42 - consume areas_de_interes(Vcliente).sql 
+-- Copy of 2023.08.04 step 42 - consume areas_de_interes(Vclliente).sql 
 
 
 
@@ -10595,6 +10673,11 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral_areas_
 	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_oportunidad_laboral_areas_de_interes" olai
 		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (olai.id_areas_de_interes = ai.id_old AND olai.base_origen = ai.base_origen)
 		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_oportunidad_laboral" ol ON (ol.id_old = olai.id_oportunidad_laboral AND ol.base_origen = ai.base_origen)
+
+	GROUP BY
+		ol.id_oportunidad_laboral,
+		ai.id_areas_de_interes
+
 )
 SELECT *
 FROM oportunidad_laboral_areas_de_interes
@@ -10609,6 +10692,9 @@ CREATE TABLE "caba-piba-staging-zone-db"."tbp_typ_def_curriculum_areas_de_intere
 	FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_curriculum_areas_de_interes" cvai
 		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_areas_de_interes" ai ON (cvai.id_areas_de_interes = ai.id_old AND cvai.base_origen = ai.base_origen)
 		JOIN "caba-piba-staging-zone-db"."tbp_typ_def_curriculum" cv ON (cv.id_old = cvai.id_curriculum AND cv.base_origen = ai.base_origen)
+	GROUP BY
+		cv.id,
+		ai.id_areas_de_interes
 )
 SELECT *
 FROM curriculum_areas_de_interes
@@ -10616,7 +10702,7 @@ FROM curriculum_areas_de_interes
 
 
 
--- Copy of 2023.07.21 step 43 - consume experiencia_laboral(Vcliente).sql 
+-- Copy of 2023.08.04 step 43 - consume experiencia_laboral(Vclliente).sql 
 
 
 
@@ -10747,7 +10833,7 @@ GROUP BY
 
 
 
--- Copy of 2023.07.21 step 44 - consume vecinos-nivel-educativo(Vcliente).sql 
+-- Copy of 2023.08.04 step 44 - consume vecinos-nivel-educativo(Vclliente).sql 
 
 
 
@@ -10842,7 +10928,7 @@ SELECT * FROM "caba-piba-staging-zone-db"."tbp_typ_tmp_vecino_ne"
 
 
 
--- Copy of 2023.07.21 step 45 - consume organizacion_actividad(Vcliente).sql 
+-- Copy of 2023.08.04 step 45 - consume organizacion_actividad(Vclliente).sql 
 
 
 
